@@ -74,3 +74,7 @@ It neither reserves cash nor authorises live orders.
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
 costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable
 ledger events, not evidence of strategy profitability.
+
+The [versioned exchange calendar](docs/calendar.md) validates scheduled 2026
+NYSE/Nasdaq equity sessions, holidays and early closes. Other years fail closed.
+Settlement dates and unscheduled closures still require separate validation.

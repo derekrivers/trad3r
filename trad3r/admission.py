@@ -3,6 +3,7 @@ from datetime import time, timedelta
 from decimal import Decimal as D
 from zoneinfo import ZoneInfo
 
+from .calendar import CALENDAR_ID, session_bounds
 from .ledger import Ledger, nonnegative, positive, shares, utc
 from .risk import Mark, Policy, money, planned_long_loss
 
@@ -51,6 +52,8 @@ def check_entry(ledger: Ledger, risk: dict, proposal: dict, at: str, attempts: i
         if not timedelta(0) <= age <= timedelta(seconds=60):
             reasons.append(name + "_stale_or_future")
     local = now.astimezone(ZoneInfo("America/New_York"))
+    if session_bounds(local.date().isoformat()) is None:
+        reasons.append("market_closed")
     if local.date().isoformat() != risk["baseline_session"]:
         reasons.append("period_review_required")
     if local.weekday() >= 5 or not time(10) <= local.time() < time(11, 30):
@@ -74,6 +77,7 @@ def check_entry(ledger: Ledger, risk: dict, proposal: dict, at: str, attempts: i
         if loss > limit + money(pnl[field]):
             reasons.append(name + "_loss_headroom")
     return {"mode": "offline_entry_diagnostic_only", "eligible": not reasons,
+            "calendar_id": CALENDAR_ID,
             "reasons": sorted(set(reasons)), "planned_loss_gbp": loss,
             "notional_gbp": notional, "cash_required_usd": cash_required,
             "attempts_before": attempts, "live_trading_enabled": False}

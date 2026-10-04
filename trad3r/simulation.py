@@ -5,6 +5,7 @@ from datetime import date, time, timedelta
 from zoneinfo import ZoneInfo
 
 from .admission import check_entry
+from .calendar import CALENDAR_ID, validate_minute
 from .ledger import Ledger, nonnegative, positive, shares, utc
 from .risk import Mark, Policy, assess
 
@@ -33,6 +34,8 @@ def simulate(bars, scenario):
     bars = list(bars)
     if not bars or any(b.symbol != symbol or b.session != session for b in bars):
         raise ValueError("Simulation requires exactly one symbol and session")
+    for bar in bars:
+        validate_minute(bar.start, session)
     if any(b.start != a.available_at for a, b in zip(bars, bars[1:])):
         raise ValueError("Simulation bars must be contiguous and chronological")
     bars = [b for b in bars if b.start.astimezone(zone).time() < time(12)]
@@ -152,6 +155,7 @@ def simulate(bars, scenario):
     for signal in signals[cursor:]:
         trace.append(dict(type="expired_signal", signal=signal["id"], reason="no_later_entry_bar"))
     return dict(mode="offline_scenario_simulation_only", live_trading_enabled=False,
+                calendar_id=CALENDAR_ID,
                 symbol=symbol, session=session, bars=len(bars), attempts=attempts,
                 truncated_session=bars[-1].available_at.astimezone(zone).time() != time(12),
                 halt_reasons=list(latched), final_ledger=book.last_report, trace=trace, ledger_events=events)
