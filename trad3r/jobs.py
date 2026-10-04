@@ -33,7 +33,9 @@ def _identity(connection, registration_sha):
 def _durable_result(path):
     # Publish is exclusive and atomic. Flush file and directory before recording
     # completion; storage/hardware still determine power-loss durability.
-    with path.open("rb") as stream:
+    # Windows _commit requires a writable descriptor; r+b never truncates or
+    # changes the already-verified bytes. POSIX permits a read-only descriptor.
+    with path.open("r+b" if os.name == "nt" else "rb") as stream:
         os.fsync(stream.fileno())
     if os.name == "posix":
         directory = os.open(path.parent, os.O_RDONLY)

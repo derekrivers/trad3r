@@ -53,7 +53,7 @@ class JobTests(unittest.TestCase):
     def test_failure_before_publication_keeps_identity_and_can_retry(self):
         with patch.object(e, "run_experiment", side_effect=KeyboardInterrupt), self.assertRaises(KeyboardInterrupt):
             jobs.run_job(self.root)
-        with sqlite3.connect(self.root/"job.sqlite") as connection:
+        with contextlib.closing(sqlite3.connect(self.root/"job.sqlite")) as connection, connection:
             self.assertEqual(connection.execute("SELECT registration_sha, bundle_sha FROM job").fetchone(),
                              (e.digest((self.root/"registration.json").read_bytes()), None))
         with patch.object(e, "run_experiment", side_effect=self.publish):
@@ -125,7 +125,7 @@ class JobTests(unittest.TestCase):
 
     def test_unknown_database_and_corrupt_state_are_preserved(self):
         path = self.root/"job.sqlite"
-        with sqlite3.connect(path) as connection:
+        with contextlib.closing(sqlite3.connect(path)) as connection, connection:
             connection.execute("CREATE TABLE unrelated (value TEXT)")
         before = path.read_bytes()
         with self.assertRaisesRegex(ValueError, "Unknown job database"):
@@ -134,7 +134,7 @@ class JobTests(unittest.TestCase):
         path.unlink()
         with patch.object(e, "run_experiment", side_effect=self.publish):
             jobs.run_job(self.root)
-        with sqlite3.connect(path) as connection:
+        with contextlib.closing(sqlite3.connect(path)) as connection, connection:
             connection.execute("DELETE FROM job")
         with self.assertRaisesRegex(ValueError, "inconsistent"):
             jobs.run_job(self.root)
