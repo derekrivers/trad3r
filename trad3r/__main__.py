@@ -17,11 +17,16 @@ from .simulation import simulate, simulate_series
 from .batches import completed_batches
 from .features import FEATURE_SCHEMA, feature_snapshots
 from .strategy import opening_range_signals
+from .research import audit_sample
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Trad3r offline research foundation")
     commands = parser.add_subparsers(dest="command", required=True)
+    audit = commands.add_parser("research-audit", help="Read-only bar inventory and unresolved research gates")
+    audit.add_argument("archive", type=Path)
+    audit.add_argument("--start", required=True, help="Inclusive first date, YYYY-MM-DD")
+    audit.add_argument("--end", required=True, help="Inclusive last date, YYYY-MM-DD")
     for name in ("validate", "replay", "features"):
         sub = commands.add_parser(name)
         sub.add_argument("archive", type=Path)
@@ -60,6 +65,10 @@ def main(argv=None):
             sub.add_argument("--event-id", help="Required when importing a ledger valuation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "research-audit":
+            result = audit_sample(args.archive, args.start, args.end)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
         if args.command == "strategy-signals":
             bars, source = load_sample(args.archive)
             if not source["coverage"]["complete"]:

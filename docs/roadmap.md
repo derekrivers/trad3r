@@ -59,8 +59,11 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   frozen opening ranges. No learned model, labels or strategy selection yet.
 - Delivered: `orb30-one-share-v1` candidate generator and single-session integration
   with unchanged risk checks. No profitability claim, tuning or classifier.
-- Next: explicit research readiness and chronological evaluation protocol; obtain
-  qualified history/FX/cost evidence and review the period-transition design.
+- Delivered: explicit-window research inventory, recorded engineering sample audit,
+  evaluation protocol structure and a concrete owner-reviewable period proposal.
+- Blocked next: implement approved period transitions, then continuous baseline
+  evaluation with qualified history/FX/cost evidence and preregistered partitions.
+  See [research dependencies and ordered continuation](research-readiness.md).
 
 The broker account is not needed for those offline tasks. No profitability or
 live-readiness claim follows from the accounting example or passing unit tests.
