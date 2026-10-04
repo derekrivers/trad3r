@@ -13,7 +13,7 @@ from .risk import Mark, assess
 from .ledger import Ledger, replay_ledger
 from .admission import check_entry
 from . import risk_store
-from .simulation import simulate, simulate_series
+from .simulation import simulate, simulate_series, simulate_research_series
 from .batches import completed_batches
 from .features import FEATURE_SCHEMA, feature_snapshots
 from .strategy import opening_range_signals
@@ -49,7 +49,7 @@ def main(argv=None):
     signals.add_argument("archive", type=Path)
     signals.add_argument("--symbol", required=True)
     signals.add_argument("--session", required=True)
-    for name in ("simulate", "simulate-series", "baseline-simulate"):
+    for name in ("simulate", "simulate-series", "simulate-research-series", "baseline-simulate"):
         simulation = commands.add_parser(name, help="Offline execution scenarios; no validated performance")
         simulation.add_argument("scenario", type=Path)
         simulation.add_argument("--archive", type=Path, help="Use licensed archive bars instead of inline synthetic bars")
@@ -78,10 +78,11 @@ def main(argv=None):
             result.update(source_sha256=source["source_sha256"], calendar_id=source["calendar_id"])
             print(json.dumps(result, default=str, sort_keys=True, indent=2))
             return 0
-        if args.command in ("simulate", "simulate-series", "baseline-simulate"):
+        if args.command in ("simulate", "simulate-series", "simulate-research-series", "baseline-simulate"):
             scenario_bytes = args.scenario.read_bytes()
             payload = decode(scenario_bytes)
-            scenarios = payload["sessions"] if args.command == "simulate-series" else [payload]
+            series_mode = args.command in ("simulate-series", "simulate-research-series")
+            scenarios = payload["sessions"] if series_mode else [payload]
             if not isinstance(scenarios, list) or not scenarios:
                 raise ValueError("Supply a nonempty session array")
             source_sha = None
@@ -104,7 +105,10 @@ def main(argv=None):
                     generated = opening_range_signals(bars, scenario["symbol"])
                     scenario = dict(scenario, signals=generated["signals"])
                 sessions.append((bars, scenario))
-            result = simulate_series(sessions) if args.command == "simulate-series" else simulate(*sessions[0])
+            if args.command == "simulate-research-series":
+                result = simulate_research_series(sessions, **payload["window"], strategy_id=payload["strategy_id"])
+            else:
+                result = simulate_series(sessions) if series_mode else simulate(*sessions[0])
             if args.command == "baseline-simulate":
                 result.update(strategy_id=generated["strategy_id"], feature_schema=generated["feature_schema"],
                               research_status="engineering_scenario_only", generated_signals=generated["signals"])

@@ -15,7 +15,12 @@ including merging after review and verification. Never commit directly to main.
   semantics before strategy optimisation or classifier integration.
 - The agreed limits are GBP 1000 initial funding, GBP 300 absolute cumulative loss,
   GBP 10 session loss, GBP 25 weekly loss and GBP 3 planned all-in trade risk.
-  AI must not weaken limits or reset a halt. Do not automatically renew loss budgets.
+  AI must not weaken limits or reset a halt. Do not automatically renew loss budgets,
+  except the owner's explicit 2026-10-04 approval of option B in
+  docs/period-transition-proposal.md: bounded isolated in-memory historical backtests
+  may renew eligible day/week baselines after assessing the fresh mark against the
+  old baselines. Preserve one account, settlement, all limits and every halt. This
+  exception never applies to durable risk stores, paper/live accounts or brokers.
 - Development authority does not authorise opening/funding accounts, paid services,
   placing trades or enabling live execution. Keep those capabilities disabled.
 - Finish each work session with completed PRs, validation evidence and an explicit

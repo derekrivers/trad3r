@@ -106,4 +106,8 @@ through the existing execution and risk checks using explicit costs and FX.
 requested session window, including dates omitted from the manifest, and reports
 the [remaining research dependencies](docs/research-readiness.md). A structurally
 complete archive does not establish strategy readiness. The next account-state
-decision is the [offline period-transition proposal](docs/period-transition-proposal.md).
+policy is the [approved offline period-transition exception](docs/period-transition-proposal.md).
+`simulate-research-series` applies it to bounded isolated scenarios, carrying one
+account across eligible periods and preserving every triggered halt. See the
+[research rollover contract](docs/research-series.md); durable risk accounts and
+ordinary series retain their period blocks.

@@ -38,7 +38,7 @@ class ResearchAuditTests(unittest.TestCase):
         self.assertEqual(report["window"]["expected_sessions"], 2)
         self.assertFalse(report["research_ready"])
         self.assertFalse(report["live_trading_enabled"])
-        self.assertEqual(len(report["blockers"]), 5)
+        self.assertEqual(len(report["blockers"]), 4)
         self.assertNotIn("trace", report)
 
     def test_partial_minutes_and_short_sessions_use_actual_schedule(self):

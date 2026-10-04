@@ -1,10 +1,12 @@
 # Proposed offline period-transition workflow
 
-Status: **design for owner review; not implemented or approved**.
+Status: **option B explicitly approved by the owner on 2026-10-04 and implemented
+as `offline-unhalted-period-rollover-v1` in isolated research scenarios**.
+Option A remains an unimplemented design. Approval grants no halt-reset authority.
 
 The current account freezes its initial session/week baselines and blocks entries
-on later dates. `AGENTS.md` prohibits automatic loss-budget renewal and AI halt
-resets. The existing risk/series contracts require an owner-reviewed transition
+on later dates. `AGENTS.md` prohibits AI halt resets and automatic loss-budget
+renewal except the approved option B scope. The risk/series contracts required an owner-reviewed transition
 workflow. General authority to build and merge code does not establish this
 financial-state rule; this document makes the decision concrete.
 
@@ -77,10 +79,10 @@ or any future halt-reset mechanism.
 
 ## Option B: bounded automatic rollover in isolated historical backtests
 
-Recommended for practical offline research, **pending explicit owner approval**.
-This is a proposed narrow exception to the current `AGENTS.md` prohibition on
-automatic loss-budget renewal, not an interpretation that the exception already
-exists. General instructions to keep developing do not select it.
+Approved for practical offline research on 2026-10-04 after the owner explicitly
+accepted the proposed scope. This is a narrow exception to the `AGENTS.md`
+prohibition on automatic loss-budget renewal. General development authority alone
+was not used to infer this financial-state rule.
 
 Approve a deterministic historical run policy with these precise constraints:
 
@@ -109,14 +111,15 @@ Approve a deterministic historical run policy with these precise constraints:
    Results must reconcile to the one continuous account. Missing inputs, unknown
    calendars or inconsistent state fail the run without partial success output.
 
-An approved implementation would need the same preservation, breach, settlement,
+The implementation requires the same preservation, breach, settlement,
 chronology and replay tests listed above, plus tests proving that option B cannot
 operate on a durable account or enable live trading. Synthetic inputs may test
 the mechanics; qualified FX/cost/history inputs are still required for credible
 strategy evaluation. This option grants no authority to clear any halt or change
 the £300 maximum-loss policy.
 
-**Decision requested:** authorise option B for implementation and update the
-engineering agreement with precisely this isolated-backtest exception. Until that
-explicit decision, both runtime paths retain their current period block. Option A
-remains the alternative if every historical transition must be individually reviewed.
+The implementation is available through `simulate-research-series`; see
+[the research rollover contract](research-series.md). The ordinary `simulate-series`
+and durable risk-store paths retain their existing period blocks. Frozen-baseline
+multi-session integration is a separate increment; current scenarios supply their
+signals explicitly. Option A remains the alternative design for individual reviews.
