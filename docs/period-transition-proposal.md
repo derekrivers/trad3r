@@ -8,7 +8,7 @@ resets. The existing risk/series contracts require an owner-reviewed transition
 workflow. General authority to build and merge code does not establish this
 financial-state rule; this document makes the decision concrete.
 
-## Proposed behaviour
+## Option A: individually reviewed transitions
 
 Allow an explicit, audited transition to a later scheduled exchange session for an
 offline account only. Do not transition on a timer or merely because a new bar/date
@@ -71,6 +71,52 @@ automatic renewal. It is not included in this proposal.
 - Continuous research results reconcile to one ledger and never sum freshly
   funded daily simulations. No CLI route enables live trading.
 
-The owner decision requested is approval of this explicit, non-halted,
-offline-only transition design for implementation. Implementation authority would
-not approve individual transition records or any future halt-reset mechanism.
+Approval of option A would permit implementing this explicit, non-halted,
+offline-only transition design. It would not approve individual transition records
+or any future halt-reset mechanism.
+
+## Option B: bounded automatic rollover in isolated historical backtests
+
+Recommended for practical offline research, **pending explicit owner approval**.
+This is a proposed narrow exception to the current `AGENTS.md` prohibition on
+automatic loss-budget renewal, not an interpretation that the exception already
+exists. General instructions to keep developing do not select it.
+
+Approve a deterministic historical run policy with these precise constraints:
+
+1. Apply only inside an isolated in-memory backtest with explicit start/end dates,
+   source hashes, strategy version and a recorded policy identifier. No broker
+   connection, durable risk-database mutation, paper/live-account operation or
+   clock-driven daily task. A new run is a research experiment, never a way to
+   resume or conceal a halt in an existing account.
+2. Fund £1,000 once. Carry the same ledger, cumulative flows, pending settlements
+   and all risk latches through all supplied sessions. Record gaps; invent no
+   observations or skipped-day equity. Use the existing scheduled settlement and
+   conservative research cash-release rules.
+3. At each new scheduled session, require flat positions, no pending simulated
+   orders and a valid fresh valuation. Assess that valuation against the existing
+   baselines **before** any rollover, so overnight FX or other observed losses
+   cannot disappear into a fresh starting mark.
+4. If any daily, weekly or overall halt is already present or newly triggered,
+   do not roll over and do not permit further entries in that run. Continue
+   accounting/valuation as appropriate. Price recovery, a new week and deposits
+   cannot clear the halt. There is no automatic restart.
+5. Otherwise set the new daily baseline to the current full mark. Preserve the
+   weekly baseline within the same Monday-based New York week; change it only at
+   a new week. Keep the £300 cumulative limit anchored to original funding and
+   cumulative external flows, and keep the £10/£25/£3 limits unchanged.
+6. Journal the valuation, old/new baselines, period IDs, policy ID and decision.
+   Results must reconcile to the one continuous account. Missing inputs, unknown
+   calendars or inconsistent state fail the run without partial success output.
+
+An approved implementation would need the same preservation, breach, settlement,
+chronology and replay tests listed above, plus tests proving that option B cannot
+operate on a durable account or enable live trading. Synthetic inputs may test
+the mechanics; qualified FX/cost/history inputs are still required for credible
+strategy evaluation. This option grants no authority to clear any halt or change
+the £300 maximum-loss policy.
+
+**Decision requested:** authorise option B for implementation and update the
+engineering agreement with precisely this isolated-backtest exception. Until that
+explicit decision, both runtime paths retain their current period block. Option A
+remains the alternative if every historical transition must be individually reviewed.

@@ -47,7 +47,7 @@ point-in-time universe selection or authentic vendor delivery timestamps.
 
 | Dependency | Concrete input / decision | What it unblocks |
 | --- | --- | --- |
-| Period transitions | Owner review of [the precise proposal](period-transition-proposal.md) | Implementing continuous-account strategy runs without creating a new £1,000 account each day |
+| Period transitions | Owner decision on [option B: bounded automatic offline rollover](period-transition-proposal.md), or individually reviewed option A | Implementing continuous-account strategy runs without creating a new £1,000 account each day |
 | Broader stock history | Licensed raw minute exports, symbols/date inventory, provider metadata, acquisition date and rights/retention notes | Independent checks and chronological development/validation/test planning |
 | USD/GBP history | UTC observation timestamps, rate direction, source, provenance and delivery/availability convention | GBP equity, cash and risk accounting across the same period |
 | Execution economics | Dated intended account/instrument fee schedule; minimum commissions, FX conversion costs and market-data charges; bid/ask evidence or documented spread/slippage stress assumptions | Assessing whether a one-share hypothesis can survive actual costs |
@@ -104,8 +104,8 @@ protocol; adding an AI call now would not supply the missing evidence.
 
 ## Ordered engineering continuation
 
-After the period decision: implement explicit transition records and rejection
-tests; integrate the reviewed policy into continuous-account baseline replay;
+After the period decision: implement the selected transition policy and its audit
+records/rejection tests; integrate it into continuous-account baseline replay;
 then add experiment manifests and chronological evaluation reports against the
 qualified inputs. Broker order persistence/recovery and forward paper execution
 remain later work after account/data economics and execution contracts are known.
