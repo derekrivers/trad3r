@@ -77,4 +77,7 @@ ledger events, not evidence of strategy profitability.
 
 The [versioned exchange calendar](docs/calendar.md) validates scheduled 2026
 NYSE/Nasdaq equity sessions, holidays and early closes. Other years fail closed.
-Settlement dates and unscheduled closures still require separate validation.
+The separate [settlement model](docs/settlement.md) calculates scheduled 2026 T+1
+dates and holds proceeds until after the full settlement day in New York. Cash
+release requires an explicit ledger event. Broker cash availability, unscheduled
+closures and delayed/failed settlement still require separate reconciliation.

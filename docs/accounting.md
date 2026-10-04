@@ -16,7 +16,7 @@ Amounts use decimal strings. Invalid events roll back all in-memory changes.
 | exchange | from_currency, amount, received, fee_gbp | Explicit executed conversion amounts, with GBP fee |
 | buy | symbol, quantity, price, fee_usd, usd_to_gbp | Whole USD shares, funded from settled USD cash |
 | sell | symbol, quantity, price, fee_usd, usd_to_gbp, settles_on | Realises cost basis; net proceeds become unsettled USD |
-| settle | none | Moves amounts due by the event's UTC date into settled cash |
+| settle | none | Releases eligible lots after their full settlement day in New York |
 | value | usd_to_gbp, prices | Current GBP equity; prices must contain exactly the held symbol |
 
 All FX inputs are GBP per USD. `value` must be the final event. Its timestamp is
@@ -34,10 +34,14 @@ unrealised position P&L does not necessarily equal account P&L: currency cash ga
 conversion costs and fees can account for the difference. Account P&L is the risk
 input, never the sum of the two trade-only figures.
 
-Settlement dates are explicit scenario inputs, not calculated or verified exchange
-calendar dates. Sale proceeds cannot fund purchases, withdrawals or FX until a
-settlement event releases them. Purchases debit settled cash immediately, a
-conservative research constraint. Real settlement reconciliation remains future work.
+Sale settlement dates must match the [bounded 2026 T+1 calendar](settlement.md).
+The trade date is derived in New York. Research proceeds remain unavailable for
+the entire scheduled settlement day, then require an explicit `settle` event.
+Reports identify the calendar and release policy and list pending amounts/dates
+and earliest research release timestamps. This replaces the old UTC-date release
+rule: old event files with incorrect dates now fail instead of replaying silently.
+Purchases debit settled cash immediately. Broker cash availability, failed or
+delayed settlement and real reconciliation remain future work.
 
 This ledger does not enforce trade-risk, exposure or entry-frequency limits, decide
 whether to enter a trade, or guarantee persistence. Those belong to the execution

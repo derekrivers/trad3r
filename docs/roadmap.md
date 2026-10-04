@@ -23,8 +23,9 @@ brokerage account. It does not waive the full Phase 1 broker feasibility gate.
 ## Next implementation increment
 
 1. Delivered: Decimal cash/position ledger, realised/unrealised P&L, GBP/USD cash,
-   supplied FX, fees and explicit settlement dates. Verified calendar calculation
-   and market-data freshness remain open.
+   supplied FX, fees and validated scheduled 2026 T+1 settlement dates. Research
+   cash release waits until after the settlement day in New York. Real broker
+   reconciliation and market-data freshness remain open.
 2. Delivered: single-symbol/session fill scenarios with delayed entries, explicit
    costs, opening gaps, stop-first ambiguity, risk exits and noon/end-of-data
    flattening. Multi-symbol event batches and multi-session execution remain open.
@@ -45,7 +46,9 @@ Jev is a later optional classifier; its confidence is not a probability of profi
 - Verified multi-symbol completed-bar batches and stronger quote/liquidity contracts.
 - Delivered: bounded, sourced 2026 exchange session calendar; holidays, early
   closes and unsupported years checked in data, entry diagnostics and simulation.
-- Verified settlement calendar, broader historical calendar coverage, unscheduled
+- Delivered: separate scheduled 2026 T+1 settlement calendar and explicit research
+  cash-release policy, including bank holidays on which equities still trade.
+- Broker cash reconciliation, broader historical calendar coverage, unscheduled
   closure handling and fresh price/FX observation contracts.
 - Owner-reviewed period transitions that cannot clear an overall loss halt.
 - Only then: one frozen baseline strategy and chronological evaluation reports.

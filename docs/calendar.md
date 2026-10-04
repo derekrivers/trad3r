@@ -36,11 +36,10 @@ coverage or changing dates requires checking official exchange publications,
 updating the version, tests and documentation, and reviewing a PR. This year bound
 deliberately constrains broader backtests until their dates have been checked.
 
-## Separate settlement work
+## Separate settlement calendar
 
 Do not use the next exchange session as an automatic settlement date. This module
 does not establish clearing or cash availability, and must not release unsettled
-cash. The ledger and simulator still accept an explicitly supplied future
-`settles_on`; it is not verified against an official settlement schedule. A separate
-clearing-calendar contract and broker cash-availability reconciliation remain
-prerequisites for multi-session execution.
+cash. The [settlement module](settlement.md) validates regular-way 2026 T+1 dates
+using a separate schedule and defines an explicit conservative research release
+cutoff. Broker cash-availability reconciliation remains future work.
