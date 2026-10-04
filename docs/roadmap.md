@@ -77,6 +77,9 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   the engineering sample, and explicit millisecond acquisition bounds after checking
   actual endpoint behavior. Next: broader history, independent data checks, qualified
   economic assumptions and registered chronological evaluation.
+- Delivered: engineering experiment registration, exact-input/code checks,
+  immutable result bundles and replay-based inspection. Next: registered cost
+  stresses on the engineering sample, VPS operations and paper-readiness gates.
 
 The broker account is not needed for those offline tasks. No profitability or
 live-readiness claim follows from the accounting example or passing unit tests.

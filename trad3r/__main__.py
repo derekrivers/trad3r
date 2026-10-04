@@ -22,11 +22,27 @@ from .research import audit_sample
 from .backtest import baseline_backtest
 from .preparation import PREPARATION_SCHEMA, prepare_baseline, write_prepared
 from .fx_import import attach_connector_fx
+from .experiments import register_experiment, run_experiment, inspect_experiment
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Trad3r offline research foundation")
     commands = parser.add_subparsers(dest="command", required=True)
+    register = commands.add_parser("register-experiment", help="Freeze exact engineering inputs before outcomes")
+    register.add_argument("archive", type=Path)
+    register.add_argument("assumptions", type=Path)
+    register.add_argument("--id", dest="experiment_id", required=True)
+    register.add_argument("--symbol", required=True)
+    register.add_argument("--start", required=True)
+    register.add_argument("--end", required=True)
+    register.add_argument("--output", type=Path, required=True)
+    run = commands.add_parser("run-experiment", help="Run only the registered inputs and preserve an audited bundle")
+    run.add_argument("registration", type=Path)
+    run.add_argument("archive", type=Path)
+    run.add_argument("assumptions", type=Path)
+    run.add_argument("--output", type=Path, required=True)
+    inspect = commands.add_parser("inspect-experiment", help="Verify bundle integrity and account/metric reconciliation")
+    inspect.add_argument("bundle", type=Path)
     attach = commands.add_parser("attach-fx", help="Attach a declared Massive connector FX CSV export to a stock archive")
     attach.add_argument("archive", type=Path)
     attach.add_argument("csv", type=Path)
@@ -84,6 +100,18 @@ def main(argv=None):
             sub.add_argument("--event-id", help="Required when importing a ledger valuation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "register-experiment":
+            result = register_experiment(args.archive, args.assumptions, args.output,
+                                         experiment_id=args.experiment_id, symbol=args.symbol, start=args.start, end=args.end)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
+        if args.command == "run-experiment":
+            result = run_experiment(args.registration, args.archive, args.assumptions, args.output)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
+        if args.command == "inspect-experiment":
+            print(json.dumps(inspect_experiment(args.bundle), default=str, sort_keys=True, indent=2))
+            return 0
         if args.command == "attach-fx":
             result = attach_connector_fx(args.archive, args.csv, args.output, expected_rows=args.expected_rows,
                                          start=args.start, end=args.end, retrieved_on=args.retrieved_on)

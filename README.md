@@ -81,6 +81,9 @@ Connected Massive exports can also be combined with an existing stock archive us
 [`attach-fx`](docs/acquisition.md#connected-massive-exports). The recorded sample now
 has complete modelled FX coverage for every simulated valuation boundary; historical
 strategy performance and account-specific execution economics remain unqualified.
+The [experiment workflow](docs/experiments.md) freezes exact inputs and code before
+running, saves both accounts and their journals in an immutable result bundle, and
+rechecks accounting/metric integrity with `inspect-experiment`.
 
 The [accounting contract](docs/accounting.md) describes supplied fill events, GBP/USD
 cash, fees, external flows and explicit settlement. Its synthetic example is an
