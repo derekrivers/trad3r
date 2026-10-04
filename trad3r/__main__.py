@@ -24,11 +24,14 @@ from .preparation import PREPARATION_SCHEMA, prepare_baseline, write_prepared
 from .fx_import import attach_connector_fx
 from .experiments import register_experiment, run_experiment, inspect_experiment
 from .jobs import run_job
+from .rehearsal import rehearse_controls
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Trad3r offline research foundation")
     commands = parser.add_subparsers(dest="command", required=True)
+    rehearsal = commands.add_parser("rehearse-controls", help="Run a synthetic offline control drill in a new directory")
+    rehearsal.add_argument("directory", type=Path)
     job = commands.add_parser("run-job", help="Execute or recover one registered offline job in a local directory")
     job.add_argument("directory", type=Path)
     register = commands.add_parser("register-experiment", help="Freeze exact engineering inputs before outcomes")
@@ -103,6 +106,9 @@ def main(argv=None):
             sub.add_argument("--event-id", help="Required when importing a ledger valuation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "rehearse-controls":
+            print(json.dumps(rehearse_controls(args.directory), default=str, sort_keys=True, indent=2))
+            return 0
         if args.command == "run-job":
             print(json.dumps(run_job(args.directory), sort_keys=True, indent=2))
             return 0

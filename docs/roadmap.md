@@ -84,8 +84,10 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   See [recorded results](first-engineering-results.md). No strategy qualification.
 - Delivered: recoverable offline jobs, duplicate-run exclusion and a network-disabled
   systemd template with an operating/backup guide. Actual VPS deployment remains open.
-- Next: executable paper-control rehearsals, explicit paper-readiness gates,
-  broker order lifecycle/reconciliation and qualified forward data. Durable paper
+- Delivered: executable synthetic control rehearsal, retained risk/journal evidence
+  and [explicit forward paper gates](paper-readiness.md).
+- Next: durable broker-neutral order intents, broker reconciliation and qualified
+  forward data. Durable paper
   period transitions still require a separate owner-reviewed policy.
 
 The broker account is not needed for those offline tasks. No profitability or
