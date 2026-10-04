@@ -1,5 +1,6 @@
 """Read validated Massive sample archives without extracting or executing files."""
 import hashlib
+from io import BytesIO
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -99,9 +100,22 @@ def coverage_report(bars, symbols, sessions):
 
 
 def load_sample(path: Path):
-    if path.stat().st_size > 50 * 1024 * 1024:
+    return load_sample_bytes(read_sample_bytes(path))
+
+
+def read_sample_bytes(path: Path):
+    """Bounded snapshot; validation, extensions and hashing use the same bytes."""
+    with path.open("rb") as stream:
+        raw = stream.read(50 * 1024 * 1024 + 1)
+    if len(raw) > 50 * 1024 * 1024:
         raise ValueError("Sample archive exceeds 50 MiB limit")
-    with ZipFile(path) as archive:
+    return raw
+
+
+def load_sample_bytes(source_bytes):
+    if not isinstance(source_bytes, bytes) or len(source_bytes) > 50 * 1024 * 1024:
+        raise ValueError("Sample archive exceeds 50 MiB limit or is not bytes")
+    with ZipFile(BytesIO(source_bytes)) as archive:
         members = archive.infolist()
         names = [m.filename for m in members]
         if len(members) > 1000 or sum(m.file_size for m in members) > 100 * 1024 * 1024:
@@ -142,7 +156,7 @@ def load_sample(path: Path):
             bars.extend(series)
     bars.sort(key=lambda b: (b.available_at, b.symbol))
     summary = {"schema_version": 1, "mode": "offline_replay_only",
-               "source_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+               "source_sha256": hashlib.sha256(source_bytes).hexdigest(),
                "symbols": sorted(symbols), "bars": len(bars), "session_counts": counts,
                "first_available_at": bars[0].available_at.isoformat(),
                "last_available_at": bars[-1].available_at.isoformat(),

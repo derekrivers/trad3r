@@ -101,6 +101,9 @@ prices and quote gaps remain research limitations. Normal stock validation does
 not establish FX freshness or coverage. The archive alone is not a backtest scenario:
 costs, initial currency conversion and explicit settlement instructions remain
 required, and FX must be matched causally with the simulator's freshness checks.
+[`prepare-baseline`](preparation.md) now performs that causal matching with supplied
+fixed-cost/conversion assumptions and existing simulated settlement rules, without
+running the strategy or declaring inputs qualified.
 
 ## Brokerage costs are a separate input
 

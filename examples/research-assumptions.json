@@ -1,0 +1,6 @@
+{
+  "schema": "fixed-cost-research-assumptions-v1",
+  "label": "Invented engineering example; not qualified broker fees or conversion pricing",
+  "funding": {"amount": "400", "received": "500", "fee_gbp": "0"},
+  "costs": {"entry_fee_usd": "0.5", "exit_fee_usd": "0.5", "slippage_usd_per_share": "0.05"}
+}
