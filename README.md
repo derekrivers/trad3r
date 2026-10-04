@@ -70,6 +70,11 @@ Market data and API keys must stay outside this public repository. Tests generat
 synthetic bars locally; CI needs neither licensed data nor credentials. See
 [data contract](docs/data.md) and [delivery roadmap](docs/roadmap.md).
 
+The separate [local acquisition command](docs/acquisition.md) plans and explicitly
+downloads raw stock minutes plus historical GBP/USD valuation proxies from an
+existing Massive account. It defaults to a dry run, prompts securely for a local
+key, paces read-only requests and refuses overwrites. No subscription is purchased.
+
 The [accounting contract](docs/accounting.md) describes supplied fill events, GBP/USD
 cash, fees, external flows and explicit settlement. Its synthetic example is an
 accounting check, not strategy performance.

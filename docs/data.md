@@ -69,6 +69,11 @@ the order of a stop and target touched in the same minute.
 
 ## Next data work
 
+The [local acquisition command](acquisition.md) now produces compatible archives
+with raw stocks, separately labelled completed-minute FX proxies and request hashes.
+Its dry-run plan needs no key. Actual entitlement checks and data qualification
+remain required; stock completeness does not qualify the FX or cost model.
+
 Add a corporate-action case, an independent minute-level comparison and broader
 history before strategy validation. Use raw historical prices for whole-share
 quantity and cash calculations; keep adjustment metadata separate for features.
