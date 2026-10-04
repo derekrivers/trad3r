@@ -16,6 +16,7 @@ from . import risk_store
 from .simulation import simulate, simulate_series
 from .batches import completed_batches
 from .features import FEATURE_SCHEMA, feature_snapshots
+from .strategy import opening_range_signals
 
 
 def main(argv=None):
@@ -39,8 +40,12 @@ def main(argv=None):
     entry.add_argument("proposal", type=Path)
     entry.add_argument("--at", required=True)
     entry.add_argument("--attempts", type=int, required=True)
-    for name in ("simulate", "simulate-series"):
-        simulation = commands.add_parser(name, help="Offline scenarios; not a strategy")
+    signals = commands.add_parser("strategy-signals", help="Frozen experimental opening-range candidates")
+    signals.add_argument("archive", type=Path)
+    signals.add_argument("--symbol", required=True)
+    signals.add_argument("--session", required=True)
+    for name in ("simulate", "simulate-series", "baseline-simulate"):
+        simulation = commands.add_parser(name, help="Offline execution scenarios; no validated performance")
         simulation.add_argument("scenario", type=Path)
         simulation.add_argument("--archive", type=Path, help="Use licensed archive bars instead of inline synthetic bars")
     for command in ("risk-init", "risk-status", "risk-history", "risk-record"):
@@ -55,7 +60,16 @@ def main(argv=None):
             sub.add_argument("--event-id", help="Required when importing a ledger valuation")
     args = parser.parse_args(argv)
     try:
-        if args.command in ("simulate", "simulate-series"):
+        if args.command == "strategy-signals":
+            bars, source = load_sample(args.archive)
+            if not source["coverage"]["complete"]:
+                raise ValueError("Strategy archive must have complete declared coverage")
+            selected = [b for b in bars if b.symbol == args.symbol and b.session == args.session]
+            result = opening_range_signals(selected, args.symbol)
+            result.update(source_sha256=source["source_sha256"], calendar_id=source["calendar_id"])
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
+        if args.command in ("simulate", "simulate-series", "baseline-simulate"):
             scenario_bytes = args.scenario.read_bytes()
             payload = decode(scenario_bytes)
             scenarios = payload["sessions"] if args.command == "simulate-series" else [payload]
@@ -65,6 +79,8 @@ def main(argv=None):
             if args.archive:
                 available, source = load_sample(args.archive)
                 source_sha = source["source_sha256"]
+                if args.command == "baseline-simulate" and not source["coverage"]["complete"]:
+                    raise ValueError("Strategy archive must have complete declared coverage")
             sessions = []
             for scenario in scenarios:
                 if args.archive:
@@ -73,8 +89,16 @@ def main(argv=None):
                     bars = [b for b in available if b.symbol == scenario["symbol"] and b.session == scenario["session"]]
                 else:
                     bars = [parse_bar(row, scenario["symbol"]) for row in scenario["bars"]]
+                if args.command == "baseline-simulate":
+                    if "signals" in scenario:
+                        raise ValueError("Omit supplied signals for the frozen baseline hypothesis")
+                    generated = opening_range_signals(bars, scenario["symbol"])
+                    scenario = dict(scenario, signals=generated["signals"])
                 sessions.append((bars, scenario))
             result = simulate_series(sessions) if args.command == "simulate-series" else simulate(*sessions[0])
+            if args.command == "baseline-simulate":
+                result.update(strategy_id=generated["strategy_id"], feature_schema=generated["feature_schema"],
+                              research_status="engineering_scenario_only", generated_signals=generated["signals"])
             result.update(scenario_sha256=hashlib.sha256(scenario_bytes).hexdigest(), source_sha256=source_sha)
             print(json.dumps(result, default=str, sort_keys=True, indent=2))
             return 0

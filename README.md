@@ -2,8 +2,9 @@
 
 An offline-first research project for a small, personal trading experiment.
 Current scope: historical bar replay, offline cash/position accounting and durable risk observations.
-There is no broker connection, real order execution, strategy, AI trading decision
-or live mode. A single-session simulator exercises declared fill assumptions.
+There is no broker connection, real order execution, AI trading decision or live
+mode. A single-session simulator now includes a frozen experimental opening-range
+hypothesis; it has no validated performance or profitability evidence.
 
 ## Run locally
 
@@ -92,3 +93,8 @@ pending review; it does not automatically renew daily or weekly loss budgets.
 The [feature exporter](docs/features.md) computes versioned descriptive snapshots
 from completed batches, with explicit warmup nulls and no future-bar access. It
 does not generate trade signals or train a classifier.
+
+The [frozen strategy hypothesis](docs/strategy.md) generates at most one one-share
+opening-range candidate per selected symbol/session. `strategy-signals` exports
+candidates from a complete archive; `baseline-simulate` passes generated candidates
+through the existing execution and risk checks using explicit costs and FX.
