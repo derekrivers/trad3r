@@ -1,7 +1,7 @@
 # Trad3r
 
 An offline-first research project for a small, personal trading experiment.
-Current scope: historical bar replay, offline cash/position accounting and risk-policy checks.
+Current scope: historical bar replay, offline cash/position accounting and durable risk observations.
 There is no broker connection, order execution, strategy, simulated fill engine,
 AI trading decision or live mode in this version.
 
@@ -46,9 +46,11 @@ triggers are £10 and £25, measured from cash-flow-adjusted period baselines.
 
 `risk-check` evaluates supplied GBP snapshots. Equity must already include
 unrealised P&L, fees and currency effects. Previously latched reasons are preserved
-when supplied. Durable halt storage and a reviewed reset procedure are not yet
-implemented. These calculations are not a live safety system or a guarantee of
-maximum loss. See [risk policy](docs/risk-policy.md).
+when supplied. The separate `risk-init`, `risk-record`, `risk-status` and
+`risk-history` commands persist observations and halts across restarts. No reset
+command exists. See the [risk-state walkthrough](docs/risk-state.md). These checks
+are not a live safety system or a guarantee of maximum loss. See
+[risk policy](docs/risk-policy.md).
 
 ## Data and implementation status
 

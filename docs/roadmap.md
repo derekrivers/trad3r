@@ -8,7 +8,7 @@ initial engineering snapshot does not declare unresolved planning gates complete
 | --- | --- | --- |
 | 0 | Charter and risk policy | Agreed for planning |
 | 1 | Broker and data economics | Conditional IBKR candidate; account-specific checks open |
-| 2 | Offline CLI foundation | Sample reader, deterministic replay, risk arithmetic and offline ledger |
+| 2 | Offline CLI foundation | Replay, offline ledger and durable risk observations |
 | 3 | Data pipeline | First private sample structurally checked; broader validation open |
 | 4 | One baseline strategy | Not started |
 | 5 | Independent strategy validation | Not started |
@@ -27,10 +27,25 @@ brokerage account. It does not waive the full Phase 1 broker feasibility gate.
    and market-data freshness remain open.
 2. Define conservative simulated fills, completed-bar event batches, entry/exit
    sequencing and ambiguous intraminute stop/target handling.
-3. Persist risk baselines and halt state; test restart and cash-flow invariants.
+3. Delivered: persistent initial baselines, loss latches and audit observations,
+   with restart/concurrency/rollback tests. Period rollover stays blocked; a reviewed
+   transition workflow and atomic order/ledger persistence remain open.
 4. Add quantity/exposure/settled-cash controls and verify the £3 all-in trade budget.
 5. Introduce one frozen strategy hypothesis and report net results only after those
    accounting and execution semantics are verified.
 
 No broker credentials or news-classification service are needed for this increment.
 Jev is a later optional classifier; its confidence is not a probability of profit.
+
+## Next PR-sized backlog
+
+- Order-admission diagnostics: planned all-in loss, settled cash, one-position,
+  exposure and entry-attempt controls, with boundary and failure tests.
+- Conservative execution simulator: bar batches, next-event fills, explicit spread/
+  slippage/fees, and worst-case treatment when stop and target touch together.
+- Verified session/settlement calendar and fresh price/FX observation contracts.
+- Owner-reviewed period transitions that cannot clear an overall loss halt.
+- Only then: one frozen baseline strategy and chronological evaluation reports.
+
+The broker account is not needed for those offline tasks. No profitability or
+live-readiness claim follows from the accounting example or passing unit tests.

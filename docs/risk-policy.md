@@ -32,9 +32,14 @@ These exposure and frequency controls are not implemented in this first incremen
 
 `risk.py` implements Decimal-based P&L arithmetic, inclusive threshold assessment,
 preservation of caller-supplied halt reasons and planned long-trade loss estimation.
-It does not persist state, validate mark freshness, reconcile a broker, liquidate
-positions, enforce settled cash, choose quantities, or reset session baselines.
+The separate `risk_store.py` persists observations and latches transactionally.
+Neither module validates mark freshness, reconciles a broker, liquidates
+positions, chooses quantities, or resets session baselines. The offline ledger
+checks settled cash for supplied fills; order admission remains future work.
 The CLI does not trade. An assessment is a diagnostic, not an order authorisation.
 
 Stops may be overrun by gaps or unavailable execution. AI must never change a
 limit, reset a halt, receive broker credentials or approve live activation.
+
+See [durable risk state](risk-state.md) for restart behaviour, concurrency checks,
+period-review blocking and the distinction between a diagnostic and order authority.
