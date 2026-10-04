@@ -65,3 +65,7 @@ synthetic bars locally; CI needs neither licensed data nor credentials. See
 The [accounting contract](docs/accounting.md) describes supplied fill events, GBP/USD
 cash, fees, external flows and explicit settlement. Its synthetic example is an
 accounting check, not strategy performance.
+
+The [entry diagnostic](docs/entry-checks.md) checks coherent risk/ledger snapshots,
+all-in planned loss, exposure, settled cash, entry windows and attempt counts.
+It neither reserves cash nor authorises live orders.

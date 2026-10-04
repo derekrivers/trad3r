@@ -10,7 +10,8 @@ from zipfile import BadZipFile
 
 from .data import decode, load_sample
 from .risk import Mark, assess
-from .ledger import replay_ledger
+from .ledger import Ledger, replay_ledger
+from .admission import check_entry
 from . import risk_store
 
 
@@ -26,6 +27,12 @@ def main(argv=None):
     risk.add_argument("snapshots", type=Path)
     ledger = commands.add_parser("ledger", help="Account for supplied offline events; no generated fills")
     ledger.add_argument("events", type=Path)
+    entry = commands.add_parser("entry-check", help="Offline entry diagnostic; no order reservation")
+    entry.add_argument("database", type=Path)
+    entry.add_argument("events", type=Path)
+    entry.add_argument("proposal", type=Path)
+    entry.add_argument("--at", required=True)
+    entry.add_argument("--attempts", type=int, required=True)
     for command in ("risk-init", "risk-status", "risk-history", "risk-record"):
         sub = commands.add_parser(command, help="Persistent offline risk observations; no halt resets")
         sub.add_argument("database", type=Path)
@@ -38,6 +45,17 @@ def main(argv=None):
             sub.add_argument("--event-id", help="Required when importing a ledger valuation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "entry-check":
+            book = Ledger()
+            events = decode(args.events.read_bytes())
+            if not isinstance(events, list):
+                raise ValueError("Ledger input must be a JSON event array")
+            for event in events:
+                book.apply(event)
+            result = check_entry(book, risk_store.status(args.database),
+                                 decode(args.proposal.read_bytes()), args.at, args.attempts)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
         if args.command in ("risk-init", "risk-status", "risk-history", "risk-record"):
             if args.command == "risk-init":
                 result = risk_store.initialize(args.database, args.at)
