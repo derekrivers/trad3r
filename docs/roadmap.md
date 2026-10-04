@@ -54,6 +54,8 @@ Jev is a later optional classifier; its confidence is not a probability of profi
 - Broker cash reconciliation, broader historical calendar coverage, unscheduled
   closure handling and fresh price/FX observation contracts.
 - Owner-reviewed period transitions that cannot clear an overall loss halt.
+- Delivered: causal completed-minute feature snapshots with explicit warmup and
+  frozen opening ranges. No learned model, labels or strategy selection yet.
 - Only then: one frozen baseline strategy and chronological evaluation reports.
 
 The broker account is not needed for those offline tasks. No profitability or

@@ -88,3 +88,7 @@ closures and delayed/failed settlement still require separate reconciliation.
 `simulate-series` carries one research account across supplied sessions, including
 cash, settlement and loss latches. [Period changes block new entries](docs/series.md)
 pending review; it does not automatically renew daily or weekly loss budgets.
+
+The [feature exporter](docs/features.md) computes versioned descriptive snapshots
+from completed batches, with explicit warmup nulls and no future-bar access. It
+does not generate trade signals or train a classifier.

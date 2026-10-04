@@ -15,17 +15,19 @@ from .admission import check_entry
 from . import risk_store
 from .simulation import simulate, simulate_series
 from .batches import completed_batches
+from .features import FEATURE_SCHEMA, feature_snapshots
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Trad3r offline research foundation")
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("validate", "replay"):
+    for name in ("validate", "replay", "features"):
         sub = commands.add_parser(name)
         sub.add_argument("archive", type=Path)
         sub.add_argument("--require-complete", action="store_true", help="Reject missing scheduled minute bars")
-        if name == "replay":
+        if name != "validate":
             sub.add_argument("--journal", type=Path, required=True, help="New output file; existing files are not overwritten")
+        if name == "replay":
             sub.add_argument("--batches", action="store_true", help="Emit atomic completed-bar batches for all declared symbols")
     risk = commands.add_parser("risk-check", help="Assess explicit GBP snapshots; no persistent controller")
     risk.add_argument("snapshots", type=Path)
@@ -118,20 +120,26 @@ def main(argv=None):
             print(json.dumps(asdict(result), default=str, sort_keys=True))
             return 0
         bars, summary = load_sample(args.archive)
-        if args.require_complete and not summary["coverage"]["complete"]:
+        if (args.require_complete or args.command == "features") and not summary["coverage"]["complete"]:
             raise ValueError("Archive is missing scheduled minute bars")
-        if args.command == "replay":
-            events = completed_batches(bars, summary["symbols"]) if args.batches else bars
+        if args.command in ("replay", "features"):
+            if args.command == "features":
+                events = feature_snapshots(bars, summary["symbols"])
+                summary.update(mode="offline_features_only", feature_schema=FEATURE_SCHEMA,
+                               journal_format=FEATURE_SCHEMA)
+            else:
+                frames = completed_batches(bars, summary["symbols"]) if args.batches else bars
+                events = [frame.event() for frame in frames]
+                summary["journal_format"] = "completed_batches_v1" if args.batches else "completed_bars_v1"
             digest = hashlib.sha256()
             # Validate input completely before creating an output. Exclusive create
             # protects existing results and input files from accidental overwrite.
             with args.journal.open("xb") as stream:
                 for event in events:
-                    line = (json.dumps(event.event(), sort_keys=True, separators=(",", ":")) + "\n").encode()
+                    line = (json.dumps(event, default=str, sort_keys=True, separators=(",", ":")) + "\n").encode()
                     stream.write(line)
                     digest.update(line)
             summary["journal_sha256"] = digest.hexdigest()
-            summary["journal_format"] = "completed_batches_v1" if args.batches else "completed_bars_v1"
             summary["journal_events"] = len(events)
         print(json.dumps(summary, sort_keys=True, indent=2))
         return 0
