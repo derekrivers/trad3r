@@ -91,15 +91,52 @@ def read_state(connection):
         raise ValueError("Invalid halt state")
     assess(current, session, week, tuple(state["halt_reasons"]))
     periods(state["latest_at"])
+    if periods(state["session"] + "T12:00:00Z") != (state["session"], state["week"]):
+        raise ValueError("Invalid baseline period identifiers")
     count = connection.execute("SELECT count(*) FROM observations").fetchone()[0]
     if count != state["version"]:
         raise ValueError("Risk audit/state version mismatch")
-    if count:
-        row = connection.execute("SELECT payload FROM observations WHERE version=?",
-                                 (state["version"],)).fetchone()
-        if row is None or pack(decode(row[0])["result"]) != pack(report(state)):
-            raise ValueError("Risk audit/state contents mismatch")
+    verify_audit(connection, state)
     return state
+
+
+def verify_audit(connection, state):
+    """Recompute every stored result and latch; never repair or reset on read.
+
+    V1 stores the initial period but not an immutable initial funding timestamp.
+    The first observation can therefore be checked against the initial date only.
+    This detects inconsistent history, not a coherently rewritten whole database.
+    """
+    initial = mark_payload(Mark(Policy().initial_capital))
+    replayed = dict(state, version=0, latest=initial, halt_reasons=[])
+    previous_at = None
+    for version, (identity, stored_version, payload) in enumerate(connection.execute(
+            "SELECT id, version, payload FROM observations ORDER BY version"), 1):
+        if type(stored_version) is not int or stored_version != version:
+            raise ValueError("Risk audit/state version sequence mismatch")
+        entry = decode(payload)
+        if not isinstance(entry, dict) or set(entry) != {"id", "at", "mark", "result"}:
+            raise ValueError("Invalid risk audit entry")
+        if not isinstance(identity, str) or not identity or len(identity) > 128 or entry["id"] != identity:
+            raise ValueError("Risk audit identity mismatch")
+        at = utc(entry["at"])
+        if ((previous_at is not None and at <= previous_at) or
+                periods(entry["at"])[0] < state["session"]):
+            raise ValueError("Risk audit timestamps went backwards")
+        current, previous = parse_mark(entry["mark"]), parse_mark(replayed["latest"])
+        if current.deposits < previous.deposits or current.withdrawals < previous.withdrawals:
+            raise ValueError("Risk audit cumulative flows went backwards")
+        assessment = assess(current, parse_mark(state["session_start"]),
+                            parse_mark(state["week_start"]), tuple(replayed["halt_reasons"]))
+        replayed.update(version=version, latest=mark_payload(current), latest_at=at.isoformat(),
+                        halt_reasons=list(assessment.halt_reasons))
+        if pack(entry["result"]) != pack(report(replayed)):
+            raise ValueError("Risk audit/state reconstructed result mismatch")
+        previous_at = at
+    if state["version"] == 0 and periods(state["latest_at"]) != (state["session"], state["week"]):
+        raise ValueError("Risk audit/state initial period mismatch")
+    if pack(replayed) != pack(state):
+        raise ValueError("Risk audit/state reconstructed contents mismatch")
 
 
 def report(state):

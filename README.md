@@ -56,6 +56,9 @@ when supplied. The separate `risk-init`, `risk-record`, `risk-status` and
 command exists. See the [risk-state walkthrough](docs/risk-state.md). These checks
 are not a live safety system or a guarantee of maximum loss. See
 [risk policy](docs/risk-policy.md).
+The risk store reconstructs every historical assessment and loss latch before
+returning status/history or accepting another observation; inconsistent earlier
+audit records fail closed even if the latest snapshot appears consistent.
 
 ## Data and implementation status
 
