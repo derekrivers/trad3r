@@ -77,6 +77,10 @@ key, paces read-only requests and refuses overwrites. No subscription is purchas
 [`prepare-baseline`](docs/preparation.md) then builds a scenario from the combined
 archive and explicit fixed-cost/conversion assumptions, checks causal FX freshness
 and requires the exact same archive when running the baseline.
+Connected Massive exports can also be combined with an existing stock archive using
+[`attach-fx`](docs/acquisition.md#connected-massive-exports). The recorded sample now
+has complete modelled FX coverage for every simulated valuation boundary; historical
+strategy performance and account-specific execution economics remain unqualified.
 
 The [accounting contract](docs/accounting.md) describes supplied fill events, GBP/USD
 cash, fees, external flows and explicit settlement. Its synthetic example is an

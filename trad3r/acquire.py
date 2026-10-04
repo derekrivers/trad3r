@@ -43,10 +43,14 @@ def plan(start, end, symbols, *, today=None):
     if not 1 <= len(symbols) <= 10 or len(set(symbols)) != len(symbols) or any(
             not isinstance(s, str) or not re.fullmatch(r"[A-Z][A-Z0-9]{0,9}", s) for s in symbols):
         raise AcquisitionError("Use 1 to 10 unique uppercase alphanumeric stock symbols")
+    zone = ZoneInfo("America/New_York")
+    first_ms = int(datetime.combine(first, day_time(), zone).timestamp()) * 1000
+    last_ms = int(datetime.combine(last+timedelta(days=1), day_time(), zone).timestamp()) * 1000 - 1
+    # Explicit instants avoid asset-class differences in date-only query boundaries.
     requests = [dict(ticker=ticker, url=f"{HOST}/v2/aggs/ticker/{ticker}/range/1/minute/"
-                     f"{start}/{end}?adjusted=false&sort=asc&limit=50000")
+                     f"{first_ms}/{last_ms}?adjusted=false&sort=asc&limit=50000")
                 for ticker in symbols + [FX_TICKER]]
-    return dict(schema="massive-acquisition-plan-v1", start=start, end=end, symbols=symbols,
+    return dict(schema="massive-acquisition-plan-v2", start=start, end=end, symbols=symbols,
                 expected_sessions=sessions, requests=requests, request_count=len(requests),
                 minimum_pacing_seconds=(len(requests)-1)*PACE_SECONDS,
                 calendar_id=CALENDAR_ID, fx_model=FX_MODEL,
@@ -61,7 +65,7 @@ class _NoRedirect(HTTPRedirectHandler):
 def fetch(url, api_key):
     """One bounded GET. Do not log exception bodies, URLs supplied by a server, or keys."""
     if not re.fullmatch(re.escape(HOST) + r"/v2/aggs/ticker/(?:[A-Z][A-Z0-9]{0,9}|C:GBPUSD)"
-                        r"/range/1/minute/2026-\d{2}-\d{2}/2026-\d{2}-\d{2}"
+                        r"/range/1/minute/\d{13}/\d{13}"
                         r"\?adjusted=false&sort=asc&limit=50000", url):
         raise AcquisitionError("Unexpected acquisition URL")
     if not isinstance(api_key, str) or not 1 <= len(api_key) <= 512 or any(
