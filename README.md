@@ -7,7 +7,7 @@ cash ledger, AI trading decision or live mode in this version.
 
 ## Run locally
 
-Python 3.11+; no runtime dependencies. From the repository root:
+Python 3.11+ with IANA timezone data. From the repository root:
 
 ```sh
 python -m unittest discover -s tests -v
@@ -16,7 +16,9 @@ python -m trad3r risk-check docs/risk-example.json
 ```
 
 Use `py` on Windows or `python3` on systems where that is the Python command.
-Optional installation: `python -m pip install -e .` provides the `trad3r` command.
+Installation: `python -m pip install -e .` provides the `trad3r` command and
+installs timezone data on Windows. On minimal Linux images without system timezone
+data, also install `tzdata` using pip. Standard Linux/macOS installs use system data.
 
 Place your own licensed sample ZIP outside git, for example in `data/`:
 

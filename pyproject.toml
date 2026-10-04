@@ -7,7 +7,7 @@ name = "trad3r"
 version = "0.1.0"
 description = "Offline trading research and deterministic market-data replay"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["tzdata>=2024.1; sys_platform == 'win32'"]
 
 [project.scripts]
 trad3r = "trad3r.__main__:main"

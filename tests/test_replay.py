@@ -7,9 +7,11 @@ import unittest
 import zipfile
 from datetime import timedelta
 from pathlib import Path
+from unittest.mock import patch
+from zoneinfo import ZoneInfoNotFoundError
 
 from trad3r.__main__ import main
-from trad3r.data import decode, load_sample
+from trad3r.data import decode, load_sample, parse_bar
 
 
 def fixture(path, mutate=None, corrupt=False):
@@ -69,6 +71,39 @@ class ReplayTests(unittest.TestCase):
         fixture(self.archive, lambda rows: rows[0].update(timestamp_utc="2026-09-04T13:30:00"))
         with self.assertRaisesRegex(ValueError, "UTC"):
             load_sample(self.archive)
+
+    def test_mismatched_session_rejected_before_output(self):
+        fixture(self.archive, lambda rows: rows[0].update(timestamp_utc="2026-09-05T13:30:00+00:00"))
+        output = self.root / "absent.jsonl"
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(main(["replay", str(self.archive), "--journal", str(output)]), 2)
+        self.assertFalse(output.exists())
+
+    def test_regular_hours_follow_new_york_dst(self):
+        for day, opening, closing in (("2026-09-04", "13:30", "19:59"),
+                                      ("2026-01-05", "14:30", "20:59")):
+            for clock in (opening, closing):
+                row = {"symbol": "AAA", "currency": "USD", "session_date": day,
+                       "timestamp_utc": f"{day}T{clock}:00+00:00",
+                       "o": 10, "h": 11, "l": 9, "c": 10, "v": 100}
+                with self.subTest(day=day, clock=clock):
+                    self.assertEqual(parse_bar(row, "AAA").session, day)
+
+    def test_outside_hours_and_weekends_rejected(self):
+        for day, clock in (("2026-09-04", "13:29"), ("2026-09-04", "20:00"),
+                           ("2026-09-04", "23:00"), ("2026-01-05", "14:29"),
+                           ("2026-01-05", "21:00"), ("2026-09-05", "13:30")):
+            row = {"symbol": "AAA", "currency": "USD", "session_date": day,
+                   "timestamp_utc": f"{day}T{clock}:00+00:00",
+                   "o": 10, "h": 11, "l": 9, "c": 10, "v": 100}
+            with self.subTest(day=day, clock=clock), self.assertRaisesRegex(ValueError, "regular"):
+                parse_bar(row, "AAA")
+
+    def test_missing_timezone_data_fails_clearly(self):
+        fixture(self.archive)
+        with patch("trad3r.data.ZoneInfo", side_effect=ZoneInfoNotFoundError):
+            with self.assertRaisesRegex(ValueError, "install tzdata"):
+                load_sample(self.archive)
 
     def test_duplicate_json_keys_and_nonfinite_values_rejected(self):
         for raw in ('{"a":1,"a":2}', '{"a":NaN}'):

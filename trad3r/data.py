@@ -2,10 +2,11 @@
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from zipfile import ZipFile
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 def decode(raw):
@@ -53,6 +54,14 @@ def parse_bar(row, expected_symbol):
     session = row["session_date"]
     if datetime.strptime(session, "%Y-%m-%d").date().isoformat() != session:
         raise ValueError("Invalid session date")
+    try:
+        local = start.astimezone(ZoneInfo("America/New_York"))
+    except ZoneInfoNotFoundError as error:
+        raise ValueError("New York timezone data unavailable; install tzdata") from error
+    if local.date().isoformat() != session:
+        raise ValueError("Timestamp does not match New York session date")
+    if local.weekday() >= 5 or not time(9, 30) <= local.time() < time(16):
+        raise ValueError("Bar is outside regular weekday trading hours")
     values = []
     for key in ("o", "h", "l", "c", "v"):
         value = row[key]
@@ -114,6 +123,6 @@ def load_sample(path: Path):
                "symbols": sorted(symbols), "bars": len(bars), "session_counts": counts,
                "first_available_at": bars[0].available_at.isoformat(),
                "last_available_at": bars[-1].available_at.isoformat(),
-               "checks": "checksums, inventory, schema, OHLC, finite values, ordering",
+               "checks": "checksums, inventory, schema, OHLC, finite values, ordering, New York session date and regular hours",
                "limitations": "No independent price or exchange-calendar validation; no fills or P&L"}
     return bars, summary
