@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import sys
+import sqlite3
 from dataclasses import asdict
 from pathlib import Path
 from zipfile import BadZipFile
@@ -10,6 +11,7 @@ from zipfile import BadZipFile
 from .data import decode, load_sample
 from .risk import Mark, assess
 from .ledger import replay_ledger
+from . import risk_store
 
 
 def main(argv=None):
@@ -24,8 +26,36 @@ def main(argv=None):
     risk.add_argument("snapshots", type=Path)
     ledger = commands.add_parser("ledger", help="Account for supplied offline events; no generated fills")
     ledger.add_argument("events", type=Path)
+    for command in ("risk-init", "risk-status", "risk-history", "risk-record"):
+        sub = commands.add_parser(command, help="Persistent offline risk observations; no halt resets")
+        sub.add_argument("database", type=Path)
+        if command == "risk-init":
+            sub.add_argument("--at", required=True, help="Initial funding timestamp in UTC")
+        if command == "risk-record":
+            sub.add_argument("observation", type=Path)
+            sub.add_argument("--expected-version", type=int, required=True)
+            sub.add_argument("--ledger-report", action="store_true", help="Read an offline ledger valuation")
+            sub.add_argument("--event-id", help="Required when importing a ledger valuation")
     args = parser.parse_args(argv)
     try:
+        if args.command in ("risk-init", "risk-status", "risk-history", "risk-record"):
+            if args.command == "risk-init":
+                result = risk_store.initialize(args.database, args.at)
+            elif args.command == "risk-record":
+                observation = decode(args.observation.read_bytes())
+                if args.ledger_report:
+                    if not args.event_id:
+                        raise ValueError("--ledger-report requires --event-id")
+                    observation = risk_store.from_ledger(args.event_id, observation)
+                elif args.event_id:
+                    raise ValueError("--event-id requires --ledger-report")
+                result = risk_store.record(args.database, observation, args.expected_version)
+            elif args.command == "risk-history":
+                result = risk_store.history(args.database)
+            else:
+                result = risk_store.status(args.database)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
         if args.command == "ledger":
             events = decode(args.events.read_bytes())
             if not isinstance(events, list):
@@ -51,7 +81,7 @@ def main(argv=None):
             summary["journal_sha256"] = digest.hexdigest()
         print(json.dumps(summary, sort_keys=True, indent=2))
         return 0
-    except (OSError, ValueError, KeyError, TypeError, ArithmeticError, BadZipFile) as error:
+    except (OSError, ValueError, KeyError, TypeError, ArithmeticError, BadZipFile, sqlite3.Error) as error:
         print("Input/output error: " + str(error), file=sys.stderr)
         return 2
 
