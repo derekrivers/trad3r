@@ -1,6 +1,6 @@
-"""Single-session scenario execution, not a strategy or broker emulator."""
+"""Offline session/series scenarios, not a strategy or broker emulator."""
 from bisect import bisect_right
-from dataclasses import asdict
+from dataclasses import asdict, dataclass, field
 from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -24,12 +24,45 @@ def bracket_exit(bar, stop, target, slip):
     return None
 
 
-def simulate(bars, scenario):
-    """Consume validated Bar objects for one symbol/session, with supplied signals.
+@dataclass
+class _RunState:
+    book: Ledger = field(default_factory=Ledger)
+    events: list = field(default_factory=list)
+    latched: tuple = ()
+    baseline_session: str | None = None
+    baseline_week: str | None = None
 
-    Every run is an isolated research account. No durable risk database is reset
-    or touched, and results cannot authorise another research or live account.
+
+def simulate(bars, scenario):
+    """Run one isolated research session; never reset a durable risk account."""
+    return _run_session(bars, scenario, _RunState())
+
+
+def simulate_series(sessions):
+    """Run ordered (bars, scenario) pairs against ONE isolated research account.
+
+    Period changes block new entries, never automatically renew risk budgets.
+    No partial result escapes if any session fails; supplied inputs are unchanged.
     """
+    sessions = list(sessions)
+    days = [scenario["session"] for _, scenario in sessions]
+    if not days or days != sorted(set(days)):
+        raise ValueError("Series sessions must be nonempty, unique and chronological")
+    state, results = _RunState(), []
+    for bars, scenario in sessions:
+        result = _run_session(bars, scenario, state)
+        # One complete ledger journal belongs to the account, not one per day.
+        result.pop("ledger_events")
+        results.append(result)
+    return dict(mode="offline_series_simulation_only", live_trading_enabled=False,
+                sessions=results, final_ledger=state.book.last_report,
+                ledger_events=state.events, halt_reasons=list(state.latched),
+                baseline_session=state.baseline_session, baseline_week=state.baseline_week,
+                blocked_reasons=results[-1]["blocked_reasons"],
+                calendar_id=CALENDAR_ID, settlement_calendar_id=SETTLEMENT_CALENDAR_ID)
+
+
+def _run_session(bars, scenario, state):
     symbol, session = scenario["symbol"], scenario["session"]
     zone = ZoneInfo("America/New_York")
     bars = list(bars)
@@ -74,8 +107,12 @@ def simulate(bars, scenario):
         signals.append(dict(id=identity, at=at, quantity=shares(row["quantity"]), stop=stop, target=target))
     if len({s["id"] for s in signals}) != len(signals) or [s["at"] for s in signals] != sorted(s["at"] for s in signals):
         raise ValueError("Signals must have unique IDs and chronological timestamps")
-    book, events, trace = Ledger(), [], []
-    latched, active, cursor, attempts = (), None, 0, 0
+    book, events, trace = state.book, state.events, []
+    active, cursor, attempts = None, 0, 0
+    if book.position is not None:
+        raise ValueError("Series cannot carry an open position between sessions")
+    if book.funded and "funding" in scenario:
+        raise ValueError("Only the first series session may contain funding")
 
     def emit(kind, at, **fields):
         event = dict(id=f"sim-{len(events)}", type=kind, at=at.isoformat(), **fields)
@@ -83,16 +120,19 @@ def simulate(bars, scenario):
         events.append(event)
 
     def value(at, price):
-        nonlocal latched
         fx_time, fx = fx_at(at)
         emit("value", at, usd_to_gbp=fx, prices={symbol: price} if book.position else {})
         report = book.last_report
         mark = Mark(report["equity_gbp"], report["deposits_gbp"], report["withdrawals_gbp"])
-        assessment = assess(mark, Mark(Policy().initial_capital), Mark(Policy().initial_capital), latched)
-        latched = assessment.halt_reasons
+        assessment = assess(mark, Mark(Policy().initial_capital), Mark(Policy().initial_capital), state.latched)
+        state.latched = assessment.halt_reasons
+        blocked = list(state.latched)
+        if session != state.baseline_session:
+            blocked.append("period_review_required")
         risk = dict(mode="offline_risk_observations_only", live_trading_enabled=False,
-                    as_of=report["as_of"], mark=asdict(mark), baseline_session=session,
-                    assessment=asdict(assessment), blocked=bool(latched), blocked_reasons=list(latched))
+                    as_of=report["as_of"], mark=asdict(mark), baseline_session=state.baseline_session,
+                    baseline_week=state.baseline_week,
+                    assessment=asdict(assessment), blocked=bool(blocked), blocked_reasons=sorted(blocked))
         return risk, fx_time, fx
 
     def sell(at, price, reason):
@@ -106,8 +146,14 @@ def simulate(bars, scenario):
         active = None
 
     start = bars[0].start
-    emit("fund", start, amount=Policy().initial_capital)
-    emit("exchange", start, from_currency="GBP", **scenario["funding"])
+    if not book.funded:
+        local = start.astimezone(zone).date()
+        state.baseline_session = session
+        state.baseline_week = (local - timedelta(days=local.weekday())).isoformat()
+        emit("fund", start, amount=Policy().initial_capital)
+        emit("exchange", start, from_currency="GBP", **scenario["funding"])
+    else:
+        emit("settle", start)
     for index, bar in enumerate(bars):
         risk, fx_time, fx = value(bar.start, bar.open)
         if active:
@@ -151,7 +197,7 @@ def simulate(bars, scenario):
             elif index == len(bars) - 1:
                 reason = "noon_flatten" if bar.available_at.astimezone(zone).time() == time(12) else "end_of_data"
                 sell(bar.available_at, bar.close - slip, reason)
-        value(bar.available_at, bar.close)
+        final_risk, _, _ = value(bar.available_at, bar.close)
     for signal in signals[cursor:]:
         trace.append(dict(type="expired_signal", signal=signal["id"], reason="no_later_entry_bar"))
     return dict(mode="offline_scenario_simulation_only", live_trading_enabled=False,
@@ -159,4 +205,7 @@ def simulate(bars, scenario):
                 settlement_calendar_id=SETTLEMENT_CALENDAR_ID, settles_on=due.isoformat(),
                 symbol=symbol, session=session, bars=len(bars), attempts=attempts,
                 truncated_session=bars[-1].available_at.astimezone(zone).time() != time(12),
-                halt_reasons=list(latched), final_ledger=book.last_report, trace=trace, ledger_events=events)
+                halt_reasons=list(state.latched), blocked_reasons=final_risk["blocked_reasons"],
+                baseline_session=state.baseline_session, baseline_week=state.baseline_week,
+                assessment=final_risk["assessment"],
+                final_ledger=book.last_report, trace=trace, ledger_events=events)

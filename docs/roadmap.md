@@ -28,7 +28,8 @@ brokerage account. It does not waive the full Phase 1 broker feasibility gate.
    reconciliation and market-data freshness remain open.
 2. Delivered: single-symbol/session fill scenarios with delayed entries, explicit
    costs, opening gaps, stop-first ambiguity, risk exits and noon/end-of-data
-   flattening. Multi-symbol event batches and multi-session execution remain open.
+   flattening. Multi-session accounting scenarios now carry cash, settlement and
+   latches; new-period entries remain blocked. Multi-symbol execution remains open.
 3. Delivered: persistent initial baselines, loss latches and audit observations,
    with restart/concurrency/rollback tests. Period rollover stays blocked; a reviewed
    transition workflow and atomic order/ledger persistence remain open.
