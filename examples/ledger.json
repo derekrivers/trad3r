@@ -1,0 +1,7 @@
+[
+  {"id":"fund","type":"fund","at":"2026-09-04T14:00:00Z","amount":"1000"},
+  {"id":"fx","type":"exchange","at":"2026-09-04T14:00:00Z","from_currency":"GBP","amount":"400","received":"500","fee_gbp":"1"},
+  {"id":"buy","type":"buy","at":"2026-09-04T14:01:00Z","symbol":"SYNTH","quantity":2,"price":"100","fee_usd":"1","usd_to_gbp":"0.8"},
+  {"id":"sell","type":"sell","at":"2026-09-04T14:02:00Z","symbol":"SYNTH","quantity":2,"price":"105","fee_usd":"1","usd_to_gbp":"0.8","settles_on":"2026-09-08"},
+  {"id":"value","type":"value","at":"2026-09-04T14:02:00Z","usd_to_gbp":"0.8","prices":{}}
+]
