@@ -116,3 +116,6 @@ ordinary series retain their period blocks.
 that continuous account over a complete session window and one preselected symbol.
 A runnable synthetic example demonstrates the workflow without an account or data
 credentials; qualified historical FX, costs and evaluation data are still needed.
+Its [evaluation report](docs/evaluation.md) includes observed equity/drawdown, net
+trade and account P&L, explicit fees, rejected candidates and a same-cash no-trade
+reference. These are descriptive engineering metrics, not a readiness verdict.

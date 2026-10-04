@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 from .calendar import scheduled_sessions
 from .features import FEATURE_SCHEMA
+from .evaluation import summarize_run
 from .simulation import simulate_research_series
 from .strategy import STRATEGY_ID, opening_range_signals
 
@@ -28,4 +29,14 @@ def baseline_backtest(sessions, start, end):
                   hypothesis_status="unvalidated_hypothesis")
     for session, (_, scenario) in zip(result["sessions"], prepared):
         session["generated_signals"] = scenario["signals"]
+    reference = simulate_research_series([(bars, dict(scenario, signals=[])) for bars, scenario in prepared],
+                                        start, end, strategy_id="no-trade-same-cash-v1")
+    for session in reference["sessions"]:
+        session["generated_signals"] = []
+    result["evaluation"] = summarize_run(result)
+    reference["evaluation"] = summarize_run(reference)
+    result["cash_reference"] = reference
+    result["comparison"] = dict(reference_id="no-trade-same-cash-v1",
+                                net_account_pnl_difference_gbp=result["final_ledger"]["account_pnl_gbp"]-
+                                reference["final_ledger"]["account_pnl_gbp"])
     return result

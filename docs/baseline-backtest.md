@@ -48,6 +48,12 @@ actual entries/exits and account snapshots. No-candidate sessions remain visible
 The complete ledger replays to the final account report, and transition records
 explain every eligible or blocked rollover. Cumulative session P&L must not be summed.
 
+The [account evaluation](evaluation.md) reconstructs the observed equity curve,
+net account/trade results, drawdown, explicit fees, exposure and candidate outcomes.
+A complete no-trade reference uses the same initial currency conversion and FX
+observations. The P&L difference isolates the simulated trading decision under
+those assumptions; it does not establish a statistically validated edge.
+
 `research_status` remains `engineering_scenario_only`. A new bounded experiment
 cannot be described as resumption of a halted account. Qualified economic inputs,
 independent price checks and untouched chronological validation remain necessary;

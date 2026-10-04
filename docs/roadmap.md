@@ -65,8 +65,9 @@ Jev is a later optional classifier; its confidence is not a probability of profi
 - Delivered: explicit-window research inventory, recorded engineering sample audit,
   evaluation protocol structure and a concrete owner-reviewable period proposal.
 - Delivered: continuous frozen-baseline integration and a synthetic walkthrough.
-- Next: account-level evaluation summaries and cash comparison. Qualified
-  evaluation still needs history/FX/cost evidence and preregistered partitions.
+- Delivered: account-level evaluation summaries, observed equity curves and a
+  same-cash no-trade reference. Qualified evaluation still needs history/FX/cost
+  evidence, preregistered partitions and predeclared acceptance/stress criteria.
   See [research dependencies and ordered continuation](research-readiness.md).
 
 The broker account is not needed for those offline tasks. No profitability or
