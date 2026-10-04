@@ -8,11 +8,12 @@ from dataclasses import asdict
 from pathlib import Path
 from zipfile import BadZipFile
 
-from .data import decode, load_sample
+from .data import decode, load_sample, parse_bar
 from .risk import Mark, assess
 from .ledger import Ledger, replay_ledger
 from .admission import check_entry
 from . import risk_store
+from .simulation import simulate
 
 
 def main(argv=None):
@@ -33,6 +34,9 @@ def main(argv=None):
     entry.add_argument("proposal", type=Path)
     entry.add_argument("--at", required=True)
     entry.add_argument("--attempts", type=int, required=True)
+    simulation = commands.add_parser("simulate", help="Single-session offline scenario; not a strategy")
+    simulation.add_argument("scenario", type=Path)
+    simulation.add_argument("--archive", type=Path, help="Use licensed archive bars instead of inline synthetic bars")
     for command in ("risk-init", "risk-status", "risk-history", "risk-record"):
         sub = commands.add_parser(command, help="Persistent offline risk observations; no halt resets")
         sub.add_argument("database", type=Path)
@@ -45,6 +49,22 @@ def main(argv=None):
             sub.add_argument("--event-id", help="Required when importing a ledger valuation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "simulate":
+            scenario_bytes = args.scenario.read_bytes()
+            scenario = decode(scenario_bytes)
+            source_sha = None
+            if args.archive:
+                if "bars" in scenario:
+                    raise ValueError("Use either an archive or inline bars, not both")
+                available, source = load_sample(args.archive)
+                source_sha = source["source_sha256"]
+                bars = [b for b in available if b.symbol == scenario["symbol"] and b.session == scenario["session"]]
+            else:
+                bars = [parse_bar(row, scenario["symbol"]) for row in scenario["bars"]]
+            result = simulate(bars, scenario)
+            result.update(scenario_sha256=hashlib.sha256(scenario_bytes).hexdigest(), source_sha256=source_sha)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
         if args.command == "entry-check":
             book = Ledger()
             events = decode(args.events.read_bytes())

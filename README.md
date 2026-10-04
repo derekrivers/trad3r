@@ -2,8 +2,8 @@
 
 An offline-first research project for a small, personal trading experiment.
 Current scope: historical bar replay, offline cash/position accounting and durable risk observations.
-There is no broker connection, order execution, strategy, simulated fill engine,
-AI trading decision or live mode in this version.
+There is no broker connection, real order execution, strategy, AI trading decision
+or live mode. A single-session simulator exercises declared fill assumptions.
 
 ## Run locally
 
@@ -14,6 +14,7 @@ python -m unittest discover -s tests -v
 python -m trad3r --help
 python -m trad3r risk-check docs/risk-example.json
 python -m trad3r ledger examples/ledger.json
+python -m trad3r simulate examples/simulation.json
 ```
 
 Use `py` on Windows or `python3` on systems where that is the Python command.
@@ -69,3 +70,7 @@ accounting check, not strategy performance.
 The [entry diagnostic](docs/entry-checks.md) checks coherent risk/ledger snapshots,
 all-in planned loss, exposure, settled cash, entry windows and attempt counts.
 It neither reserves cash nor authorises live orders.
+
+The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
+costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable
+ledger events, not evidence of strategy profitability.

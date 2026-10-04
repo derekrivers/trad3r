@@ -1,0 +1,18 @@
+{
+  "symbol": "SYNTH", "session": "2026-09-04", "settles_on": "2026-09-08",
+  "funding": {"amount": "400", "received": "500", "fee_gbp": "0"},
+  "costs": {"entry_fee_usd": "0.5", "exit_fee_usd": "0.5", "slippage_usd_per_share": "0.05"},
+  "fx": [
+    {"at":"2026-09-04T13:59:00Z","usd_to_gbp":"0.8"},
+    {"at":"2026-09-04T14:00:00Z","usd_to_gbp":"0.8"},
+    {"at":"2026-09-04T14:01:00Z","usd_to_gbp":"0.8"},
+    {"at":"2026-09-04T14:02:00Z","usd_to_gbp":"0.8"}
+  ],
+  "signals": [{"id":"example-1","at":"2026-09-04T14:00:00Z","quantity":2,"stop":"99","target":"101"}],
+  "bars": [
+    {"symbol":"SYNTH","currency":"USD","session_date":"2026-09-04","timestamp_utc":"2026-09-04T13:59:00Z","o":100,"h":100.5,"l":99.5,"c":100,"v":10000},
+    {"symbol":"SYNTH","currency":"USD","session_date":"2026-09-04","timestamp_utc":"2026-09-04T14:00:00Z","o":100,"h":100.5,"l":99.5,"c":100,"v":10000},
+    {"symbol":"SYNTH","currency":"USD","session_date":"2026-09-04","timestamp_utc":"2026-09-04T14:01:00Z","o":100,"h":102,"l":98,"c":100,"v":10000},
+    {"symbol":"SYNTH","currency":"USD","session_date":"2026-09-04","timestamp_utc":"2026-09-04T14:02:00Z","o":100,"h":100.5,"l":99.5,"c":100,"v":10000}
+  ]
+}
