@@ -13,8 +13,39 @@ The timestamp must fit its scheduled New York regular session under the bounded
 [2026 exchange calendar](calendar.md), including holidays and early closes.
 Daylight saving is handled by IANA timezone data; unknown years fail closed.
 The manifest is an integrity inventory, not an authenticated vendor signature.
-Unscheduled closures, source provenance and full minute coverage need independent
-checks; the reader reports counts and does not promise those checks itself.
+Unscheduled closures and source provenance still need independent checks. The
+reader reports scheduled minute-grid coverage for every declared symbol/session.
+
+## Coverage and atomic completed batches
+
+Every validation summary includes expected/observed/missing minute counts, a
+`complete` flag, and at most ten missing UTC start-time examples per symbol/session.
+The grid follows the versioned exchange calendar: 390 regular minutes or 210 on
+the supported early closes. Entire declared sessions without bars are visible.
+Missing minutes are never filled, interpolated or assigned invented volume.
+
+```sh
+python -m trad3r validate data/trad3r_sample.zip --require-complete
+python -m trad3r replay data/trad3r_sample.zip --require-complete --batches --journal runs/batches.jsonl
+```
+
+Default validation still permits sparse archives for inspection; strict mode
+rejects any missing minute before creating a replay journal. A missing aggregate
+can reflect no eligible trades, a halt or a feed gap; this check does not establish
+which. Completeness is relative to the **declared** dates and symbols: omitted
+manifest sessions, survivorship bias and the suitability of the universe remain
+separate research checks. Complete bars do not prove liquidity or price accuracy.
+
+`--batches` emits one `bar_batch_closed` event per observed availability timestamp,
+containing every declared symbol exactly once, sorted by symbol. All member bars
+close at that timestamp; no member is individually exposed to a downstream
+consumer before the whole batch. Missing/duplicate members fail before any output
+file is created. A whole missing timestamp requires `--require-complete` to catch.
+The batch layer makes no ranking or order decision and is not multi-symbol execution.
+
+The default per-bar journal remains byte-compatible. Replay summaries now identify
+`completed_bars_v1` or `completed_batches_v1` and the journal event count. Both
+formats remain deterministic and refuse to overwrite existing output files.
 
 ## First sample evidence
 

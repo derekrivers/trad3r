@@ -36,6 +36,9 @@ are created exclusively, so existing results cannot be silently overwritten.
 Replay emits completed bars, ordered by availability time and then symbol. A
 13:30 bar becomes available at 13:31. No trades or profit figures are generated.
 Only raw-price series are replayed; adjusted copies are not additional observations.
+Use `--require-complete` to reject missing scheduled minutes and `--batches` on
+replay to emit all declared symbols together at each completed-minute timestamp.
+See the [coverage and batch contract](docs/data.md).
 
 ## Risk policy
 

@@ -44,7 +44,9 @@ Jev is a later optional classifier; its confidence is not a probability of profi
 ## Next PR-sized backlog
 
 - Delivered: order-entry diagnostics integrated into the isolated scenario simulator.
-- Verified multi-symbol completed-bar batches and stronger quote/liquidity contracts.
+- Delivered: scheduled minute-grid coverage diagnostics, optional strict replay
+  and atomic multi-symbol completed-bar batches. Quote/liquidity contracts and
+  simultaneous multi-symbol execution remain open.
 - Delivered: bounded, sourced 2026 exchange session calendar; holidays, early
   closes and unsupported years checked in data, entry diagnostics and simulation.
 - Delivered: separate scheduled 2026 T+1 settlement calendar and explicit research
