@@ -1,5 +1,6 @@
 """Small offline CLI. No account credentials, network or order endpoints."""
 import argparse
+import csv
 import hashlib
 import json
 import sys
@@ -20,11 +21,20 @@ from .strategy import opening_range_signals
 from .research import audit_sample
 from .backtest import baseline_backtest
 from .preparation import PREPARATION_SCHEMA, prepare_baseline, write_prepared
+from .fx_import import attach_connector_fx
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Trad3r offline research foundation")
     commands = parser.add_subparsers(dest="command", required=True)
+    attach = commands.add_parser("attach-fx", help="Attach a declared Massive connector FX CSV export to a stock archive")
+    attach.add_argument("archive", type=Path)
+    attach.add_argument("csv", type=Path)
+    attach.add_argument("--expected-rows", type=int, required=True)
+    attach.add_argument("--start", required=True)
+    attach.add_argument("--end", required=True)
+    attach.add_argument("--retrieved-on", required=True)
+    attach.add_argument("--output", type=Path, required=True)
     prepare = commands.add_parser("prepare-baseline", help="Prepare a source-bound scenario using completed historical FX")
     prepare.add_argument("archive", type=Path)
     prepare.add_argument("assumptions", type=Path)
@@ -74,6 +84,11 @@ def main(argv=None):
             sub.add_argument("--event-id", help="Required when importing a ledger valuation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "attach-fx":
+            result = attach_connector_fx(args.archive, args.csv, args.output, expected_rows=args.expected_rows,
+                                         start=args.start, end=args.end, retrieved_on=args.retrieved_on)
+            print(json.dumps(result, sort_keys=True, indent=2))
+            return 0
         if args.command == "prepare-baseline":
             payload = prepare_baseline(args.archive, args.assumptions, args.symbol, args.start, args.end)
             result = write_prepared(payload, args.output)
@@ -206,7 +221,7 @@ def main(argv=None):
             summary["journal_events"] = len(events)
         print(json.dumps(summary, sort_keys=True, indent=2))
         return 0
-    except (OSError, ValueError, KeyError, TypeError, ArithmeticError, BadZipFile, sqlite3.Error) as error:
+    except (OSError, ValueError, KeyError, TypeError, ArithmeticError, BadZipFile, sqlite3.Error, csv.Error) as error:
         print("Input/output error: " + str(error), file=sys.stderr)
         return 2
 

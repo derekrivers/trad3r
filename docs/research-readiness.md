@@ -38,11 +38,27 @@ Audit on 2026-10-04 of source SHA-256
 | Missing minutes or omitted sessions in that window | 0 |
 | Data role | Already-inspected engineering fixture |
 | Qualified untouched evaluation data | Not supplied |
-| Qualified timestamped FX / broker cost evidence | Not supplied |
+| Qualified timestamped FX / broker cost evidence | Completed historical FX proxy now available; independent FX qualification and dated broker cost evidence remain open |
 
 Do not relabel this inspected sample as an untouched final test set. Archive
 checksums establish file identity, not economic accuracy, legal entitlement,
 point-in-time universe selection or authentic vendor delivery timestamps.
+
+On 2026-10-04 the connected Massive plugin supplied 29,894 unique GBP/USD minute
+records for the same date window. The private combined archive has SHA-256
+`6ba4e7fca0e6b875997d6a7ac81ede3f2356dedbb72f1ead73edce80dbc24f8a`.
+Its original 23,400 stock payload observations are preserved. All 3,020 opening-to-noon
+valuation boundaries across the 20 sessions have a completed FX observation with
+zero modelled age at that boundary. Three AAPL minutes also matched the original
+sample's OHLC and fractional volume through the connected endpoint; that is a
+same-provider consistency check, not independent price verification.
+
+Connector CSV SHA-256:
+`6559a3fefc27181ed4b42ab965396cda13c58049b861dfdbdd502a0647fc87a7`.
+Preparation succeeded with explicitly invented engineering cost/conversion inputs;
+the strategy was not run and no historical P&L was inspected. The FX remains a
+corrected historical quote-derived proxy, not a broker execution rate or authentic
+delivery-time record. The data-access blocker for this fixture is resolved.
 
 ## Inputs needed for the next meaningful result
 
@@ -105,9 +121,9 @@ protocol; adding an AI call now would not supply the missing evidence.
 
 ## Ordered engineering continuation
 
-The [local downloader](acquisition.md) and [offline scenario preparation](preparation.md)
-are available. Actual stock/currency account access and timestamped FX have not
-been supplied here; download privately when a secure local terminal is available.
+The [local downloader and connected FX import](acquisition.md) and
+[offline scenario preparation](preparation.md) are available. Stock and FX access
+through the installed Massive plugin is verified for the recorded fixture.
 No API key belongs in chat or GitHub. Preparation validates causal timing and source
 identity but deliberately retains an engineering-only status and explicit assumed
 costs. Published price schedules do not establish account-specific historical fees.

@@ -12,7 +12,8 @@ two years of history, end-of-day availability and five calls per minute. Currenc
 Basic also advertises $0/month, two years, minute aggregates and five calls per
 minute. Check that the existing account has both entitlements; stock access does
 not establish currency access. These historical inputs should not require a paid
-upgrade under the published Basic plans. Actual account access has not been tested.
+upgrade under the published Basic plans. On 4 October 2026 the owner's connected
+Massive plugin successfully returned historical GBP/USD minutes and a stock probe.
 The tool cannot subscribe, upgrade or place orders. Stop on an entitlement error.
 
 Sources: [Stocks pricing](https://massive.com/pricing),
@@ -60,8 +61,10 @@ quota, and the tool cannot coordinate with them. A rate-limit error stops the ru
 
 Each run supports 1–10 unique uppercase alphanumeric stock symbols, one inclusive
 window of at most 31 completed calendar days, and the reviewed 2026 calendar only.
+Plan v2 converts the inclusive New York dates into explicit UTC Unix-millisecond
+instants, from local midnight through the millisecond before the following midnight.
 Each symbol and `C:GBPUSD` gets one ascending, unadjusted, one-minute request with
-limit 50,000. Even a 31-day window across a DST fallback is below that base-minute
+those bounds and limit 50,000. Even a 31-day window across a DST fallback is below that base-minute
 limit. Unexpected pagination, empty series, non-OK status, adjusted data, bad OHLC,
 duplicate/out-of-order timestamps and records outside the requested ET dates fail.
 
@@ -95,6 +98,12 @@ The original minute start and `historical-completed-bar-proxy-v1` label are reta
 The full date range includes pre-open FX minutes; a 09:29 minute can inform the
 09:30 stock opening, while the 09:30 FX minute cannot.
 
+The connected provider's date-only FX request for 2026-09-04 started at 00:00 UTC,
+despite the endpoint documentation's ET description. An explicit millisecond probe
+returned the exact requested minute starts. Plan v2 therefore uses explicit instants
+for both asset classes. Returned timestamps remain authoritative and are never
+shifted to make them fit a presumed timezone. Existing plan-v1 data is not retimestamped.
+
 This is a modelled historical valuation proxy. Bar-end availability is not proof
 of actual data delivery time; historical corrections, spread, executable conversion
 prices and quote gaps remain research limitations. Normal stock validation does
@@ -104,6 +113,34 @@ required, and FX must be matched causally with the simulator's freshness checks.
 [`prepare-baseline`](preparation.md) now performs that causal matching with supplied
 fixed-cost/conversion assumptions and existing simulated settlement rules, without
 running the strategy or declaring inputs qualified.
+
+## Connected Massive exports
+
+The plugin can store API rows in a temporary table and export them through SQL.
+For an existing stock archive, export exactly `t,o,h,l,c,v` in ascending `t` order,
+without aggregation, filters or derived values. Retain the stored-table row count;
+verify unique timestamps and export every row, including all pages/chunks. This
+route uses the established connection and requires no API key in chat.
+
+```sh
+python -m trad3r attach-fx data/stocks.zip data/gbpusd-minutes.csv --expected-rows 29894 --start 2026-09-04 --end 2026-10-02 --retrieved-on 2026-10-04 --output data/combined.zip
+```
+
+The count/dates above describe the recorded engineering acquisition only; use the
+actual request and count for another export. `attach-fx` validates CSV shape, row
+count, chronology, minute alignment, declared UTC-date range, finite OHLC/volume,
+and the positive inverse FX close. It preserves original stock payload bytes and
+adds the rendered CSV, completed FX observations and `fx_import.json` provenance.
+Manifest checksums cover every file. Existing archives/FX payloads are never replaced.
+The combined archive must pass the ordinary reader's resource/integrity limits
+before exclusive publication. `prepare-baseline` separately checks FX freshness;
+importing a sparse FX series does not silently fill its gaps or qualify it.
+
+The connector renders numbers through an intermediate table. Retained CSV bytes
+are exact export evidence, not original HTTP JSON numeric lexemes or authenticated
+response metadata. Request dates, retrieval date and expected row count are declared
+by the importer. Provenance labels that limitation explicitly; hashes do not turn
+a connector export into an independent data audit.
 
 ## Brokerage costs are a separate input
 
