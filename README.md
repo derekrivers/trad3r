@@ -98,3 +98,9 @@ The [frozen strategy hypothesis](docs/strategy.md) generates at most one one-sha
 opening-range candidate per selected symbol/session. `strategy-signals` exports
 candidates from a complete archive; `baseline-simulate` passes generated candidates
 through the existing execution and risk checks using explicit costs and FX.
+
+`research-audit ARCHIVE --start YYYY-MM-DD --end YYYY-MM-DD` checks the full
+requested session window, including dates omitted from the manifest, and reports
+the [remaining research dependencies](docs/research-readiness.md). A structurally
+complete archive does not establish strategy readiness. The next account-state
+decision is the [offline period-transition proposal](docs/period-transition-proposal.md).
