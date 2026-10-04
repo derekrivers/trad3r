@@ -66,6 +66,38 @@ def parse_bar(row, expected_symbol):
     return Bar(expected_symbol, start.astimezone(timezone.utc), session, *values)
 
 
+def coverage_report(bars, symbols, sessions):
+    """Compare validated bars with the scheduled minute grid; never fill gaps."""
+    symbols, sessions = list(symbols), list(sessions)
+    if not symbols or not sessions or len(set(symbols)) != len(symbols) or len(set(sessions)) != len(sessions):
+        raise ValueError("Coverage requires unique, nonempty symbols and sessions")
+    grids = {}
+    for session in sessions:
+        bounds = session_bounds(session)
+        if bounds is None:
+            raise ValueError("Coverage requires scheduled exchange sessions")
+        opening, closing = bounds
+        grids[session] = {opening + timedelta(minutes=i)
+                          for i in range(int((closing - opening).total_seconds() // 60))}
+    observed = {(symbol, session): set() for symbol in symbols for session in sessions}
+    for bar in bars:
+        key = (bar.symbol, bar.session)
+        if key not in observed or bar.start not in grids[bar.session]:
+            raise ValueError("Bar outside declared coverage grid")
+        if bar.start in observed[key]:
+            raise ValueError("Duplicate bar in coverage grid")
+        observed[key].add(bar.start)
+    details = []
+    for (symbol, session), starts in sorted(observed.items()):
+        missing = sorted(grids[session] - starts)
+        details.append(dict(symbol=symbol, session=session, expected=len(grids[session]),
+                            observed=len(starts), missing=len(missing),
+                            missing_start_examples=[at.isoformat() for at in missing[:10]]))
+    return dict(complete=bool(details) and all(row["missing"] == 0 for row in details),
+                expected_bars=sum(row["expected"] for row in details),
+                missing_bars=sum(row["missing"] for row in details), sessions=details)
+
+
 def load_sample(path: Path):
     if path.stat().st_size > 50 * 1024 * 1024:
         raise ValueError("Sample archive exceeds 50 MiB limit")
@@ -115,6 +147,7 @@ def load_sample(path: Path):
                "first_available_at": bars[0].available_at.isoformat(),
                "last_available_at": bars[-1].available_at.isoformat(),
                "calendar_id": CALENDAR_ID,
+               "coverage": coverage_report(bars, symbols, sessions),
                "checks": "checksums, inventory, schema, OHLC, finite values, ordering, scheduled 2026 exchange sessions and regular hours",
-               "limitations": "No independent price, full minute-grid, unscheduled closure or settlement validation; no fills or P&L"}
+               "limitations": "Coverage is relative to declared sessions/symbols; no independent price, provenance, unscheduled closure or settlement validation; no fills or P&L"}
     return bars, summary

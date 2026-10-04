@@ -22,8 +22,9 @@ the half-open interval [open, close). Thus an ordinary final bar begins at 15:59
 and an early-close final bar at 12:59. Whole bars starting at the closing auction
 time are excluded. UK clock changes do not define US session boundaries.
 
-Archive parsing validates every bar and every declared expected session. It still
-reports counts rather than asserting complete minute coverage. Entry diagnostics
+Archive parsing validates every bar and every declared expected session. Its
+coverage report compares observations against the scheduled minute grid; the CLI
+can require completeness explicitly. Entry diagnostics
 reject scheduled closed days; the existing 10:00–11:30 entry window and noon
 flatten remain unchanged on early-close days. The simulator rechecks all supplied
 bar times, including when callers construct Bar objects directly. Validation,
