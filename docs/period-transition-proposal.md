@@ -120,6 +120,6 @@ the £300 maximum-loss policy.
 
 The implementation is available through `simulate-research-series`; see
 [the research rollover contract](research-series.md). The ordinary `simulate-series`
-and durable risk-store paths retain their existing period blocks. Frozen-baseline
-multi-session integration is a separate increment; current scenarios supply their
-signals explicitly. Option A remains the alternative design for individual reviews.
+and durable risk-store paths retain their existing period blocks. The
+[`baseline-backtest`](baseline-backtest.md) command generates the frozen hypothesis
+over that same research policy. Option A remains the alternative design for individual reviews.

@@ -10,7 +10,7 @@ initial engineering snapshot does not declare unresolved planning gates complete
 | 1 | Broker and data economics | Conditional IBKR candidate; account-specific checks open |
 | 2 | Offline CLI foundation | Replay, offline ledger and durable risk observations |
 | 3 | Data pipeline | First private sample structurally checked; broader validation open |
-| 4 | One baseline strategy | Frozen single-session hypothesis; evaluation gates open |
+| 4 | One baseline strategy | Frozen continuous-account runner; qualification gates open |
 | 5 | Independent strategy validation | Not started |
 | 6 | Optional classifier | Not started; begin in shadow mode |
 | 7 | Broker execution and recovery | Not started |
@@ -37,9 +37,9 @@ brokerage account. It does not waive the full Phase 1 broker feasibility gate.
    transition workflow and atomic order/ledger persistence remain open.
 4. Delivered: pure entry diagnostics for quantity, exposure, settled cash and the
    £3 all-in trade budget. Persistent order/attempt reservations remain open.
-5. Delivered: frozen one-share opening-range hypothesis and isolated execution
-   scenarios. Qualified multi-day strategy evaluation remains blocked on the
-   period-transition workflow and research inputs.
+5. Delivered: frozen one-share opening-range hypothesis, isolated scenarios and
+   bounded continuous-account replay with approved rollover. Qualified strategy
+   evaluation remains blocked on research inputs and registered validation periods.
 
 No broker credentials or news-classification service are needed for this increment.
 Jev is a later optional classifier; its confidence is not a probability of profit.
@@ -64,7 +64,8 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   with unchanged risk checks. No profitability claim, tuning or classifier.
 - Delivered: explicit-window research inventory, recorded engineering sample audit,
   evaluation protocol structure and a concrete owner-reviewable period proposal.
-- Next: continuous frozen-baseline integration and evaluation reports. Qualified
+- Delivered: continuous frozen-baseline integration and a synthetic walkthrough.
+- Next: account-level evaluation summaries and cash comparison. Qualified
   evaluation still needs history/FX/cost evidence and preregistered partitions.
   See [research dependencies and ordered continuation](research-readiness.md).
 
