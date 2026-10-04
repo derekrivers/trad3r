@@ -43,8 +43,20 @@ audit/state database fails closed: the command prints an error and exits 2 witho
 a success report. It never recreates a database during read/record operations.
 Use a local filesystem, not a network share. SQLite durability relies on the
 operating system and storage honouring flushes. Keep backups before real use.
-The consistency checks detect accidental disagreement, not deliberate coordinated
-tampering by someone with file access. No automatic repair or migration is provided.
+Every read and append reconstructs the full ordered observation history: contiguous
+versions, IDs, timestamps, cumulative flows, computed assessments and retained
+latches. Each historical result and the final state must match the reconstruction.
+This catches older audit damage even when the latest snapshot still agrees with
+the latest row. An empty history must retain the original £1,000 mark and period.
+
+The consistency checks detect disagreement, not a coherently rewritten whole
+database by someone with file access. V1 stores the initial period but does not
+retain a separate immutable funding timestamp after the first observation; replay
+can check that first observation against the initial date, not the lost original
+intraday timestamp. Appending observations still checks strictly newer timestamps.
+No automatic repair or migration is provided. Existing consistent v1 stores remain
+compatible. Verification is linear in history length on every operation; a later
+larger-volume store needs reviewed checkpointing rather than skipping old entries.
 
 Successful diagnostic commands return 0 even when halted; consumers must inspect
 `blocked` and `blocked_reasons`. All results explicitly disable live trading.

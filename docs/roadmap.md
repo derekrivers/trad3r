@@ -31,7 +31,8 @@ brokerage account. It does not waive the full Phase 1 broker feasibility gate.
    flattening. Multi-session accounting scenarios now carry cash, settlement and
    latches; new-period entries remain blocked. Multi-symbol execution remains open.
 3. Delivered: persistent initial baselines, loss latches and audit observations,
-   with restart/concurrency/rollback tests. Period rollover stays blocked; a reviewed
+   with full-history consistency replay and restart/concurrency/rollback tests.
+   Period rollover stays blocked; a reviewed
    transition workflow and atomic order/ledger persistence remain open.
 4. Delivered: pure entry diagnostics for quantity, exposure, settled cash and the
    £3 all-in trade budget. Persistent order/attempt reservations remain open.
