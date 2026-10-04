@@ -81,3 +81,7 @@ The separate [settlement model](docs/settlement.md) calculates scheduled 2026 T+
 dates and holds proceeds until after the full settlement day in New York. Cash
 release requires an explicit ledger event. Broker cash availability, unscheduled
 closures and delayed/failed settlement still require separate reconciliation.
+
+`simulate-series` carries one research account across supplied sessions, including
+cash, settlement and loss latches. [Period changes block new entries](docs/series.md)
+pending review; it does not automatically renew daily or weekly loss budgets.
