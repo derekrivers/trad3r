@@ -1,0 +1,6 @@
+{
+  "symbol": "SYNTH", "quantity": 2, "entry": "100", "stop": "99",
+  "entry_fee_usd": "0.5", "exit_fee_usd": "0.5",
+  "slippage_usd_per_share": "0.05", "usd_to_gbp": "0.8",
+  "quote_at": "2026-09-04T14:02:00Z", "fx_at": "2026-09-04T14:02:00Z"
+}

@@ -30,7 +30,8 @@ brokerage account. It does not waive the full Phase 1 broker feasibility gate.
 3. Delivered: persistent initial baselines, loss latches and audit observations,
    with restart/concurrency/rollback tests. Period rollover stays blocked; a reviewed
    transition workflow and atomic order/ledger persistence remain open.
-4. Add quantity/exposure/settled-cash controls and verify the £3 all-in trade budget.
+4. Delivered: pure entry diagnostics for quantity, exposure, settled cash and the
+   £3 all-in trade budget. Persistent order/attempt reservations remain open.
 5. Introduce one frozen strategy hypothesis and report net results only after those
    accounting and execution semantics are verified.
 
@@ -39,8 +40,8 @@ Jev is a later optional classifier; its confidence is not a probability of profi
 
 ## Next PR-sized backlog
 
-- Order-admission diagnostics: planned all-in loss, settled cash, one-position,
-  exposure and entry-attempt controls, with boundary and failure tests.
+- Delivered: order-entry diagnostics, including freshness/coherence checks and
+  boundary tests. Integrate them into conservative simulation next.
 - Conservative execution simulator: bar batches, next-event fills, explicit spread/
   slippage/fees, and worst-case treatment when stop and target touch together.
 - Verified session/settlement calendar and fresh price/FX observation contracts.

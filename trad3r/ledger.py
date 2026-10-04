@@ -187,6 +187,7 @@ class Ledger:
         mark = Mark(equity, self.deposits, self.withdrawals)
         self.last_report = {
             "mode": "offline_accounting_only", "as_of": at.isoformat(),
+            "usd_to_gbp": fx,
             "equity_gbp": equity, "deposits_gbp": self.deposits,
             "withdrawals_gbp": self.withdrawals,
             "account_pnl_gbp": mark.adjusted_equity - Policy().initial_capital,
