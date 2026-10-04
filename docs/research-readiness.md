@@ -1,7 +1,7 @@
 # Research readiness and next inputs
 
-Current result: **engineering inputs available; validated strategy evaluation
-blocked**. Passing software tests and complete minute bars do not qualify trading
+Current result: **engineering inputs and approved isolated rollover available;
+qualified strategy evaluation remains blocked**. Passing tests and complete bars do not qualify trading
 results. No strategy return, win rate or passive-income estimate has been produced.
 
 ## Reproduce the inventory
@@ -18,7 +18,7 @@ hashes the archive without changing it, running a strategy or inspecting P&L.
 
 Output separates `declared_coverage_complete` from `structurally_complete` for the
 requested window. `research_ready` is always false in this version: the command
-cannot verify external evidence or approve the pending workflow. The blocker list
+cannot verify external evidence or certify research readiness. The blocker list
 is a repository capability checklist, not a scan of files elsewhere on the user's
 computer. Exit 0 means the diagnostic ran successfully, including when blocked;
 invalid input exits 2 without success JSON. Consumers must read the result fields.
@@ -47,7 +47,7 @@ point-in-time universe selection or authentic vendor delivery timestamps.
 
 | Dependency | Concrete input / decision | What it unblocks |
 | --- | --- | --- |
-| Period transitions | Owner decision on [option B: bounded automatic offline rollover](period-transition-proposal.md), or individually reviewed option A | Implementing continuous-account strategy runs without creating a new £1,000 account each day |
+| Period transitions | Resolved for isolated backtests: owner approved option B on 2026-10-04; [research scenario implementation](research-series.md) available | Frozen strategy integration can now proceed without a new £1,000 account each day |
 | Broader stock history | Licensed raw minute exports, symbols/date inventory, provider metadata, acquisition date and rights/retention notes | Independent checks and chronological development/validation/test planning |
 | USD/GBP history | UTC observation timestamps, rate direction, source, provenance and delivery/availability convention | GBP equity, cash and risk accounting across the same period |
 | Execution economics | Dated intended account/instrument fee schedule; minimum commissions, FX conversion costs and market-data charges; bid/ask evidence or documented spread/slippage stress assumptions | Assessing whether a one-share hypothesis can survive actual costs |
@@ -104,8 +104,8 @@ protocol; adding an AI call now would not supply the missing evidence.
 
 ## Ordered engineering continuation
 
-After the period decision: implement the selected transition policy and its audit
-records/rejection tests; integrate it into continuous-account baseline replay;
+Next integrate the approved and tested research rollover policy into continuous
+baseline replay, preserving its audit records and all halt behaviour;
 then add experiment manifests and chronological evaluation reports against the
 qualified inputs. Broker order persistence/recovery and forward paper execution
 remain later work after account/data economics and execution contracts are known.

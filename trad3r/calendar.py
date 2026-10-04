@@ -42,3 +42,20 @@ def validate_minute(start, session):
     bounds = session_bounds(session)
     if bounds is None or not bounds[0] <= start < bounds[1]:
         raise ValueError("Bar is outside scheduled regular trading hours for its session date")
+
+
+def scheduled_sessions(start, end):
+    """Scheduled sessions in an explicit inclusive, supported date window."""
+    session_bounds(start)
+    session_bounds(end)
+    first, last = date.fromisoformat(start), date.fromisoformat(end)
+    if first > last:
+        raise ValueError("Window start must not follow its end")
+    result = []
+    while first <= last:
+        if session_bounds(first.isoformat()) is not None:
+            result.append(first.isoformat())
+        first += timedelta(days=1)
+    if not result:
+        raise ValueError("Window contains no supported exchange sessions")
+    return result

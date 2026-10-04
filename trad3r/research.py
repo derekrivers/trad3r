@@ -1,7 +1,5 @@
 """Read-only research inventory; structural completeness is not qualification."""
-from datetime import date, timedelta
-
-from .calendar import session_bounds
+from .calendar import scheduled_sessions
 from .data import coverage_report, load_sample
 from .features import FEATURE_SCHEMA
 from .strategy import STRATEGY_ID
@@ -15,19 +13,7 @@ def audit_sample(path, start, end):
     Never runs a strategy or silently promotes engineering data to a holdout.
     External research gates are deliberately not satisfiable by this bar audit.
     """
-    session_bounds(start)
-    session_bounds(end)
-    first, last = date.fromisoformat(start), date.fromisoformat(end)
-    if first > last:
-        raise ValueError("Research window start must not follow its end")
-    sessions = []
-    day = first
-    while day <= last:
-        if session_bounds(day.isoformat()) is not None:
-            sessions.append(day.isoformat())
-        day += timedelta(days=1)
-    if not sessions:
-        raise ValueError("Research window contains no supported exchange sessions")
+    sessions = scheduled_sessions(start, end)
     bars, source = load_sample(path)
     selected = [bar for bar in bars if start <= bar.session <= end]
     coverage = coverage_report(selected, source["symbols"], sessions)
@@ -44,10 +30,8 @@ def audit_sample(path, start, end):
              required="Register untouched chronological evaluation periods and an inspected-data exclusion list before viewing outcomes."),
         dict(code="fx_and_costs_not_qualified",
              required="Supply timestamped USD/GBP observations and sourced broker fees, FX conversion charges and spread/slippage assumptions."),
-        dict(code="period_transition_not_approved",
-             required="Owner review of the proposed period-transition workflow; current code never renews loss budgets."),
-        dict(code="account_backtest_not_available",
-             required="Implement and verify the approved transition workflow before evaluating a continuous multi-day account."),
+        dict(code="baseline_series_evaluation_not_available",
+             required="Integrate the frozen strategy into bounded continuous-account research runs and register the evaluation protocol."),
     ])
     return dict(schema=AUDIT_SCHEMA, mode="offline_research_inventory_only",
                 source_sha256=source["source_sha256"], calendar_id=source["calendar_id"],

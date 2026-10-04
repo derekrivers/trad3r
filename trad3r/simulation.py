@@ -2,13 +2,17 @@
 from bisect import bisect_right
 from dataclasses import asdict, dataclass, field
 from datetime import time, timedelta
+import hashlib
+import json
 from zoneinfo import ZoneInfo
 
 from .admission import check_entry
-from .calendar import CALENDAR_ID, validate_minute
+from .calendar import CALENDAR_ID, scheduled_sessions, validate_minute
 from .ledger import Ledger, nonnegative, positive, shares, utc
 from .risk import Mark, Policy, assess
 from .settlement import SETTLEMENT_CALENDAR_ID, settlement_date, validate_settlement
+
+ROLLOVER_POLICY = "offline-unhalted-period-rollover-v1"
 
 
 def bracket_exit(bar, stop, target, slip):
@@ -31,6 +35,10 @@ class _RunState:
     latched: tuple = ()
     baseline_session: str | None = None
     baseline_week: str | None = None
+    session_start: Mark = field(default_factory=lambda: Mark(Policy().initial_capital))
+    week_start: Mark = field(default_factory=lambda: Mark(Policy().initial_capital))
+    rollover: bool = False
+    transitions: list = field(default_factory=list)
 
 
 def simulate(bars, scenario):
@@ -44,11 +52,45 @@ def simulate_series(sessions):
     Period changes block new entries, never automatically renew risk budgets.
     No partial result escapes if any session fails; supplied inputs are unchanged.
     """
+    return _run_series(sessions, _RunState())
+
+
+def simulate_research_series(sessions, start, end, *, strategy_id):
+    """Owner-approved rollover exception for bounded, isolated in-memory runs.
+
+    No durable risk store, external account, pending order queue or halt reset.
+    Missing sessions are reported, never fabricated. All inputs precede success.
+    """
+    if (not isinstance(strategy_id, str) or not 1 <= len(strategy_id) <= 128 or
+            any(not c.isascii() or not (c.isalnum() or c in "-_.") for c in strategy_id)):
+        raise ValueError("Research requires an explicit versioned strategy/scenario identifier")
+    expected = scheduled_sessions(start, end)
+    sessions = [(list(bars), scenario) for bars, scenario in sessions]
+    days = [scenario["session"] for _, scenario in sessions]
+    if any(day not in expected for day in days):
+        raise ValueError("Research session outside the explicit supported window")
+    inputs = dict(window=dict(start=start, end=end), policy=ROLLOVER_POLICY, strategy_id=strategy_id,
+                  signal_schema="supplied-signals-v1",
+                  sessions=[dict(bars=[bar.event() for bar in bars], scenario=scenario)
+                            for bars, scenario in sessions])
+    identity = hashlib.sha256(json.dumps(inputs, default=str, sort_keys=True,
+                                        separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+    state = _RunState(rollover=True)
+    result = _run_series(sessions, state)
+    result.update(mode="offline_research_series_only", rollover_policy=ROLLOVER_POLICY, strategy_id=strategy_id,
+                  signal_schema="supplied-signals-v1",
+                  window=dict(start=start, end=end), inputs_sha256=identity,
+                  missing_sessions=sorted(set(expected)-set(days)),
+                  transitions=state.transitions, research_status="engineering_scenario_only")
+    return result
+
+
+def _run_series(sessions, state):
     sessions = list(sessions)
     days = [scenario["session"] for _, scenario in sessions]
     if not days or days != sorted(set(days)):
         raise ValueError("Series sessions must be nonempty, unique and chronological")
-    state, results = _RunState(), []
+    results = []
     for bars, scenario in sessions:
         result = _run_session(bars, scenario, state)
         # One complete ledger journal belongs to the account, not one per day.
@@ -124,7 +166,7 @@ def _run_session(bars, scenario, state):
         emit("value", at, usd_to_gbp=fx, prices={symbol: price} if book.position else {})
         report = book.last_report
         mark = Mark(report["equity_gbp"], report["deposits_gbp"], report["withdrawals_gbp"])
-        assessment = assess(mark, Mark(Policy().initial_capital), Mark(Policy().initial_capital), state.latched)
+        assessment = assess(mark, state.session_start, state.week_start, state.latched)
         state.latched = assessment.halt_reasons
         blocked = list(state.latched)
         if session != state.baseline_session:
@@ -156,6 +198,30 @@ def _run_session(bars, scenario, state):
         emit("settle", start)
     for index, bar in enumerate(bars):
         risk, fx_time, fx = value(bar.start, bar.open)
+        if index == 0 and state.rollover and session != state.baseline_session:
+            # The fresh mark has ALREADY been assessed against the old baselines.
+            # This engine has no pending orders and rejects overnight positions.
+            mark = Mark(**risk["mark"])
+            local = bar.start.astimezone(zone).date()
+            week = (local - timedelta(days=local.weekday())).isoformat()
+            before = dict(session=state.baseline_session, week=state.baseline_week,
+                          session_start=asdict(state.session_start), week_start=asdict(state.week_start))
+            if not state.latched:
+                state.session_start = mark
+                state.baseline_session = session
+                if week != state.baseline_week:
+                    state.week_start = mark
+                    state.baseline_week = week
+            after = dict(session=state.baseline_session, week=state.baseline_week,
+                         session_start=asdict(state.session_start), week_start=asdict(state.week_start))
+            state.transitions.append(dict(id=f"transition-{len(state.transitions)}", at=bar.start.isoformat(),
+                                          session=session, policy=ROLLOVER_POLICY,
+                                          decision="blocked" if state.latched else "applied",
+                                          reasons=list(state.latched), mark=asdict(mark),
+                                          before=before, after=after,
+                                          assessed_before=risk["assessment"],
+                                          valuation_event_id=events[-1]["id"]))
+            risk, fx_time, fx = value(bar.start, bar.open)
         if active:
             if bar.open <= active["stop"] or bar.open >= active["target"]:
                 price, reason = bracket_exit(bar, active["stop"], active["target"], slip)
@@ -207,5 +273,6 @@ def _run_session(bars, scenario, state):
                 truncated_session=bars[-1].available_at.astimezone(zone).time() != time(12),
                 halt_reasons=list(state.latched), blocked_reasons=final_risk["blocked_reasons"],
                 baseline_session=state.baseline_session, baseline_week=state.baseline_week,
+                session_start=asdict(state.session_start), week_start=asdict(state.week_start),
                 assessment=final_risk["assessment"],
                 final_ledger=book.last_report, trace=trace, ledger_events=events)

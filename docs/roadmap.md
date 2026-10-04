@@ -29,7 +29,8 @@ brokerage account. It does not waive the full Phase 1 broker feasibility gate.
 2. Delivered: single-symbol/session fill scenarios with delayed entries, explicit
    costs, opening gaps, stop-first ambiguity, risk exits and noon/end-of-data
    flattening. Multi-session accounting scenarios now carry cash, settlement and
-   latches; new-period entries remain blocked. Multi-symbol execution remains open.
+   latches. Ordinary series keep their period block; a separately approved bounded
+   research path supports eligible rollover. Multi-symbol execution remains open.
 3. Delivered: persistent initial baselines, loss latches and audit observations,
    with full-history consistency replay and restart/concurrency/rollback tests.
    Period rollover stays blocked; a reviewed
@@ -55,15 +56,16 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   cash-release policy, including bank holidays on which equities still trade.
 - Broker cash reconciliation, broader historical calendar coverage, unscheduled
   closure handling and fresh price/FX observation contracts.
-- Owner-reviewed period transitions that cannot clear an overall loss halt.
+- Delivered: owner-approved bounded isolated research rollover, with full account
+  continuity and no clearing of any halt. Durable/paper/live rollover stays absent.
 - Delivered: causal completed-minute feature snapshots with explicit warmup and
   frozen opening ranges. No learned model, labels or strategy selection yet.
 - Delivered: `orb30-one-share-v1` candidate generator and single-session integration
   with unchanged risk checks. No profitability claim, tuning or classifier.
 - Delivered: explicit-window research inventory, recorded engineering sample audit,
   evaluation protocol structure and a concrete owner-reviewable period proposal.
-- Blocked next: implement approved period transitions, then continuous baseline
-  evaluation with qualified history/FX/cost evidence and preregistered partitions.
+- Next: continuous frozen-baseline integration and evaluation reports. Qualified
+  evaluation still needs history/FX/cost evidence and preregistered partitions.
   See [research dependencies and ordered continuation](research-readiness.md).
 
 The broker account is not needed for those offline tasks. No profitability or
