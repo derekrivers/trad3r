@@ -71,8 +71,9 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   See [research dependencies and ordered continuation](research-readiness.md).
 - Delivered: dry-run-first local Massive stock/FX acquisition with bounded requests,
   secure local credentials, pacing, provenance hashes and exclusive archive output.
-  Next: causal FX archive-to-scenario preparation with explicit economics, then
-  actual account-entitlement/data checks and registered chronological evaluation.
+- Delivered: causal FX archive-to-scenario preparation with explicit fixed-cost
+  assumptions and exact archive binding. Next: actual account-entitlement/data
+  checks, qualified economic inputs and registered chronological evaluation.
 
 The broker account is not needed for those offline tasks. No profitability or
 live-readiness claim follows from the accounting example or passing unit tests.

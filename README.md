@@ -74,6 +74,9 @@ The separate [local acquisition command](docs/acquisition.md) plans and explicit
 downloads raw stock minutes plus historical GBP/USD valuation proxies from an
 existing Massive account. It defaults to a dry run, prompts securely for a local
 key, paces read-only requests and refuses overwrites. No subscription is purchased.
+[`prepare-baseline`](docs/preparation.md) then builds a scenario from the combined
+archive and explicit fixed-cost/conversion assumptions, checks causal FX freshness
+and requires the exact same archive when running the baseline.
 
 The [accounting contract](docs/accounting.md) describes supplied fill events, GBP/USD
 cash, fees, external flows and explicit settlement. Its synthetic example is an

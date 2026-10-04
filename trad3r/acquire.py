@@ -20,10 +20,10 @@ from zoneinfo import ZoneInfo
 
 from .calendar import CALENDAR_ID, scheduled_sessions, session_bounds
 from .data import decode, load_sample, parse_bar
+from .fx import FX_MODEL
 
 HOST = "https://api.massive.com"
 FX_TICKER = "C:GBPUSD"
-FX_MODEL = "historical-completed-bar-proxy-v1"
 MAX_RESPONSE = 20 * 1024 * 1024
 MAX_PAYLOAD = 95 * 1024 * 1024
 PACE_SECONDS = 13

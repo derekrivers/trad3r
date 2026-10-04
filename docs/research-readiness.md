@@ -105,6 +105,13 @@ protocol; adding an AI call now would not supply the missing evidence.
 
 ## Ordered engineering continuation
 
+The [local downloader](acquisition.md) and [offline scenario preparation](preparation.md)
+are available. Actual stock/currency account access and timestamped FX have not
+been supplied here; download privately when a secure local terminal is available.
+No API key belongs in chat or GitHub. Preparation validates causal timing and source
+identity but deliberately retains an engineering-only status and explicit assumed
+costs. Published price schedules do not establish account-specific historical fees.
+
 The [continuous baseline runner](baseline-backtest.md) now preserves the approved
 rollover policy, audit records and halts, and includes account-level summaries and
 a same-cash no-trade comparison. Next obtain the qualified inputs, register actual

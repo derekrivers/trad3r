@@ -19,11 +19,19 @@ from .features import FEATURE_SCHEMA, feature_snapshots
 from .strategy import opening_range_signals
 from .research import audit_sample
 from .backtest import baseline_backtest
+from .preparation import PREPARATION_SCHEMA, prepare_baseline, write_prepared
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Trad3r offline research foundation")
     commands = parser.add_subparsers(dest="command", required=True)
+    prepare = commands.add_parser("prepare-baseline", help="Prepare a source-bound scenario using completed historical FX")
+    prepare.add_argument("archive", type=Path)
+    prepare.add_argument("assumptions", type=Path)
+    prepare.add_argument("--symbol", required=True)
+    prepare.add_argument("--start", required=True)
+    prepare.add_argument("--end", required=True)
+    prepare.add_argument("--output", type=Path, required=True)
     audit = commands.add_parser("research-audit", help="Read-only bar inventory and unresolved research gates")
     audit.add_argument("archive", type=Path)
     audit.add_argument("--start", required=True, help="Inclusive first date, YYYY-MM-DD")
@@ -66,6 +74,11 @@ def main(argv=None):
             sub.add_argument("--event-id", help="Required when importing a ledger valuation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "prepare-baseline":
+            payload = prepare_baseline(args.archive, args.assumptions, args.symbol, args.start, args.end)
+            result = write_prepared(payload, args.output)
+            print(json.dumps(result, sort_keys=True, indent=2))
+            return 0
         if args.command == "research-audit":
             result = audit_sample(args.archive, args.start, args.end)
             print(json.dumps(result, default=str, sort_keys=True, indent=2))
@@ -92,6 +105,12 @@ def main(argv=None):
                 source_sha = source["source_sha256"]
                 if args.command in ("baseline-simulate", "baseline-backtest") and not source["coverage"]["complete"]:
                     raise ValueError("Strategy archive must have complete declared coverage")
+            if "expected_source_sha256" in payload and (source_sha is None or payload["expected_source_sha256"] != source_sha):
+                raise ValueError("Scenario requires the exact preparation archive SHA-256")
+            if "preparation" in payload:
+                if (args.command != "baseline-backtest" or "expected_source_sha256" not in payload
+                        or payload["preparation"]["schema"] != PREPARATION_SCHEMA):
+                    raise ValueError("Unsupported prepared scenario or execution command")
             sessions = []
             for scenario in scenarios:
                 if args.archive:
@@ -118,6 +137,8 @@ def main(argv=None):
                 result.update(strategy_id=generated["strategy_id"], feature_schema=generated["feature_schema"],
                               research_status="engineering_scenario_only", generated_signals=generated["signals"])
             result.update(scenario_sha256=hashlib.sha256(scenario_bytes).hexdigest(), source_sha256=source_sha)
+            if "preparation" in payload:
+                result["preparation"] = payload["preparation"]
             print(json.dumps(result, default=str, sort_keys=True, indent=2))
             return 0
         if args.command == "entry-check":

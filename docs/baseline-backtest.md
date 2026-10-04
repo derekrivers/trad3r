@@ -36,6 +36,11 @@ An optional `--archive` supplies bars instead; archive coverage must be complete
 for its declared grid, and the requested window must still include every session.
 No missing session is silently treated as a no-trade day.
 
+[`prepare-baseline`](preparation.md) can create this scenario from a combined
+stock/FX archive and explicitly supplied assumptions without inspecting strategy
+outcomes. Prepared scenarios bind `expected_source_sha256`; execution requires
+the exact archive and retains the preparation metadata in the result.
+
 Costs and timestamped FX are mandatory in every session. Only the first session
 may specify the initial conversion from the single £1,000 research account. No
 prices, funding conversions, fee rates or FX rates are inferred from stock bars.
