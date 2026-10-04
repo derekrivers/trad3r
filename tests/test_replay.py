@@ -101,7 +101,7 @@ class ReplayTests(unittest.TestCase):
 
     def test_missing_timezone_data_fails_clearly(self):
         fixture(self.archive)
-        with patch("trad3r.data.ZoneInfo", side_effect=ZoneInfoNotFoundError):
+        with patch("trad3r.calendar.ZoneInfo", side_effect=ZoneInfoNotFoundError):
             with self.assertRaisesRegex(ValueError, "install tzdata"):
                 load_sample(self.archive)
 

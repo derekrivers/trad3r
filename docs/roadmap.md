@@ -43,7 +43,10 @@ Jev is a later optional classifier; its confidence is not a probability of profi
 
 - Delivered: order-entry diagnostics integrated into the isolated scenario simulator.
 - Verified multi-symbol completed-bar batches and stronger quote/liquidity contracts.
-- Verified session/settlement calendar and fresh price/FX observation contracts.
+- Delivered: bounded, sourced 2026 exchange session calendar; holidays, early
+  closes and unsupported years checked in data, entry diagnostics and simulation.
+- Verified settlement calendar, broader historical calendar coverage, unscheduled
+  closure handling and fresh price/FX observation contracts.
 - Owner-reviewed period transitions that cannot clear an overall loss halt.
 - Only then: one frozen baseline strategy and chronological evaluation reports.
 

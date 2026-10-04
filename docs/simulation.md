@@ -75,7 +75,9 @@ participation, bid/ask feed, trading-halt, partial-fill or liquidity model. Supp
 fees, FX and allowance must be calibrated before performance evaluation. A cost
 assumption producing a nonpositive fill price causes an error, not a fabricated fill.
 
-Exchange holidays, early closes and verified settlement calendars remain open.
+The [2026 exchange calendar](calendar.md) checks scheduled holidays and early
+closes; unknown years fail closed. Reports identify its version. Unscheduled
+closures and verified settlement calendars remain open.
 Multi-symbol event batches, multi-session period transitions, strategies and
 out-of-sample validation are not implemented. Isolated session outputs must not
 be added together as though each received a fresh real loss allowance.

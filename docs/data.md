@@ -9,12 +9,12 @@ read directly without extraction. Version 0.1 is bounded to 50 MiB compressed,
 Each row includes symbol, UTC minute-start timestamp, session_date, USD currency,
 o/h/l/c and volume. JSON decimals are parsed as Decimal; fractional volumes are
 valid. Ordering, duplicates, finite values and OHLC constraints are checked.
-The timestamp must match its New York session date and a weekday bar start in
-09:30–15:59 local time, with daylight saving handled by IANA timezone data.
-This does not yet reject exchange holidays or bars after an early close.
+The timestamp must fit its scheduled New York regular session under the bounded
+[2026 exchange calendar](calendar.md), including holidays and early closes.
+Daylight saving is handled by IANA timezone data; unknown years fail closed.
 The manifest is an integrity inventory, not an authenticated vendor signature.
-Calendar truth, source provenance and full minute coverage need independent checks;
-the reader reports counts and does not promise those checks itself.
+Unscheduled closures, source provenance and full minute coverage need independent
+checks; the reader reports counts and does not promise those checks itself.
 
 ## First sample evidence
 

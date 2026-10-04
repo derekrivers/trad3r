@@ -2,11 +2,11 @@
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime, time, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from zipfile import ZipFile
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from .calendar import CALENDAR_ID, session_bounds, validate_minute
 
 
 def decode(raw):
@@ -49,19 +49,8 @@ def parse_bar(row, expected_symbol):
     if row["symbol"] != expected_symbol or row["currency"] != "USD":
         raise ValueError("Unexpected symbol or currency")
     start = datetime.fromisoformat(row["timestamp_utc"])
-    if start.tzinfo is None or start.utcoffset() != timedelta(0) or start.second or start.microsecond:
-        raise ValueError("Bar timestamp must be minute-aligned UTC")
     session = row["session_date"]
-    if datetime.strptime(session, "%Y-%m-%d").date().isoformat() != session:
-        raise ValueError("Invalid session date")
-    try:
-        local = start.astimezone(ZoneInfo("America/New_York"))
-    except ZoneInfoNotFoundError as error:
-        raise ValueError("New York timezone data unavailable; install tzdata") from error
-    if local.date().isoformat() != session:
-        raise ValueError("Timestamp does not match New York session date")
-    if local.weekday() >= 5 or not time(9, 30) <= local.time() < time(16):
-        raise ValueError("Bar is outside regular weekday trading hours")
+    validate_minute(start, session)
     values = []
     for key in ("o", "h", "l", "c", "v"):
         value = row[key]
@@ -104,6 +93,8 @@ def load_sample(path: Path):
         sessions = manifest["expected_sessions"]
         if not sessions or sessions != sorted(set(sessions)):
             raise ValueError("Invalid expected sessions")
+        if any(session_bounds(s) is None for s in sessions):
+            raise ValueError("Expected sessions include a scheduled closed day")
         bars = []
         counts = {}
         for symbol in symbols:
@@ -123,6 +114,7 @@ def load_sample(path: Path):
                "symbols": sorted(symbols), "bars": len(bars), "session_counts": counts,
                "first_available_at": bars[0].available_at.isoformat(),
                "last_available_at": bars[-1].available_at.isoformat(),
-               "checks": "checksums, inventory, schema, OHLC, finite values, ordering, New York session date and regular hours",
-               "limitations": "No independent price or exchange-calendar validation; no fills or P&L"}
+               "calendar_id": CALENDAR_ID,
+               "checks": "checksums, inventory, schema, OHLC, finite values, ordering, scheduled 2026 exchange sessions and regular hours",
+               "limitations": "No independent price, full minute-grid, unscheduled closure or settlement validation; no fills or P&L"}
     return bars, summary

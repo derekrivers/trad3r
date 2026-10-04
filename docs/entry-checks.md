@@ -17,9 +17,11 @@ price and FX timestamps must be no later than the decision and at most 60 second
 old. A matching timestamp does not authenticate an observation or its provenance.
 
 The first version permits only flat-to-long, whole-share USD stock entries. It
-checks the existing risk block, New York session date, weekday 10:00–11:29:59 entry
+checks the existing risk block, New York session date, 10:00–11:29:59 entry
 window, no current position (including the same symbol), and fewer than three
-previous entry attempts. Holidays and early closes still require a calendar layer.
+previous entry attempts. The [bounded 2026 calendar](calendar.md) rejects scheduled
+closed days and errors outside its supported year. Early-close mornings retain
+the same entry window. Every result identifies the calendar version.
 
 With q shares, one-way adverse execution allowance s, GBP-per-USD fx, entry price
 e, stop p, and explicit entry/exit USD fees:
