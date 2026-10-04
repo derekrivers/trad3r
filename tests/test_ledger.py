@@ -50,7 +50,7 @@ class LedgerTests(unittest.TestCase):
         self.buy()
         for quantity in (1, 2):
             self.send('sell', symbol='AAA', quantity=quantity, price='110', fee_usd='1',
-                      usd_to_gbp='0.8', settles_on='2026-09-07')
+                      usd_to_gbp='0.8', settles_on='2026-09-08')
         result = self.value()
         self.assertIsNone(result['position'])
         self.assertEqual(result['realised_trade_pnl_gbp'], D('21.6'))
@@ -58,12 +58,12 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(result['unsettled_usd'], D('328'))
         self.send('settle', at='2026-09-06T00:00:00+00:00')
         self.assertEqual(self.ledger.cash['USD'], D('199'))
-        self.send('settle', at='2026-09-07T00:00:00+00:00')
-        after = self.value(at='2026-09-07T00:00:00+00:00')
+        self.send('settle', at='2026-09-09T04:00:00+00:00')
+        after = self.value(at='2026-09-09T04:00:00+00:00')
         self.assertEqual(after['equity_gbp'], result['equity_gbp'])
         self.assertEqual(after['settled_cash']['USD'], D('527'))
         self.assertEqual(after['unsettled_usd'], 0)
-        self.send('settle', at='2026-09-07T00:00:00+00:00')
+        self.send('settle', at='2026-09-09T04:00:00+00:00')
         self.assertEqual(self.ledger.cash['USD'], D('527'))
 
     def test_external_flows_do_not_create_profit(self):
@@ -78,7 +78,7 @@ class LedgerTests(unittest.TestCase):
         self.funded_usd()
         self.buy(quantity=4)
         self.send('sell', symbol='AAA', quantity=4, price='100', fee_usd='1',
-                  usd_to_gbp='0.8', settles_on='2026-09-07')
+                  usd_to_gbp='0.8', settles_on='2026-09-08')
         for kind, payload in (
             ('buy', dict(symbol='AAA', quantity=2, price='100', fee_usd='0', usd_to_gbp='0.8')),
             ('withdraw', dict(currency='USD', amount='100', usd_to_gbp='0.8')),

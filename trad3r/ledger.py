@@ -1,10 +1,13 @@
 """Deterministic accounting for supplied offline fills, never an execution engine."""
 from copy import deepcopy
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from .risk import Mark, Policy, money
+from .settlement import (CASH_RELEASE_POLICY, SETTLEMENT_CALENDAR_ID,
+                         cash_available_at, validate_settlement)
 
 D = Decimal
 
@@ -146,9 +149,8 @@ class Ledger:
         if not self.position or self.position.symbol != symbol or quantity > self.position.quantity:
             raise ValueError("Cannot sell unowned shares")
         price, fee, fx = positive(price), nonnegative(fee_usd), positive(usd_to_gbp)
-        due = date.fromisoformat(settles_on)
-        if due.isoformat() != settles_on or due <= at.date():
-            raise ValueError("Supply an explicit future settlement date")
+        session = at.astimezone(ZoneInfo("America/New_York")).date().isoformat()
+        due = validate_settlement(session, settles_on)
         proceeds = quantity * price - fee
         if proceeds < 0:
             raise ValueError("Fees exceed sale proceeds")
@@ -166,7 +168,7 @@ class Ledger:
     def _settle(self, at):
         remaining = []
         for due, amount in self.unsettled:
-            if due <= at.date():
+            if at >= cash_available_at(due):
                 self.cash["USD"] += amount
             else:
                 remaining.append((due, amount))
@@ -187,6 +189,8 @@ class Ledger:
         mark = Mark(equity, self.deposits, self.withdrawals)
         self.last_report = {
             "mode": "offline_accounting_only", "as_of": at.isoformat(),
+            "settlement_calendar_id": SETTLEMENT_CALENDAR_ID,
+            "cash_release_policy": CASH_RELEASE_POLICY,
             "usd_to_gbp": fx,
             "equity_gbp": equity, "deposits_gbp": self.deposits,
             "withdrawals_gbp": self.withdrawals,
@@ -194,6 +198,10 @@ class Ledger:
             "realised_trade_pnl_gbp": self.realised_trade_pnl,
             "unrealised_position_pnl_gbp": unrealised,
             "settled_cash": dict(self.cash), "unsettled_usd": pending,
+            "pending_settlements": [
+                {"settles_on": due.isoformat(), "amount_usd": amount,
+                 "available_at": cash_available_at(due).isoformat()}
+                for due, amount in self.unsettled],
             "position": None if not self.position else {
                 "symbol": self.position.symbol, "quantity": self.position.quantity,
                 "basis_gbp": self.position.basis_gbp, "market_value_gbp": market_value},

@@ -1,13 +1,14 @@
 """Single-session scenario execution, not a strategy or broker emulator."""
 from bisect import bisect_right
 from dataclasses import asdict
-from datetime import date, time, timedelta
+from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 
 from .admission import check_entry
 from .calendar import CALENDAR_ID, validate_minute
 from .ledger import Ledger, nonnegative, positive, shares, utc
 from .risk import Mark, Policy, assess
+from .settlement import SETTLEMENT_CALENDAR_ID, settlement_date, validate_settlement
 
 
 def bracket_exit(bar, stop, target, slip):
@@ -41,9 +42,8 @@ def simulate(bars, scenario):
     bars = [b for b in bars if b.start.astimezone(zone).time() < time(12)]
     if not bars:
         raise ValueError("No bars before the noon flatten deadline")
-    due = date.fromisoformat(scenario["settles_on"])
-    if due.isoformat() != scenario["settles_on"] or due <= date.fromisoformat(session):
-        raise ValueError("Supply an explicit future settlement date")
+    due = (validate_settlement(session, scenario["settles_on"]) if "settles_on" in scenario
+           else settlement_date(session))
     costs = scenario["costs"]
     if set(costs) != {"entry_fee_usd", "exit_fee_usd", "slippage_usd_per_share"}:
         raise ValueError("Explicit execution costs are required")
@@ -100,7 +100,7 @@ def simulate(bars, scenario):
         _, fx = fx_at(at)
         quantity = book.position.quantity
         emit("sell", at, symbol=symbol, quantity=quantity, price=positive(price),
-             fee_usd=exit_fee, usd_to_gbp=fx, settles_on=scenario["settles_on"])
+             fee_usd=exit_fee, usd_to_gbp=fx, settles_on=due.isoformat())
         trace.append(dict(type="exit", at=at.isoformat(), signal=active["id"],
                           price=price, quantity=quantity, reason=reason))
         active = None
@@ -156,6 +156,7 @@ def simulate(bars, scenario):
         trace.append(dict(type="expired_signal", signal=signal["id"], reason="no_later_entry_bar"))
     return dict(mode="offline_scenario_simulation_only", live_trading_enabled=False,
                 calendar_id=CALENDAR_ID,
+                settlement_calendar_id=SETTLEMENT_CALENDAR_ID, settles_on=due.isoformat(),
                 symbol=symbol, session=session, bars=len(bars), attempts=attempts,
                 truncated_session=bars[-1].available_at.astimezone(zone).time() != time(12),
                 halt_reasons=list(latched), final_ledger=book.last_report, trace=trace, ledger_events=events)

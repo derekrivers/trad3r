@@ -17,7 +17,9 @@ the emitted ledger events reconstruct its accounting result.
 
 The example defines one symbol/session, contiguous validated minute bars, explicit
 funding conversion amounts, entry/exit USD fees, one-way adverse execution allowance,
-timestamped GBP-per-USD FX observations, signals and a future settlement date.
+timestamped GBP-per-USD FX observations and signals. The [settlement calendar](settlement.md)
+calculates the scheduled T+1 date; optional `settles_on` must match it exactly.
+Emitted sale events always include the calculated date for ledger replay.
 All numeric assumptions use decimal strings except the historical OHLCV JSON
 numbers. FX observations must be unique and chronological; only observations
 available by the current event are used, and they expire after 60 seconds.
@@ -77,7 +79,8 @@ assumption producing a nonpositive fill price causes an error, not a fabricated 
 
 The [2026 exchange calendar](calendar.md) checks scheduled holidays and early
 closes; unknown years fail closed. Reports identify its version. Unscheduled
-closures and verified settlement calendars remain open.
+closures remain open. A separate bounded 2026 settlement calendar and conservative
+cash-release policy are recorded in the report; broker cash reconciliation remains open.
 Multi-symbol event batches, multi-session period transitions, strategies and
 out-of-sample validation are not implemented. Isolated session outputs must not
 be added together as though each received a fresh real loss allowance.
