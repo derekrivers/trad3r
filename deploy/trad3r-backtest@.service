@@ -1,0 +1,27 @@
+[Unit]
+Description=Trad3r isolated offline engineering experiment %i
+
+[Service]
+Type=oneshot
+User=trad3r
+Group=trad3r
+WorkingDirectory=/opt/trad3r
+ExecStart=/opt/trad3r/.venv/bin/python -m trad3r run-job /var/lib/trad3r/jobs/%i
+TimeoutStartSec=30min
+Restart=no
+UMask=0077
+NoNewPrivileges=true
+PrivateNetwork=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/trad3r/jobs/%i
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+MemoryMax=1G
+TasksMax=32
+Environment=PYTHONDONTWRITEBYTECODE=1

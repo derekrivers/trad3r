@@ -23,11 +23,14 @@ from .backtest import baseline_backtest
 from .preparation import PREPARATION_SCHEMA, prepare_baseline, write_prepared
 from .fx_import import attach_connector_fx
 from .experiments import register_experiment, run_experiment, inspect_experiment
+from .jobs import run_job
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Trad3r offline research foundation")
     commands = parser.add_subparsers(dest="command", required=True)
+    job = commands.add_parser("run-job", help="Execute or recover one registered offline job in a local directory")
+    job.add_argument("directory", type=Path)
     register = commands.add_parser("register-experiment", help="Freeze exact engineering inputs before outcomes")
     register.add_argument("archive", type=Path)
     register.add_argument("assumptions", type=Path)
@@ -100,6 +103,9 @@ def main(argv=None):
             sub.add_argument("--event-id", help="Required when importing a ledger valuation")
     args = parser.parse_args(argv)
     try:
+        if args.command == "run-job":
+            print(json.dumps(run_job(args.directory), sort_keys=True, indent=2))
+            return 0
         if args.command == "register-experiment":
             result = register_experiment(args.archive, args.assumptions, args.output,
                                          experiment_id=args.experiment_id, symbol=args.symbol, start=args.start, end=args.end)

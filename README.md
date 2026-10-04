@@ -2,11 +2,17 @@
 
 An offline-first research project for a small, personal trading experiment.
 Current scope: historical bar replay, offline cash/position accounting and durable risk observations.
+The first [registered historical engineering runs](docs/first-engineering-results.md)
+are complete: eight candidates per cost case, all rejected by the £3 risk cap,
+zero trades and zero contribution above the same-cash reference.
 There is no broker connection, real order execution, AI trading decision or live
 mode. A single-session simulator now includes a frozen experimental opening-range
 hypothesis; it has no validated performance or profitability evidence.
 
 ## Run locally
+
+For recoverable offline jobs and eventual deployment, see the
+[VPS operations guide](docs/vps-operations.md). No VPS is deployed yet.
 
 Python 3.11+ with IANA timezone data. From the repository root:
 

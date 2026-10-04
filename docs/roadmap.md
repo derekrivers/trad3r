@@ -78,8 +78,15 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   actual endpoint behavior. Next: broader history, independent data checks, qualified
   economic assumptions and registered chronological evaluation.
 - Delivered: engineering experiment registration, exact-input/code checks,
-  immutable result bundles and replay-based inspection. Next: registered cost
-  stresses on the engineering sample, VPS operations and paper-readiness gates.
+  immutable result bundles and replay-based inspection.
+- Delivered: all three predeclared historical engineering cost cases, with eight
+  candidates each, all risk-rejected and no trades; zero contribution above cash.
+  See [recorded results](first-engineering-results.md). No strategy qualification.
+- Delivered: recoverable offline jobs, duplicate-run exclusion and a network-disabled
+  systemd template with an operating/backup guide. Actual VPS deployment remains open.
+- Next: executable paper-control rehearsals, explicit paper-readiness gates,
+  broker order lifecycle/reconciliation and qualified forward data. Durable paper
+  period transitions still require a separate owner-reviewed policy.
 
 The broker account is not needed for those offline tasks. No profitability or
 live-readiness claim follows from the accounting example or passing unit tests.
