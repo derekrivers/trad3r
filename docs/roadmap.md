@@ -25,8 +25,9 @@ brokerage account. It does not waive the full Phase 1 broker feasibility gate.
 1. Delivered: Decimal cash/position ledger, realised/unrealised P&L, GBP/USD cash,
    supplied FX, fees and explicit settlement dates. Verified calendar calculation
    and market-data freshness remain open.
-2. Define conservative simulated fills, completed-bar event batches, entry/exit
-   sequencing and ambiguous intraminute stop/target handling.
+2. Delivered: single-symbol/session fill scenarios with delayed entries, explicit
+   costs, opening gaps, stop-first ambiguity, risk exits and noon/end-of-data
+   flattening. Multi-symbol event batches and multi-session execution remain open.
 3. Delivered: persistent initial baselines, loss latches and audit observations,
    with restart/concurrency/rollback tests. Period rollover stays blocked; a reviewed
    transition workflow and atomic order/ledger persistence remain open.
@@ -40,10 +41,8 @@ Jev is a later optional classifier; its confidence is not a probability of profi
 
 ## Next PR-sized backlog
 
-- Delivered: order-entry diagnostics, including freshness/coherence checks and
-  boundary tests. Integrate them into conservative simulation next.
-- Conservative execution simulator: bar batches, next-event fills, explicit spread/
-  slippage/fees, and worst-case treatment when stop and target touch together.
+- Delivered: order-entry diagnostics integrated into the isolated scenario simulator.
+- Verified multi-symbol completed-bar batches and stronger quote/liquidity contracts.
 - Verified session/settlement calendar and fresh price/FX observation contracts.
 - Owner-reviewed period transitions that cannot clear an overall loss halt.
 - Only then: one frozen baseline strategy and chronological evaluation reports.
