@@ -1,9 +1,9 @@
 # Trad3r
 
 An offline-first research project for a small, personal trading experiment.
-Current scope: deterministic historical bar replay and pure risk-policy checks.
+Current scope: historical bar replay, offline cash/position accounting and risk-policy checks.
 There is no broker connection, order execution, strategy, simulated fill engine,
-cash ledger, AI trading decision or live mode in this version.
+AI trading decision or live mode in this version.
 
 ## Run locally
 
@@ -13,6 +13,7 @@ Python 3.11+ with IANA timezone data. From the repository root:
 python -m unittest discover -s tests -v
 python -m trad3r --help
 python -m trad3r risk-check docs/risk-example.json
+python -m trad3r ledger examples/ledger.json
 ```
 
 Use `py` on Windows or `python3` on systems where that is the Python command.
@@ -58,3 +59,7 @@ not investment recommendations or evidence of a profitable strategy.
 Market data and API keys must stay outside this public repository. Tests generate
 synthetic bars locally; CI needs neither licensed data nor credentials. See
 [data contract](docs/data.md) and [delivery roadmap](docs/roadmap.md).
+
+The [accounting contract](docs/accounting.md) describes supplied fill events, GBP/USD
+cash, fees, external flows and explicit settlement. Its synthetic example is an
+accounting check, not strategy performance.

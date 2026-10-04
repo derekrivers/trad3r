@@ -9,6 +9,7 @@ from zipfile import BadZipFile
 
 from .data import decode, load_sample
 from .risk import Mark, assess
+from .ledger import replay_ledger
 
 
 def main(argv=None):
@@ -21,8 +22,16 @@ def main(argv=None):
             sub.add_argument("--journal", type=Path, required=True, help="New output file; existing files are not overwritten")
     risk = commands.add_parser("risk-check", help="Assess explicit GBP snapshots; no persistent controller")
     risk.add_argument("snapshots", type=Path)
+    ledger = commands.add_parser("ledger", help="Account for supplied offline events; no generated fills")
+    ledger.add_argument("events", type=Path)
     args = parser.parse_args(argv)
     try:
+        if args.command == "ledger":
+            events = decode(args.events.read_bytes())
+            if not isinstance(events, list):
+                raise ValueError("Ledger input must be a JSON event array")
+            print(json.dumps(replay_ledger(events), default=str, sort_keys=True, indent=2))
+            return 0
         if args.command == "risk-check":
             payload = decode(args.snapshots.read_bytes())
             result = assess(Mark(**payload["current"]), Mark(**payload["session_start"]),
