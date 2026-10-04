@@ -111,3 +111,8 @@ policy is the [approved offline period-transition exception](docs/period-transit
 account across eligible periods and preserving every triggered halt. See the
 [research rollover contract](docs/research-series.md); durable risk accounts and
 ordinary series retain their period blocks.
+
+[`baseline-backtest`](docs/baseline-backtest.md) connects the fixed hypothesis to
+that continuous account over a complete session window and one preselected symbol.
+A runnable synthetic example demonstrates the workflow without an account or data
+credentials; qualified historical FX, costs and evaluation data are still needed.

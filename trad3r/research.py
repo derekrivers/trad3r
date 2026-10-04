@@ -30,8 +30,6 @@ def audit_sample(path, start, end):
              required="Register untouched chronological evaluation periods and an inspected-data exclusion list before viewing outcomes."),
         dict(code="fx_and_costs_not_qualified",
              required="Supply timestamped USD/GBP observations and sourced broker fees, FX conversion charges and spread/slippage assumptions."),
-        dict(code="baseline_series_evaluation_not_available",
-             required="Integrate the frozen strategy into bounded continuous-account research runs and register the evaluation protocol."),
     ])
     return dict(schema=AUDIT_SCHEMA, mode="offline_research_inventory_only",
                 source_sha256=source["source_sha256"], calendar_id=source["calendar_id"],

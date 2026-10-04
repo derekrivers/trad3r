@@ -55,9 +55,13 @@ One isolated run starts a fresh research account. Repeating isolated runs and
 summing their P&L is not an account backtest: that would bypass loss latches,
 settlement and cash constraints. `simulate-series` preserves account continuity
 but blocks new-period entries pending the owner-reviewed transition workflow.
-This version therefore does not supply a multi-day strategy backtest.
+The separately approved [`baseline-backtest`](baseline-backtest.md) now integrates
+this frozen hypothesis into a bounded continuous account with eligible rollover
+and permanently retained halts. It requires the complete requested session window
+and bars through noon, plus explicit FX and costs. The original series command and
+durable risk database retain their period block.
 
 The existing 20 inspected sessions remain engineering data. Credible evaluation
 still needs a frozen chronological protocol, untouched history, qualified FX and
-execution-cost inputs, corporate-action checks and review of period transitions.
+execution-cost inputs, corporate-action checks and predeclared acceptance criteria.
 Only after that evaluation should a classifier be considered in shadow mode.

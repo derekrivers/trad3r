@@ -18,6 +18,7 @@ from .batches import completed_batches
 from .features import FEATURE_SCHEMA, feature_snapshots
 from .strategy import opening_range_signals
 from .research import audit_sample
+from .backtest import baseline_backtest
 
 
 def main(argv=None):
@@ -49,7 +50,7 @@ def main(argv=None):
     signals.add_argument("archive", type=Path)
     signals.add_argument("--symbol", required=True)
     signals.add_argument("--session", required=True)
-    for name in ("simulate", "simulate-series", "simulate-research-series", "baseline-simulate"):
+    for name in ("simulate", "simulate-series", "simulate-research-series", "baseline-simulate", "baseline-backtest"):
         simulation = commands.add_parser(name, help="Offline execution scenarios; no validated performance")
         simulation.add_argument("scenario", type=Path)
         simulation.add_argument("--archive", type=Path, help="Use licensed archive bars instead of inline synthetic bars")
@@ -78,10 +79,10 @@ def main(argv=None):
             result.update(source_sha256=source["source_sha256"], calendar_id=source["calendar_id"])
             print(json.dumps(result, default=str, sort_keys=True, indent=2))
             return 0
-        if args.command in ("simulate", "simulate-series", "simulate-research-series", "baseline-simulate"):
+        if args.command in ("simulate", "simulate-series", "simulate-research-series", "baseline-simulate", "baseline-backtest"):
             scenario_bytes = args.scenario.read_bytes()
             payload = decode(scenario_bytes)
-            series_mode = args.command in ("simulate-series", "simulate-research-series")
+            series_mode = args.command in ("simulate-series", "simulate-research-series", "baseline-backtest")
             scenarios = payload["sessions"] if series_mode else [payload]
             if not isinstance(scenarios, list) or not scenarios:
                 raise ValueError("Supply a nonempty session array")
@@ -89,7 +90,7 @@ def main(argv=None):
             if args.archive:
                 available, source = load_sample(args.archive)
                 source_sha = source["source_sha256"]
-                if args.command == "baseline-simulate" and not source["coverage"]["complete"]:
+                if args.command in ("baseline-simulate", "baseline-backtest") and not source["coverage"]["complete"]:
                     raise ValueError("Strategy archive must have complete declared coverage")
             sessions = []
             for scenario in scenarios:
@@ -105,7 +106,11 @@ def main(argv=None):
                     generated = opening_range_signals(bars, scenario["symbol"])
                     scenario = dict(scenario, signals=generated["signals"])
                 sessions.append((bars, scenario))
-            if args.command == "simulate-research-series":
+            if args.command == "baseline-backtest":
+                if "strategy_id" in payload:
+                    raise ValueError("Frozen baseline does not accept a strategy identifier override")
+                result = baseline_backtest(sessions, **payload["window"])
+            elif args.command == "simulate-research-series":
                 result = simulate_research_series(sessions, **payload["window"], strategy_id=payload["strategy_id"])
             else:
                 result = simulate_series(sessions) if series_mode else simulate(*sessions[0])

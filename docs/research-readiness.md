@@ -47,7 +47,7 @@ point-in-time universe selection or authentic vendor delivery timestamps.
 
 | Dependency | Concrete input / decision | What it unblocks |
 | --- | --- | --- |
-| Period transitions | Resolved for isolated backtests: owner approved option B on 2026-10-04; [research scenario implementation](research-series.md) available | Frozen strategy integration can now proceed without a new £1,000 account each day |
+| Period transitions | Resolved for isolated backtests: owner approved option B on 2026-10-04; [research scenario implementation](research-series.md) available | Frozen strategy integration now carries one continuous £1,000 account |
 | Broader stock history | Licensed raw minute exports, symbols/date inventory, provider metadata, acquisition date and rights/retention notes | Independent checks and chronological development/validation/test planning |
 | USD/GBP history | UTC observation timestamps, rate direction, source, provenance and delivery/availability convention | GBP equity, cash and risk accounting across the same period |
 | Execution economics | Dated intended account/instrument fee schedule; minimum commissions, FX conversion costs and market-data charges; bid/ask evidence or documented spread/slippage stress assumptions | Assessing whether a one-share hypothesis can survive actual costs |
@@ -104,8 +104,8 @@ protocol; adding an AI call now would not supply the missing evidence.
 
 ## Ordered engineering continuation
 
-Next integrate the approved and tested research rollover policy into continuous
-baseline replay, preserving its audit records and all halt behaviour;
-then add experiment manifests and chronological evaluation reports against the
+The [continuous baseline runner](baseline-backtest.md) now preserves the approved
+rollover policy, audit records and halts. Next add account-level summaries and a
+cash comparison, then experiment manifests and chronological evaluation against the
 qualified inputs. Broker order persistence/recovery and forward paper execution
 remain later work after account/data economics and execution contracts are known.
