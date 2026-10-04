@@ -13,6 +13,8 @@ hypothesis; it has no validated performance or profitability evidence.
 
 For recoverable offline jobs and eventual deployment, see the
 [VPS operations guide](docs/vps-operations.md). No VPS is deployed yet.
+Run `python -m trad3r rehearse-controls runs/controls-01` for a new synthetic control
+drill; see [paper readiness and remaining gates](docs/paper-readiness.md).
 
 Python 3.11+ with IANA timezone data. From the repository root:
 
