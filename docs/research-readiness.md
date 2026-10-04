@@ -2,7 +2,8 @@
 
 Current result: **engineering inputs and approved isolated rollover available;
 qualified strategy evaluation remains blocked**. Passing tests and complete bars do not qualify trading
-results. No strategy return, win rate or passive-income estimate has been produced.
+results. Synthetic demonstrations now produce descriptive metrics; no qualified
+historical strategy return, win rate or passive-income estimate has been produced.
 
 ## Reproduce the inventory
 
@@ -105,7 +106,8 @@ protocol; adding an AI call now would not supply the missing evidence.
 ## Ordered engineering continuation
 
 The [continuous baseline runner](baseline-backtest.md) now preserves the approved
-rollover policy, audit records and halts. Next add account-level summaries and a
-cash comparison, then experiment manifests and chronological evaluation against the
-qualified inputs. Broker order persistence/recovery and forward paper execution
+rollover policy, audit records and halts, and includes account-level summaries and
+a same-cash no-trade comparison. Next obtain the qualified inputs, register actual
+experiment dates/acceptance criteria and implement chronological evaluation against
+that inventory. Broker order persistence/recovery and forward paper execution
 remain later work after account/data economics and execution contracts are known.
