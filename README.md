@@ -132,8 +132,10 @@ scenarios and an ordered implementation handoff. This design is specified; its
 pure [package A evaluator](docs/order-protection.md#package-a-implementation) now
 derives exposure, protection and request-specific permissions without persistence
 or dispatch. It retains terminal fee reservations, checks current quantity proofs
-and applies the reviewed exchange-session bounds. Transactional allocations and
-the rest of packages B–G remain pending.
+and applies the reviewed exchange-session bounds. Package B adds an explicitly
+selected fresh v4 store with atomic shared sell-quantity and fee reservations,
+audit replay and no dispatch path. Sell reconciliation and packages C–G remain
+pending.
 
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
 costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable

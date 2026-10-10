@@ -121,6 +121,38 @@ order proofs, session bounds, stale/future evidence and target-specific
 cancellation. These tests do not claim transactional concurrency, persistence or
 adapter-call coverage.
 
+### Package B implementation
+
+`trad3r.order_allocations` adds explicit fresh version-4 initialization and an
+atomic reducing-allocation journal in the same SQLite order store. Version-3
+initialization and reads remain unchanged; allocation commands reject v1–v3 stores
+and there is no migration or downgrade command. The CLI exposes `order-v4-init`,
+`order-reducing-admit`, `order-reducing-status` and `order-reducing-history`.
+
+Each request binds its immutable allocation and client-order identities, current
+account/reconciliation/writer/allocation versions, risk-policy digest, entry
+episode and instrument, fenced writer owner/epoch, positive whole-share quantity,
+fee bound, purpose and a maximum 60-second decision lifetime. Exact duplicates
+return their original record before stale-version checks. Changed identity reuse
+records a blocking incident. Stale versions or fencing fail without a write.
+
+The allocator derives held quantity and the original exit-fee allowance from the
+complete reconciled entry evidence. Protective stops and ordinary reducing exits
+consume the same pools. One `BEGIN IMMEDIATE` transaction validates replay,
+reserves quantity and fees, records accepted or capacity-rejected requests, and
+updates the projection. Independent concurrent requests cannot both consume the
+same capacity. Allocation reads replay every digest and contiguous sequence and
+compare reconstructed totals and incidents with the stored projection.
+
+Allocations do not consume entry attempts or clear halts, entry exposure/loss
+reservations, incidents or writer controls. They never expire or release capacity
+implicitly; later packages must prove executions, cancellation and terminal fee
+evidence before changing these commitments. This package has no reducing adapter,
+submission marker, cancellation, sell reconciliation, pending proceeds or live
+path. Twelve deterministic tests cover the package-B portions of X04, X15 and X23,
+including exact fee partitioning, concurrent full-quantity requests, fencing,
+rollback, restart/replay corruption and version-3 compatibility.
+
 ## Verified management authority
 
 Management permissions may survive an entry pause, a loss halt, or a protection
@@ -374,7 +406,7 @@ approval. Every merge still requires the repository's reviewed-head CI controls.
 | Package | Bounded deliverable and dependencies | Completion boundary |
 | --- | --- | --- |
 | A | **Complete:** pure protection/quantity/permission evaluator and 20 deterministic tests; [PR #36](https://github.com/derekrivers/trad3r/pull/36). | X01–X05/X16 fact and permission portions; explicit reasons, no persistence or dispatch claim. |
-| B | Explicit v4 synthetic initialization, authoritative per-intent quantity/fee allocations, audit replay and atomic reducing admission. Depends A. | X04/X15/X23 reservation/storage portions; preserve v3 reads, no migration or enabled dispatch. |
+| B | **Implemented:** explicit fresh v4 initialization, authoritative quantity/fee allocations, audit replay and atomic reducing admission; final Astra review pending. Depends A. | X04/X15/X23 reservation/storage portions; preserve v3 reads, no migration or enabled dispatch. |
 | C | V4 cumulative multi-order buy/sell reconciliation, execution-level fee completeness, pending lots and retained contradictions. Depends B. | X02/X06/X14/X17–X20/X22 accounting portions; no durable period transition or cash-release command. |
 | D | Separate fenced cancellation operation and deterministic adapter outcomes, integrated with cumulative evidence. Depends C. | X07–X10/X13/X15/X16/X23 cancellation portions; no release from an acknowledgement alone. |
 | E | Fenced synthetic reducing-limit and protective-stop dispatch using the common quantity pool and management permissions. Depends D. | X01/X03–X05/X11–X13/X16/X22/X23 dispatch portions; no network or fallback market orders. |

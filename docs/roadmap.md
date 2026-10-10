@@ -12,7 +12,7 @@ retained as engineering history, not a second master plan.
 | 1 | Recoverable offline research service | Synthetic host runtime/recovery/restore verified; off-host backup open |
 | 2 | Broker and data capability decision | Account-specific evidence and owner decision open |
 | 3 | Qualified datasets and protocol | Engineering sample/results exist; qualification open |
-| 4 | Durable order and account controls | P4.1–P4.4 delivered; P4.5 design and package A pure evaluator delivered, transactional packages B–G and period transition pending |
+| 4 | Durable order and account controls | P4.1–P4.4 delivered; P4.5 packages A/B permission and allocation slices implemented, sell accounting packages C–G and period transition pending |
 | 5 | Deterministic paper application | Not started; connected submissions need owner approval |
 | 6 | Discretionary shadow agent | Not started |
 | 7 | Discretionary paper experiment | Not started; protocol and owner approval required |
@@ -107,11 +107,14 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   empty-order mark/settlement checks, newer-reservation ownership and unsent expiry
   tombstones; full independent inbox-to-account replay remains future hardening.
 - Defined: [P4.5 protection contract](order-protection.md), 24 acceptance scenarios
-  and seven bounded implementation packages. Transactional runtime remains pending.
+  and seven bounded implementation packages. Sell accounting and dispatch runtime
+  remain pending.
 - Delivered: P4.5 package A pure protection/quantity/permission evaluator with
   deterministic X01–X05/X16 coverage and no persistence or dispatch surface.
-- Next: P4.5 package B v4 shared sell-quantity and fee allocations on Sol High;
-  later packages integrate sell accounting, cancellation and incidents.
+- Implemented pending Astra review: P4.5 package B fresh-v4 shared sell-quantity
+  and fee allocations, with no migration or dispatch surface.
+- Next after review: P4.5 package C cumulative sell accounting and pending lots on
+  Sol High; later packages add cancellation and incidents.
   Close private-input and off-host
   backup dependencies independently and qualify forward data.
   Durable paper period transitions require a separate owner-reviewed policy.

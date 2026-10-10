@@ -49,7 +49,8 @@ mark or commit a result. There is no automatic lease expiry or unfenced takeover
 
 ## Durable boundary
 
-The version-3 database contains four related projections:
+The version-3 database contains four related projections. Fresh version-4 stores
+retain them and add the separately replayed reducing-allocation projection:
 
 - the account audit retains admissions, attempts, reservations, identity
   incidents and locally proved expiry releases;
@@ -93,9 +94,11 @@ capacity over a duplicate economic order.
 
 ## Compatibility and remaining scope
 
-New databases use store version 3. Version-1 admission and version-2 writer
-databases remain readable by their implemented subsets, but reconciliation rejects
-them with an explicit migration requirement. No in-place financial-state migration
+`order-init` continues to create store version 3. `order-v4-init` explicitly creates
+a fresh version-4 store with the same admission, writer and reconciliation history
+plus reducing allocations. Version-1 admission, version-2 writer and version-3
+reconciliation databases remain readable by their implemented subsets, but only
+fresh v4 stores accept reducing allocations. No in-place financial-state migration
 is attempted.
 
 P4.3 also does not add same-intent reauthorisation after bound account, ledger,

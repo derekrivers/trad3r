@@ -19,7 +19,8 @@ from .risk import Mark, Policy, assess, money, planned_long_loss
 
 APP_ID = 0x54524434
 DATABASE_VERSION = 3
-SUPPORTED_DATABASE_VERSIONS = {1, 2, 3}
+REDUCING_DATABASE_VERSION = 4
+SUPPORTED_DATABASE_VERSIONS = {1, 2, 3, 4}
 ACCOUNT_SCHEMA = "synthetic-order-account-v1"
 STATE_SCHEMA = "order-account-state-v1"
 ADMISSION_SCHEMA = "order-admission-v1"
@@ -351,6 +352,11 @@ def _read_state(connection):
     expected_unresolved = ["identity_conflict"] if incidents else []
     if state["unresolved_reasons"] != expected_unresolved:
         raise ValueError("Order incidents disagree with account block")
+    if connection.execute("PRAGMA user_version").fetchone()[0] == REDUCING_DATABASE_VERSION:
+        # V4 is one authoritative store: legacy account/writer/reconciliation
+        # reads must also fail closed when its allocation journal is damaged.
+        from . import order_allocations
+        order_allocations._read(connection)
     return state
 
 
@@ -386,7 +392,9 @@ def _report(state, reconciliation=None):
     }
 
 
-def initialize(path, snapshot):
+def _initialize(path, snapshot, database_version):
+    if database_version not in (DATABASE_VERSION, REDUCING_DATABASE_VERSION):
+        raise ValueError("Unsupported new order database version")
     if not isinstance(snapshot, dict) or set(snapshot) != SNAPSHOT_FIELDS or snapshot["schema"] != ACCOUNT_SCHEMA:
         raise ValueError("Synthetic account snapshot fields do not match the contract")
     account_id = _identity(snapshot["account_id"], "account id")
@@ -429,7 +437,7 @@ def initialize(path, snapshot):
         connection = sqlite3.connect(path)
         connection.execute("PRAGMA synchronous=FULL")
         connection.execute(f"PRAGMA application_id={APP_ID}")
-        connection.execute(f"PRAGMA user_version={DATABASE_VERSION}")
+        connection.execute(f"PRAGMA user_version={database_version}")
         connection.execute("CREATE TABLE account_state (id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT NOT NULL)")
         connection.execute("CREATE TABLE intents (intent_id TEXT PRIMARY KEY, candidate_id TEXT UNIQUE NOT NULL, client_order_id TEXT UNIQUE NOT NULL, proposal_sha256 TEXT NOT NULL, committed_version INTEGER UNIQUE NOT NULL, payload TEXT NOT NULL)")
         connection.execute("CREATE TABLE incidents (incident_id TEXT PRIMARY KEY, committed_version INTEGER UNIQUE NOT NULL, payload TEXT NOT NULL)")
@@ -458,6 +466,9 @@ def initialize(path, snapshot):
             "live_trading_enabled": False,
         }
         connection.execute("INSERT INTO reconciliation_state VALUES (1, ?)", (pack(reconciliation),))
+        if database_version == REDUCING_DATABASE_VERSION:
+            from . import order_allocations
+            order_allocations._initialize_tables(connection, account_id, at)
         connection.commit()
         connection.close()
     except BaseException:
@@ -466,6 +477,11 @@ def initialize(path, snapshot):
         path.unlink(missing_ok=True)
         raise
     return _report(state)
+
+
+def initialize(path, snapshot):
+    """Create the established v3 entry/reconciliation store."""
+    return _initialize(path, snapshot, DATABASE_VERSION)
 
 
 def status(path):

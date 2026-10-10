@@ -206,7 +206,7 @@ def _snapshot(raw):
 
 
 def _read(connection):
-    if connection.execute("PRAGMA user_version").fetchone()[0] != 3:
+    if connection.execute("PRAGMA user_version").fetchone()[0] not in (3, 4):
         raise ValueError("Order database requires an explicit P4.4 reconciliation migration")
     row = connection.execute("SELECT payload FROM reconciliation_state WHERE id=1").fetchone()
     if row is None:

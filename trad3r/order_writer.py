@@ -184,7 +184,7 @@ def _append_event(connection, kind, at, request, writer, submission=None):
 
 
 def _read_writer(connection):
-    if connection.execute("PRAGMA user_version").fetchone()[0] not in (2, 3):
+    if connection.execute("PRAGMA user_version").fetchone()[0] not in (2, 3, 4):
         raise ValueError("Order database requires an explicit P4.3 writer migration")
     row = connection.execute("SELECT payload FROM writer_state WHERE id=1").fetchone()
     if row is None:
