@@ -168,17 +168,17 @@ class OrderWriterTests(unittest.TestCase):
         retry = writer.dispatch_synthetic(self.path, self.operation(), "acknowledged", adapter)
         self.assertEqual(retry["outcome"], "unknown")
         self.assertEqual(adapter.calls, 0)
-        with self.assertRaisesRegex(ValueError, "unresolved"):
+        with self.assertRaisesRegex(ValueError, "Reconciliation"):
             writer.claim(self.path, self.claim("next", owner="writer-b", epoch=1))
 
-    def test_clean_recovery_allows_a_new_higher_epoch_and_rejects_old_fence(self):
+    def test_clean_recovery_still_requires_startup_reconciliation(self):
         writer.claim(self.path, self.claim())
         recovered = writer.recover(self.path, self.recovery())
-        self.assertEqual(recovered["unresolved_reasons"], [])
-        claimed = writer.claim(self.path, self.claim(
-            "two", owner="writer-b", epoch=1, at="2026-09-04T14:00:55Z"))
-        self.assertEqual((claimed["epoch"], claimed["owner_id"]), (2, "writer-b"))
-        with self.assertRaisesRegex(ValueError, "ownership|fencing"):
+        self.assertEqual(recovered["unresolved_reasons"], ["reconciliation_required"])
+        with self.assertRaisesRegex(ValueError, "Reconciliation"):
+            writer.claim(self.path, self.claim(
+                "two", owner="writer-b", epoch=1, at="2026-09-04T14:00:55Z"))
+        with self.assertRaisesRegex(ValueError, "Reconciliation|disarmed|ownership|fencing"):
             writer.mark_submission(self.path, self.operation())
 
     def test_failed_marker_commit_rolls_back_queue_and_preserves_writer_claim(self):

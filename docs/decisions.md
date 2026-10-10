@@ -149,3 +149,23 @@ The adapter is deterministic and in-process with no connected endpoint. Existing
 version-1 admission stores remain readable, but require a separate explicit
 migration before writer use. P4.4 owns external reconciliation and resolution.
 See the [writer contract](order-writer.md).
+
+## D011 — Cumulative synthetic reconciliation, 10 October 2026
+
+Implement P4.4 in the version-3 order database with a durable cumulative inbox,
+reconciliation event sequence and projection. Startup recovery and disconnects
+always disarm the writer and require complete supplied evidence before a new claim.
+An empty order list never resolves a possibly sent submission.
+
+Accept accounting changes only when the order, stable execution IDs, commission
+IDs/revisions, qualified position, USD cash and settlement declaration agree. Commit
+cash, position, remaining reservations, loss latches, order projection, writer state
+and audit in one transaction. Exact snapshots are idempotent; changed stable IDs,
+overfills, unknown external activity and terminal-state regression are durable
+incidents. Attempts and halts are never cleared.
+
+This is a synthetic USD long-entry boundary with required empty settlement evidence,
+not a connected broker adapter. P4.5 owns cancellation, position-reducing sells,
+sell-proceeds settlement and protection incidents. Existing version-1/2 databases
+need an explicit migration; no automatic repair or live capability is introduced.
+See [synthetic reconciliation](order-reconciliation.md).

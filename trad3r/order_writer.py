@@ -38,6 +38,7 @@ EVENT_FIELDS = {
 EVENT_KINDS = {
     "writer_claimed", "submission_marked", "submission_result",
     "submission_expired", "writer_recovered", "writer_incident",
+    "reconciliation_disarmed", "reconciliation_applied",
 }
 SYNTHETIC_OUTCOMES = {"acknowledged", "rejected", "accept_then_timeout"}
 
@@ -107,19 +108,20 @@ def _submission_payload(raw):
         raise ValueError("Stored submission request digest mismatch")
     if value["command_sha256"] != store.digest(value["command"]):
         raise ValueError("Stored submission command digest mismatch")
-    if value["state"] not in ("submitting", "unknown", "acknowledged", "rejected", "cancelled"):
+    if value["state"] not in (
+            "submitting", "unknown", "acknowledged", "partially_filled", "filled",
+            "rejected", "cancelled"):
         raise ValueError("Invalid stored submission state")
     store._timestamp_string(value["marked_at"], "submission marker time")
     if value["resolved_at"] is not None:
         store._timestamp_string(value["resolved_at"], "submission resolution time")
     if value["state"] == "submitting" and (value["resolved_at"] is not None or value["reason"] is not None):
         raise ValueError("Submitting operation cannot have a resolution")
-    if value["state"] == "acknowledged":
+    if value["broker_order_id"] is not None:
         store._identity(value["broker_order_id"], "broker order id")
-        if value["reason"] is not None or value["resolved_at"] is None:
-            raise ValueError("Invalid acknowledged submission")
-    elif value["broker_order_id"] is not None:
-        raise ValueError("Only acknowledged submissions may bind a broker order id")
+    if value["state"] in ("acknowledged", "partially_filled", "filled"):
+        if value["broker_order_id"] is None or value["reason"] is not None or value["resolved_at"] is None:
+            raise ValueError("Invalid confirmed submission")
     if value["state"] in ("unknown", "rejected", "cancelled"):
         if not isinstance(value["reason"], str) or value["resolved_at"] is None:
             raise ValueError("Resolved submission requires a reason and time")
@@ -182,7 +184,7 @@ def _append_event(connection, kind, at, request, writer, submission=None):
 
 
 def _read_writer(connection):
-    if connection.execute("PRAGMA user_version").fetchone()[0] != store.DATABASE_VERSION:
+    if connection.execute("PRAGMA user_version").fetchone()[0] not in (2, 3):
         raise ValueError("Order database requires an explicit P4.3 writer migration")
     row = connection.execute("SELECT payload FROM writer_state WHERE id=1").fetchone()
     if row is None:
@@ -298,6 +300,36 @@ def _read_writer(connection):
             expected_writer["disarmed"] = True
             expected_writer["unresolved_reasons"] = sorted(set(
                 prior["unresolved_reasons"] + ["writer_identity_conflict"]))
+        elif kind in ("reconciliation_disarmed", "reconciliation_applied"):
+            request = event["request"]
+            if (not isinstance(request, dict) or set(request) != {
+                    "schema", "reconciliation_id", "at", "clear_reasons", "add_reasons"}
+                    or request["schema"] != "writer-reconciliation-v1"
+                    or event["at"] != utc(request["at"]).isoformat()
+                    or not isinstance(request["clear_reasons"], list)
+                    or not isinstance(request["add_reasons"], list)
+                    or request["clear_reasons"] != sorted(set(request["clear_reasons"]))
+                    or request["add_reasons"] != sorted(set(request["add_reasons"]))
+                    or not all(isinstance(reason, str) and reason
+                               for reason in request["clear_reasons"] + request["add_reasons"])):
+                raise ValueError("Invalid writer reconciliation event")
+            store._identity(request["reconciliation_id"], "writer reconciliation id")
+            expected_writer.update(owner_id=None, claim_id=None, claimed_at=None, disarmed=True)
+            expected_writer["unresolved_reasons"] = sorted(
+                (set(prior["unresolved_reasons"]) - set(request["clear_reasons"]))
+                | set(request["add_reasons"]))
+            if kind == "reconciliation_disarmed" and submission is not None:
+                raise ValueError("Reconciliation invalidation cannot change an order")
+            if kind == "reconciliation_applied" and submission is not None:
+                previous = projected_submissions.get(submission["operation_id"])
+                if previous is None:
+                    raise ValueError("Reconciliation references an unknown submission")
+                changed = deepcopy(previous)
+                changed.update(state=submission["state"], broker_order_id=submission["broker_order_id"],
+                               reason=submission["reason"], resolved_at=submission["resolved_at"],
+                               last_event_version=sequence)
+                if changed != submission:
+                    raise ValueError("Reconciliation changed immutable submission fields")
         if current_writer != expected_writer:
             raise ValueError("Writer projection does not follow its event transition")
         projected_writer = current_writer
@@ -327,7 +359,7 @@ def _read_writer(connection):
         released = connection.execute(
             "SELECT 1 FROM reservation_releases WHERE intent_id=?", (intent_id,)
         ).fetchone() is not None
-        if released != (record["state"] == "cancelled"):
+        if released != (record["state"] == "cancelled" and record["reason"] == "expired_authority"):
             raise ValueError("Submission state disagrees with reservation release")
         stored_submissions[operation_id] = record
     if stored_submissions != projected_submissions:
@@ -357,12 +389,18 @@ def _report(connection, writer=None, submissions=None):
 
 def status(path):
     with store.database(path) as connection:
+        if connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
+            from . import order_reconciliation
+            order_reconciliation._read(connection)
         return _report(connection)
 
 
 def history(path):
     with store.database(path) as connection:
         store._read_state(connection)
+        if connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
+            from . import order_reconciliation
+            order_reconciliation._read(connection)
         _, _, events = _read_writer(connection)
         return events
 
@@ -390,6 +428,11 @@ def claim(path, payload):
             result = _report(connection, writer, submissions)
             result.update(outcome="claimed", duplicate=True)
             return result
+        if connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
+            from . import order_reconciliation
+            reconciliation, _ = order_reconciliation._read(connection)
+            if reconciliation["status"] != "reconciled":
+                raise ValueError("Reconciliation is required before claiming the writer")
         if writer["owner_id"] is not None:
             raise ValueError("Writer is already owned")
         if writer["unresolved_reasons"]:
@@ -446,6 +489,10 @@ def mark_submission(path, payload):
     with store.database(path, write=True) as connection:
         account = store._read_state(connection)
         writer, submissions, events = _read_writer(connection)
+        reconciliation = None
+        if connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
+            from . import order_reconciliation
+            reconciliation, _ = order_reconciliation._read(connection)
         existing = submissions.get(operation_id)
         by_intent = next((row for row in submissions.values() if row["intent_id"] == intent_id), None)
         if existing is not None and existing["request"] == payload:
@@ -453,6 +500,8 @@ def mark_submission(path, payload):
                     "duplicate": True, "should_call_adapter": False,
                     "submission": existing, "writer": _report(connection, writer, submissions),
                     "live_trading_enabled": False}
+        if reconciliation is not None and reconciliation["status"] != "reconciled":
+            raise ValueError("Reconciliation is required before marking a submission")
         if existing is not None or by_intent is not None:
             previous_incident = next((event for event in events
                                       if event["kind"] == "writer_incident"
@@ -621,6 +670,13 @@ def recover(path, payload):
             connection, "writer_recovered", at, payload, writer, submission)
         if submission is not None:
             submissions[submission["operation_id"]] = submission
+        if connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
+            from . import order_reconciliation
+            order_reconciliation._invalidate_connection(connection, {
+                "schema": "order-reconciliation-invalidation-v1",
+                "event_id": recovery_id, "at": at.isoformat(), "reason": "startup",
+            }, writer_already_disarmed=True)
+            writer, submissions, _ = _read_writer(connection)
         result = _report(connection, writer, submissions)
         result.update(outcome="recovered", duplicate=False)
         return result

@@ -2,8 +2,8 @@
 
 Contract `order-lifecycle-v1`, defined for P4.1 on 10 October 2026. P4.2
 implements its [atomic synthetic admission](order-admission.md) subset and P4.3
-implements the [fenced synthetic writer](order-writer.md). No broker adapter
-exists: P4.4 implements reconciliation; P4.5
+implements the [fenced synthetic writer](order-writer.md). P4.4 implements
+[synthetic reconciliation](order-reconciliation.md). No broker adapter exists; P4.5
 implements exposure protection. These components must be tested together before
 the Phase 4 exit gate can pass.
 
@@ -210,8 +210,9 @@ No repair, halt clearance or period renewal occurs as a read side effect.
 
 ## Synthetic acceptance cases
 
-These are required test vectors for the named implementation PRs, not claims that
-tests exist today. Use invented prices/IDs and a controllable clock/adapter; every
+These are required test vectors for the named implementation PRs. P4.2–P4.4 now
+cover their applicable admission, writer and reconciliation portions; P4.5 cases
+remain specifications. Use invented prices/IDs and a controllable clock/adapter; every
 case checks persisted events, quantities, resources, attempts and dispatch counts
 after reopening the store. No credentials, network or licensed bars are needed.
 

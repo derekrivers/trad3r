@@ -12,7 +12,7 @@ retained as engineering history, not a second master plan.
 | 1 | Recoverable offline research service | Synthetic host runtime/recovery/restore verified; off-host backup open |
 | 2 | Broker and data capability decision | Account-specific evidence and owner decision open |
 | 3 | Qualified datasets and protocol | Engineering sample/results exist; qualification open |
-| 4 | Durable order and account controls | P4.1 contract, P4.2 atomic admission and P4.3 fenced synthetic writer delivered; reconciliation/protection pending |
+| 4 | Durable order and account controls | P4.1 contract through P4.4 synthetic reconciliation delivered; protection and period transition pending |
 | 5 | Deterministic paper application | Not started; connected submissions need owner approval |
 | 6 | Discretionary shadow agent | Not started |
 | 7 | Discretionary paper experiment | Not started; protocol and owner approval required |
@@ -100,7 +100,10 @@ Jev is a later optional classifier; its confidence is not a probability of profi
 - Delivered: [P4.3 fenced synthetic writer](order-writer.md), including durable
   marker-before-call, ownership epochs, lost-acknowledgement blocking and explicit
   recovery without blind retry.
-- Next: P4.4 reconciliation. Close private-input and off-host
+- Delivered: [P4.4 synthetic reconciliation](order-reconciliation.md), including
+  startup/disconnect fencing, cumulative executions and commissions, atomic cash,
+  position, reservation and risk-latch updates, and durable contradiction handling.
+- Next: P4.5 protection and exposure incidents. Close private-input and off-host
   backup dependencies independently and qualify forward data.
   Durable paper period transitions require a separate owner-reviewed policy.
 

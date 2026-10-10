@@ -13,7 +13,7 @@ from .data import decode, load_sample, parse_bar
 from .risk import Mark, assess
 from .ledger import Ledger, replay_ledger
 from .admission import check_entry
-from . import order_store, order_writer, risk_store
+from . import order_reconciliation, order_store, order_writer, risk_store
 from .simulation import simulate, simulate_series, simulate_research_series
 from .batches import completed_batches
 from .features import FEATURE_SCHEMA, feature_snapshots
@@ -118,6 +118,13 @@ def main(argv=None):
                              choices=("acknowledged", "rejected", "accept_then_timeout"))
     for command in ("order-writer-status", "order-writer-history"):
         sub = commands.add_parser(command, help="Inspect the synthetic order writer")
+        sub.add_argument("database", type=Path)
+    for command in ("order-reconcile", "order-reconcile-invalidate"):
+        sub = commands.add_parser(command, help="Apply synthetic cumulative reconciliation evidence")
+        sub.add_argument("database", type=Path)
+        sub.add_argument("input", type=Path)
+    for command in ("order-reconciliation-status", "order-reconciliation-history"):
+        sub = commands.add_parser(command, help="Inspect durable synthetic reconciliation")
         sub.add_argument("database", type=Path)
     args = parser.parse_args(argv)
     try:
@@ -247,6 +254,20 @@ def main(argv=None):
                 result = order_writer.history(args.database)
             else:
                 result = order_writer.status(args.database)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
+        if args.command in ("order-reconcile", "order-reconcile-invalidate",
+                            "order-reconciliation-status", "order-reconciliation-history"):
+            if args.command == "order-reconcile":
+                result = order_reconciliation.apply(
+                    args.database, decode(args.input.read_bytes()))
+            elif args.command == "order-reconcile-invalidate":
+                result = order_reconciliation.invalidate(
+                    args.database, decode(args.input.read_bytes()))
+            elif args.command == "order-reconciliation-history":
+                result = order_reconciliation.history(args.database)
+            else:
+                result = order_reconciliation.status(args.database)
             print(json.dumps(result, default=str, sort_keys=True, indent=2))
             return 0
         if args.command in ("risk-init", "risk-status", "risk-history", "risk-record"):

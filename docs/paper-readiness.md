@@ -49,8 +49,8 @@ success report when those checks fail.
 | Account-level control calculations | Synthetic and historical tests, persisted halts | Reconcile actual broker cash, equity, FX, positions and settlement conventions |
 | Broker identity and permissions | No account configured; IBKR remains a conditional candidate | Owner establishes suitable account access; verify exact entity/account type, paper environment and supported API permissions |
 | Forward data | Historical stock/FX proxies only | Qualify entitled timely quotes, FX and session state; detect stale, missing, out-of-order and disconnected data |
-| Durable order lifecycle | P4.1 [contract](order-lifecycle.md), P4.2 [atomic admission](order-admission.md) and P4.3 [fenced synthetic writer](order-writer.md) delivered | External reconciliation; partial fills, cancellations and commission events |
-| Restart reconciliation | Offline risk and experiment jobs tested | Start disarmed; reconcile broker open orders, executions, positions and cash; resolve unknown outcomes before any new submission |
+| Durable order lifecycle | P4.1 [contract](order-lifecycle.md), P4.2 [atomic admission](order-admission.md), P4.3 [fenced synthetic writer](order-writer.md) and P4.4 [synthetic reconciliation](order-reconciliation.md) delivered | Connected paper adapter; position-reducing cancellations, protection and sell settlement |
+| Restart reconciliation | Synthetic startup/disconnect invalidation and complete cumulative snapshots tested | Verify the same evidence/completeness contract against the selected paper broker before any new submission |
 | Period transitions | Durable store blocks new dates | Separate owner-reviewed transition policy; no inherited historical-only rollover exception and no halt clearing |
 | VPS operations | [ATLAS synthetic offline service](vps-deployment-2026-10-10.md): pinned build, isolation, time sync, recovery and local restore verified | Off-host backup and separate connected-paper deployment/incident verification remain open |
 | Pilot acceptance | No forward trial protocol yet | Preregister sessions, permitted behavior, discrepancy/failure criteria and reports before the pilot begins |
@@ -62,10 +62,9 @@ is not a broker paper account. No funding or subscription purchase is implied he
 
 ## Ordered implementation backlog
 
-1. Add P4.4 broker snapshot/ledger reconciliation to the
-   [fenced synthetic writer](order-writer.md) and disarmed startup checks. Cover
-   duplicate/late executions, partial fills, cash/position drift and disconnects.
-   Keep unexpected outcomes blocked; do not fabricate fills or discard differences.
+1. Add P4.5 cancellation, position-reducing exit and protection incident handling
+   to the [reconciled synthetic writer](order-reconciliation.md). Preserve partial
+   fills, late evidence and disarmed incident behavior.
 2. Once account/API details are available, implement an explicit paper-only adapter
    and verify the environment. Do not trust a user-selected port or label alone as
    evidence that an account is paper. No live mode or live credentials path.

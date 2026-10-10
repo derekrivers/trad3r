@@ -18,8 +18,8 @@ from .risk import Mark, Policy, assess, money, planned_long_loss
 
 
 APP_ID = 0x54524434
-DATABASE_VERSION = 2
-SUPPORTED_DATABASE_VERSIONS = {1, 2}
+DATABASE_VERSION = 3
+SUPPORTED_DATABASE_VERSIONS = {1, 2, 3}
 ACCOUNT_SCHEMA = "synthetic-order-account-v1"
 STATE_SCHEMA = "order-account-state-v1"
 ADMISSION_SCHEMA = "order-admission-v1"
@@ -211,6 +211,30 @@ def _release_payload(raw):
     return value
 
 
+def _adjustment_payload(raw):
+    value = decode(raw)
+    required = {
+        "reconciliation_id", "snapshot_id", "intent_id", "at", "settled_cash_usd",
+        "position_quantity", "mark", "halt_reasons", "reserved_cash_usd",
+        "reserved_exposure_gbp", "reserved_loss_gbp", "committed_version",
+    }
+    if not isinstance(value, dict) or set(value) != required:
+        raise ValueError("Invalid stored reconciliation adjustment")
+    for field in ("reconciliation_id", "snapshot_id", "intent_id"):
+        _identity(value[field], field.replace("_", " "))
+    _timestamp_string(value["at"], "reconciliation adjustment time")
+    _version(value["committed_version"], "adjustment committed version")
+    _decimal_string(value["settled_cash_usd"], "adjusted settled cash")
+    if type(value["position_quantity"]) is not int or value["position_quantity"] < 0:
+        raise ValueError("Invalid adjusted position quantity")
+    _mark(value["mark"])
+    if not isinstance(value["halt_reasons"], list) or value["halt_reasons"] != sorted(set(value["halt_reasons"])):
+        raise ValueError("Invalid adjusted halt reasons")
+    for field in ("reserved_cash_usd", "reserved_exposure_gbp", "reserved_loss_gbp"):
+        _decimal_string(value[field], field.replace("_", " "))
+    return value
+
+
 def _read_state(connection):
     row = connection.execute("SELECT payload FROM account_state WHERE id=1").fetchone()
     if row is None:
@@ -261,46 +285,72 @@ def _read_state(connection):
         if utc(release["at"]) < utc(record["reservation"]["expires_at"]):
             raise ValueError("Reservation was released before its authority expired")
         releases.append(release)
+    adjustments = []
+    adjustment_rows = [] if connection.execute("PRAGMA user_version").fetchone()[0] < 3 else connection.execute(
+        "SELECT reconciliation_id,payload FROM reconciliation_adjustments ORDER BY committed_version")
+    for reconciliation_id, raw in adjustment_rows:
+        adjustment = _adjustment_payload(raw)
+        if reconciliation_id != adjustment["reconciliation_id"]:
+            raise ValueError("Reconciliation adjustment identity columns disagree with payload")
+        if not any(row["intent_id"] == adjustment["intent_id"] for row in records):
+            raise ValueError("Reconciliation adjustment has no admitted intent")
+        adjustments.append(adjustment)
     events = []
     for expected, (sequence, kind, key, payload_sha) in enumerate(connection.execute(
             "SELECT sequence,kind,event_key,payload_sha256 FROM audit ORDER BY sequence"), 1):
-        if sequence != expected or kind not in ("admission", "incident", "release"):
+        if sequence != expected or kind not in ("admission", "incident", "release", "reconciliation"):
             raise ValueError("Order audit sequence or kind mismatch")
         events.append((kind, key, payload_sha))
     expected_events = (
         [(row["committed_version"], "admission", row["intent_id"], digest(row)) for row in records]
         + [(row["committed_version"], "incident", row["incident_id"], digest(row)) for row in incidents]
         + [(row["committed_version"], "release", row["intent_id"], digest(row)) for row in releases]
+        + [(row["committed_version"], "reconciliation", row["reconciliation_id"], digest(row))
+           for row in adjustments]
     )
     expected_events = [(kind, key, payload_sha) for _, kind, key, payload_sha in sorted(expected_events)]
     if events != expected_events or state["version"] != len(events):
         raise ValueError("Order audit/state reconstruction mismatch")
     if any(row["committed_version"] != index for index, row in enumerate(
-            sorted(records + incidents + releases, key=lambda item: item["committed_version"]), 1)):
+            sorted(records + incidents + releases + adjustments,
+                   key=lambda item: item["committed_version"]), 1)):
         raise ValueError("Order committed versions are not contiguous")
     attempts = sum(row["attempt_consumed"] for row in records)
-    released_ids = {row["intent_id"] for row in releases}
-    reserved = [row["reservation"] for row in records
-                if row["state"] == "reserved" and row["intent_id"] not in released_ids]
-    if len(reserved) > 1:
-        raise ValueError("Multiple entry reservations violate the v1 account slot")
-    totals = {
-        "reserved_cash_usd": sum((money(row["cash_usd"]) for row in reserved), D("0")),
-        "reserved_exposure_gbp": sum((money(row["exposure_gbp"]) for row in reserved), D("0")),
-        "reserved_loss_gbp": sum((money(row["planned_loss_gbp"]) for row in reserved), D("0")),
-    }
+    totals = {key: D("0") for key in (
+        "reserved_cash_usd", "reserved_exposure_gbp", "reserved_loss_gbp")}
+    for item in sorted(records + releases + adjustments,
+                       key=lambda row: row["committed_version"]):
+        if "state" in item and item["state"] == "reserved":
+            if totals["reserved_cash_usd"] != 0:
+                raise ValueError("Multiple entry reservations violate the account slot")
+            totals = {
+                "reserved_cash_usd": money(item["reservation"]["cash_usd"]),
+                "reserved_exposure_gbp": money(item["reservation"]["exposure_gbp"]),
+                "reserved_loss_gbp": money(item["reservation"]["planned_loss_gbp"]),
+            }
+        elif "reason" in item and item.get("reason") == "expired_authority":
+            totals = {key: D("0") for key in totals}
+        elif "reconciliation_id" in item:
+            totals = {key: money(item[key]) for key in totals}
     if attempts != state["attempts"] or any(money(state[key]) != value for key, value in totals.items()):
         raise ValueError("Order reservations or attempts disagree with audit")
+    if adjustments:
+        latest = adjustments[-1]
+        for key in ("settled_cash_usd", "position_quantity", "mark", "halt_reasons"):
+            if state[key] != latest[key]:
+                raise ValueError("Order account projection disagrees with reconciliation")
     expected_unresolved = ["identity_conflict"] if incidents else []
     if state["unresolved_reasons"] != expected_unresolved:
         raise ValueError("Order incidents disagree with account block")
     return state
 
 
-def _report(state):
+def _report(state, reconciliation=None):
     assessment = assess(_mark(state["mark"]), _mark(state["session_start"]),
                         _mark(state["week_start"]), tuple(state["halt_reasons"]))
     blocked = list(state["halt_reasons"] + state["unresolved_reasons"])
+    if reconciliation is not None and reconciliation["status"] != "reconciled":
+        blocked.extend(reconciliation["unresolved_reasons"] or ["reconciliation_required"])
     if state["attempts"] >= MAX_ATTEMPTS:
         blocked.append("entry_attempt_limit")
     if money(state["reserved_cash_usd"]) > 0:
@@ -379,12 +429,26 @@ def initialize(path, snapshot):
         connection.execute("CREATE TABLE writer_state (id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT NOT NULL)")
         connection.execute("CREATE TABLE submissions (operation_id TEXT PRIMARY KEY, intent_id TEXT UNIQUE NOT NULL, client_order_id TEXT UNIQUE NOT NULL, broker_order_id TEXT UNIQUE, payload TEXT NOT NULL)")
         connection.execute("CREATE TABLE writer_events (sequence INTEGER PRIMARY KEY, event_id TEXT UNIQUE NOT NULL, kind TEXT NOT NULL, payload_sha256 TEXT NOT NULL, payload TEXT NOT NULL)")
+        connection.execute("CREATE TABLE reconciliation_state (id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT NOT NULL)")
+        connection.execute("CREATE TABLE reconciliation_inbox (snapshot_id TEXT PRIMARY KEY, payload_sha256 TEXT NOT NULL, payload TEXT NOT NULL)")
+        connection.execute("CREATE TABLE reconciliation_events (sequence INTEGER PRIMARY KEY, event_id TEXT UNIQUE NOT NULL, kind TEXT NOT NULL, payload_sha256 TEXT NOT NULL, payload TEXT NOT NULL)")
+        connection.execute("CREATE TABLE reconciliation_adjustments (reconciliation_id TEXT PRIMARY KEY, committed_version INTEGER UNIQUE NOT NULL, payload TEXT NOT NULL)")
         writer = {"schema": "order-writer-state-v1", "version": 0, "epoch": 0,
                   "owner_id": None, "claim_id": None, "claimed_at": None,
                   "disarmed": True, "unresolved_reasons": [],
                   "live_trading_enabled": False}
         connection.execute("INSERT INTO account_state VALUES (1, ?)", (pack(state),))
         connection.execute("INSERT INTO writer_state VALUES (1, ?)", (pack(writer),))
+        reconciliation = {
+            "schema": "order-reconciliation-state-v1", "version": 0,
+            "account_id": account_id, "environment": "synthetic",
+            "baseline_settled_cash_usd": str(settled), "as_of": at.isoformat(),
+            "status": "reconciled", "last_snapshot_id": None,
+            "unresolved_reasons": [], "executions": [], "commissions": [],
+            "order_projection": None,
+            "live_trading_enabled": False,
+        }
+        connection.execute("INSERT INTO reconciliation_state VALUES (1, ?)", (pack(reconciliation),))
         connection.commit()
         connection.close()
     except BaseException:
@@ -397,7 +461,12 @@ def initialize(path, snapshot):
 
 def status(path):
     with database(path) as connection:
-        return _report(_read_state(connection))
+        state = _read_state(connection)
+        reconciliation = None
+        if connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
+            from . import order_reconciliation
+            reconciliation, _ = order_reconciliation._read(connection)
+        return _report(state, reconciliation)
 
 
 def history(path):
@@ -409,8 +478,10 @@ def history(path):
                 table, column = "intents", "intent_id"
             elif kind == "incident":
                 table, column = "incidents", "incident_id"
-            else:
+            elif kind == "release":
                 table, column = "reservation_releases", "intent_id"
+            else:
+                table, column = "reconciliation_adjustments", "reconciliation_id"
             raw = connection.execute(f"SELECT payload FROM {table} WHERE {column}=?", (key,)).fetchone()[0]
             output.append(decode(raw))
         return output
@@ -471,14 +542,15 @@ def _validated_proposal(proposal, state):
     return decision, quote, fx_at, reservation
 
 
-def _current_result(record, state, duplicate=False):
+def _current_result(record, state, duplicate=False, reconciliation=None):
     return {
         "schema": ADMISSION_SCHEMA, "mode": MODE, "outcome": record["state"],
         "intent_id": record["intent_id"], "candidate_id": record["candidate_id"],
         "client_order_id": record["client_order_id"], "proposal_sha256": record["proposal_sha256"],
         "attempt_consumed": record["attempt_consumed"], "reasons": record["reasons"],
         "reservation": record["reservation"], "committed_version": record["committed_version"],
-        "duplicate": duplicate, "account": _report(state), "live_trading_enabled": False,
+        "duplicate": duplicate, "account": _report(state, reconciliation),
+        "live_trading_enabled": False,
     }
 
 
@@ -518,6 +590,10 @@ def admit(path, proposal):
     proposal_sha = digest(proposal)
     with database(path, write=True) as connection:
         state = _read_state(connection)
+        reconciliation = None
+        if connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
+            from . import order_reconciliation
+            reconciliation, _ = order_reconciliation._read(connection)
         rows = connection.execute(
             "SELECT payload FROM intents WHERE intent_id=? OR candidate_id=? OR client_order_id=?",
             (intent_id, candidate_id, client_order_id),
@@ -533,11 +609,13 @@ def admit(path, proposal):
                 ).fetchone()
             if release is not None:
                 released = _release_payload(release[0])
-                result = _current_result(records[0], state, duplicate=True)
+                result = _current_result(records[0], state, duplicate=True,
+                                         reconciliation=reconciliation)
                 result.update(outcome="cancelled", reasons=[released["reason"]],
                               reservation=None, release=released)
                 return result
-            return _current_result(records[0], state, duplicate=True)
+            return _current_result(records[0], state, duplicate=True,
+                                   reconciliation=reconciliation)
         if records:
             incoming = {"intent_id": intent_id, "candidate_id": candidate_id,
                         "client_order_id": client_order_id, "proposal_sha256": proposal_sha}
@@ -557,10 +635,11 @@ def admit(path, proposal):
                 _write_state(connection, state)
             return {"schema": ADMISSION_SCHEMA, "mode": MODE, "outcome": "identity_conflict",
                     "intent_id": intent_id, "reasons": ["identity_conflict"],
-                    "duplicate": existing is not None, "account": _report(state),
+                    "duplicate": existing is not None,
+                    "account": _report(state, reconciliation),
                     "live_trading_enabled": False}
         decision, quote, fx_at, reservation = _validated_proposal(proposal, state)
-        reasons = list(_report(state)["blocked_reasons"])
+        reasons = list(_report(state, reconciliation)["blocked_reasons"])
         for label, observed in (("account", utc(state["at"])), ("quote", quote), ("fx", fx_at)):
             age = decision - observed
             if not timedelta(0) <= age <= MAX_FRESHNESS:
@@ -611,4 +690,4 @@ def admit(path, proposal):
         connection.execute("INSERT INTO audit VALUES (?, 'admission', ?, ?)",
                            (version, intent_id, digest(record)))
         _write_state(connection, state)
-        return _current_result(record, state)
+        return _current_result(record, state, reconciliation=reconciliation)
