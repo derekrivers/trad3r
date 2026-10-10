@@ -218,3 +218,16 @@ access, handle credentials, place paper or live orders, or enable live execution
 Once setup is complete, collect only the redacted G01–G06 evidence described in the
 [broker matrix](broker-capability-matrix.md); any funding, paid subscription or
 connected-paper action remains a separate explicit owner decision.
+
+## D015 — IBKR account reported created and approved, 10 October 2026
+
+The owner subsequently reported that the IBKR account was created and that IBKR's
+interface displayed “Your Account is Approved.” Treat this as owner evidence of
+existence and application approval only: it does not establish the exact legal
+entity or account type, cash configuration, funding, stock permission, paper/API
+access, authentication behavior, market-data entitlement or tariffs. G01–G06 and
+the remaining P2.5 fields stay open until redacted supported evidence is retained.
+
+The development agent did not create or access the account and has no authority to
+handle credentials, fund it, accept further terms, purchase subscriptions, activate
+API access or submit paper/live orders. Live execution remains disabled.

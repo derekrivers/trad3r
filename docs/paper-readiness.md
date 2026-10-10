@@ -1,9 +1,10 @@
 # Control rehearsals and forward paper readiness
 
 Historical engineering backtesting has started. Actual broker paper trading has
-not started: there is no broker account, connected paper adapter or qualified
-forward feed. The current code has no order endpoint. Passing this drill does not
-enable one or establish a profitable trading strategy.
+not started: an IBKR account is owner-reported created and approved, but there is
+no verified paper identity, connected paper adapter or qualified forward feed.
+The current code has no order endpoint. Passing this drill does not enable one or
+establish a profitable trading strategy.
 
 ## Run the synthetic control drill
 
@@ -47,7 +48,7 @@ success report when those checks fail.
 | --- | --- | --- |
 | Historical engineering execution | Three fixed AAPL cost cases, all eight candidates rejected per case; [P2.4 decomposition](cost-feasibility.md#diagnosis-of-the-eight-retained-rejections) records available headroom | Recover retained per-candidate traces; broader preregistered feasibility study and independent data checks |
 | Account-level control calculations | Synthetic and historical tests, persisted halts | Reconcile actual broker cash, equity, FX, positions and settlement conventions |
-| Broker identity and permissions | [IBKR/Saxo public matrix](broker-capability-matrix.md) delivered; no account configured | Close G01/G02: verify actual entity/permissions, account and supported paper identity/authentication |
+| Broker identity and permissions | [IBKR/Saxo public matrix](broker-capability-matrix.md) delivered; owner reports an IBKR account was created and approved | Close G01/G02: verify actual entity/account type, permissions and supported paper identity/authentication |
 | Forward data | Historical stock/FX proxies only | Qualify entitled timely quotes, FX and session state; detect stale, missing, out-of-order and disconnected data |
 | Durable order lifecycle | P4.1 [contract](order-lifecycle.md), P4.2 [atomic admission](order-admission.md), P4.3 [fenced synthetic writer](order-writer.md) and P4.4 [synthetic reconciliation](order-reconciliation.md), plus P4.5 [integrated protection](order-protection-acceptance.md) delivered | Connected paper adapter and protection verification; durable settlement release remains P4.6 |
 | Restart reconciliation | Synthetic startup/disconnect invalidation and complete cumulative snapshots tested | Close matrix G04/G05: cross-midnight history, execution corrections, final fees and cash; empty open orders do not resolve unknown submissions |
