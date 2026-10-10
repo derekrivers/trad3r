@@ -96,6 +96,8 @@ class OrderProjection:
             raise ValueError("Filled order does not account for its full quantity")
         if self.state == "rejected" and self.executed_quantity:
             raise ValueError("Rejected order has executions")
+        if self.terminal_no_remainder_proved and self.state not in ("cancelled", "rejected"):
+            raise ValueError("Terminal remainder proof requires a cancelled or rejected order")
         price = self.confirmed_stop_price_usd
         if price is not None:
             price = money(price)
@@ -338,9 +340,12 @@ def evaluate(snapshot: ProtectionSnapshot, request: EvaluationRequest) -> Evalua
         protection = "partial"
     elif pending_stop:
         protection = "pending"
-    elif rejected_stops and max(rejected_stops, key=lambda row: row.last_event_version).last_event_version == max(
-            (row.last_event_version for row in snapshot.orders if row.purpose == STOP), default=-1):
-        protection = "rejected"
+    elif rejected_stops:
+        stop_orders = tuple(row for row in snapshot.orders if row.purpose == STOP)
+        latest_version = max(row.last_event_version for row in stop_orders)
+        latest = tuple(row for row in stop_orders if row.last_event_version == latest_version)
+        protection = ("rejected" if len(latest) == 1 and latest[0].state == "rejected"
+                      and latest[0].terminal_no_remainder_proved else "missing")
     else:
         protection = "missing"
 

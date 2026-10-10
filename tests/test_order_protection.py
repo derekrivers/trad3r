@@ -84,6 +84,9 @@ class OrderProtectionTests(unittest.TestCase):
         self.assertEqual([row.protection_state for row in (missing, pending, active, partial, rejected)],
                          ["missing", "pending", "active", "partial", "rejected"])
         self.assertEqual(active.covered_quantity, 2)
+        tied_cancel = replace(rejected_order, order_id="stop-two", state="cancelled")
+        tied = evaluate(self.snapshot(orders=(rejected_order, tied_cancel)), self.request())
+        self.assertEqual(tied.protection_state, "missing")
 
     def test_x04_and_x05_all_possible_sells_share_quantity_and_fee_capacity(self):
         stop = self.order("stop-one", STOP, "unknown", fee_allocation_usd="0.35")
@@ -200,6 +203,9 @@ class OrderProtectionTests(unittest.TestCase):
     def test_invalid_structures_are_rejected_without_evaluation(self):
         with self.assertRaisesRegex(ValueError, "full quantity"):
             self.order("bad", EXIT, "filled", quantity=2, executed=1)
+        with self.assertRaisesRegex(ValueError, "Terminal remainder proof"):
+            self.order("bad-proof", EXIT, "working", quantity=1,
+                       terminal_no_remainder_proved=True)
         with self.assertRaisesRegex(ValueError, "unique"):
             self.snapshot(orders=(self.order("same", EXIT, "reserved", quantity=1),
                                   self.order("same", EXIT, "reserved", quantity=1)))
