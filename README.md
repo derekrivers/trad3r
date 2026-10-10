@@ -129,7 +129,9 @@ These components have no broker or network endpoint.
 The [P4.5 protection contract](docs/order-protection.md) defines cancellation races,
 shared sell reservations, reducing exits and incident recovery, with 24 acceptance
 scenarios and an ordered implementation handoff. This design is specified; its
-runtime behavior is not yet implemented.
+pure [package A evaluator](docs/order-protection.md#package-a-implementation) now
+derives exposure, protection and request-specific permissions without persistence
+or dispatch. Transactional allocations and the rest of packages B–G remain pending.
 
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
 costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable

@@ -3,8 +3,8 @@
 Contract `order-protection-v1` defines the P4.5 extension to the
 [order lifecycle](order-lifecycle.md). It fixes the implementation rules and
 acceptance scenarios for cancellation, reducing exits, protective stops and
-exposure incidents. This is an implementation specification, not delivered runtime
-behavior. P4.5 completes only when the packages below pass their executable tests
+exposure incidents. Package A's pure evaluator is implemented; packages B–G remain
+specifications. P4.5 completes only when all packages pass their executable tests
 and integrated fault cases.
 
 The scope remains one synthetic account and one qualified USD equity position,
@@ -61,6 +61,39 @@ for this entry episode was definitively rejected; otherwise use `missing`. A
 successful later stop can restore coverage while the earlier incident continues
 to block entries until resolution.
 Reject a purported coverage quantity greater than holdings as conflicting evidence.
+
+### Package A implementation
+
+`trad3r.order_protection` implements the pure evaluator in
+[PR #36](https://github.com/derekrivers/trad3r/pull/36). Immutable typed inputs bind
+the account and instrument, account/evidence versions, snapshot ID and time,
+execution watermark, verified quantity, every known order remainder, stop evidence,
+fee allocations, controls and incidents. `EvaluationRequest` supplies an explicit
+UTC evaluation time, expected versions and optional cancel/reduction request.
+
+The result reports those evidence bindings with exposure and protection states,
+verified/covered/committed/available quantities, remaining fee allowance and
+separate sorted reason lists. `entry_allowed`, `cancellation_allowed` and
+`reduction_allowed` describe only that evaluation. The result is not durable and
+cannot be replayed as authorization. No input parser, CLI, database, adapter or
+dispatch method exists. Production callers cannot treat the input booleans as
+user assertions: packages B and C must derive them from audited storage and
+cumulative reconciliation.
+
+Sell orders in a possibly live or incompletely terminal state retain their full
+unexecuted remainder. `fee_allocation_usd` is the still-outstanding allocation for
+that order, after any incurred fee has moved into the snapshot's cumulative fee
+field. The evaluator refuses negative quantity capacity, reused fee allowance,
+future/stale reduction evidence, changed versions and management-blocking incidents.
+An exact mapped cancellation ignores quote/FX age and free quantity, but still
+requires a valid store, current versions, a fenced writer and an evaluation time
+no earlier than its snapshot.
+
+Twelve deterministic tests implement package A's X01–X05 and X16 portions,
+including pause/halt separation, flatness with possible entry work, protection
+state precedence, shared stop/exit capacity, fee partitioning, partial/cancelled
+remainders, stale/future evidence and target-specific cancellation. These tests do
+not claim transactional concurrency, persistence or adapter-call coverage.
 
 ## Verified management authority
 
@@ -314,7 +347,7 @@ approval. Every merge still requires the repository's reviewed-head CI controls.
 
 | Package | Bounded deliverable and dependencies | Completion boundary |
 | --- | --- | --- |
-| A | Pure protection/quantity/permission evaluator and deterministic tests, following the facts and formulas above. Ready now. | X01–X05/X16 fact and permission portions; explicit reasons, no persistence or dispatch claim. |
+| A | **Complete:** pure protection/quantity/permission evaluator and 12 deterministic tests; [PR #36](https://github.com/derekrivers/trad3r/pull/36). | X01–X05/X16 fact and permission portions; explicit reasons, no persistence or dispatch claim. |
 | B | Explicit v4 synthetic initialization, authoritative per-intent quantity/fee allocations, audit replay and atomic reducing admission. Depends A. | X04/X15/X23 reservation/storage portions; preserve v3 reads, no migration or enabled dispatch. |
 | C | V4 cumulative multi-order buy/sell reconciliation, execution-level fee completeness, pending lots and retained contradictions. Depends B. | X02/X06/X14/X17–X20/X22 accounting portions; no durable period transition or cash-release command. |
 | D | Separate fenced cancellation operation and deterministic adapter outcomes, integrated with cumulative evidence. Depends C. | X07–X10/X13/X15/X16/X23 cancellation portions; no release from an acknowledgement alone. |
@@ -322,7 +355,7 @@ approval. Every merge still requires the repository's reviewed-head CI controls.
 | F | Durable pause, desired action, protection incidents and evidence-bound trusted owner recovery. Depends E. | X01/X02/X11/X14/X15/X20–X22 control portions; no halt/budget reset or invented owner authentication. |
 | G | Integrated restart, concurrent exits, cancel/fill faults and full lifecycle rehearsal. Depends A–F. | All X01–X24 executable with actual store/writer integration; map O07/O08/O12 and other overlapping lifecycle cases to test names. |
 
-A pure evaluator passing its vectors completes A only. P4.5 remains in progress
-until G passes and the documentation names the implemented evidence. Connected
+The pure evaluator completes A only. P4.5 remains in progress until G passes and
+the documentation names the integrated evidence. Connected
 paper remains P5; durable period policy remains P4.6; existing-account migration
 and external incident repair require separate reviewed designs.

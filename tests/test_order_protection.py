@@ -172,6 +172,24 @@ class OrderProtectionTests(unittest.TestCase):
         self.assertIsNone(result.available_exit_fee_usd)
         self.assertIn("fee_allocation_conflict", result.reduction_blocked_reasons)
 
+    def test_quantity_matrix_never_reports_negative_or_excess_reduction_capacity(self):
+        for held in range(4):
+            for committed in range(4):
+                with self.subTest(held=held, committed=committed):
+                    orders = (() if committed == 0 else (
+                        self.order("exit-one", EXIT, "unknown", quantity=committed),))
+                    result = evaluate(self.snapshot(quantity=held, orders=orders), self.request())
+                    if committed > held or (held == 0 and committed):
+                        self.assertEqual(result.exposure_state, "unresolved")
+                        self.assertIsNone(result.available_sell_quantity)
+                    else:
+                        self.assertEqual(result.available_sell_quantity, held - committed)
+        for requested in range(1, 5):
+            with self.subTest(requested=requested):
+                result = evaluate(self.snapshot(quantity=3),
+                                  self.request(reduction_quantity=requested))
+                self.assertEqual(result.reduction_allowed, requested <= 3)
+
     def test_desired_management_action_blocks_entry_without_blocking_reduction(self):
         result = evaluate(self.snapshot(desired_action="flatten"),
                           self.request(reduction_quantity=2, reduction_fee_bound_usd="0.35"))
