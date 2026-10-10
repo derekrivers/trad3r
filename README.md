@@ -12,7 +12,8 @@ hypothesis; it has no validated performance or profitability evidence.
 ## Delivery plan
 
 The [canonical project plan](docs/project-plan.md) defines delivery order and owner
-gates. Follow the [current status and next tasks](docs/project-status.md) and
+gates. Follow the [64-task delivery register](docs/task-register.md),
+[current status and next tasks](docs/project-status.md) and
 [decision record](docs/decisions.md). The discretionary product will propose
 traceable theses and conditional plans; deterministic code retains account, risk
 and execution authority. The existing baseline is a comparison hypothesis.

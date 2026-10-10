@@ -5,6 +5,8 @@ adopted in [PR #24](https://github.com/derekrivers/trad3r/pull/24), merge
 `413075d227a407b4be7a2b372ca77a7edb0c3b14`.
 [Decisions](decisions.md) retain owner gates. Runtime remains pinned to reviewed
 `ea44cc8ec78703cc3310107e65cfc80739adb46a`; documentation has advanced separately.
+The [task register](task-register.md) assigns readiness, acceptance evidence and a
+cost-conscious starting model to all 64 master-plan tasks.
 
 ## Active package
 
@@ -44,6 +46,10 @@ and historical dependencies.
    started; existing offline work keeps its implementation credit in the roadmap.
 5. P5–P10 remain not started in the canonical dependency order. No AI/classifier
    integration precedes the accounting/execution controls.
+
+The operational order and model-routing rules are maintained in the
+[ready queue](task-register.md#ready-queue). Keep this short status page focused on
+current evidence; update both records when task readiness or completion changes.
 
 Connected paper submissions, live execution, purchases and financial-policy
 changes remain gated. The offline units are inactive after successful explicit

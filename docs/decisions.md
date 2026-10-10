@@ -72,3 +72,17 @@ and credit P0.5 with verified stock availability. Earlier absence findings descr
 the state before this transfer. FX/combined history and original experiment files
 remain missing; no hypothetical FX or replacement cost assumptions are authorised
 as a substitute for the registered historical evidence.
+
+## D006 — Development model routing and task register, 10 October 2026
+
+Maintain one operational [task register](task-register.md) covering all 64 tasks in
+the canonical plan. Start clear repeatable work with Luna, ordinary engineering and
+research with Sol, and use Astra for the hardest architecture, accounting, risk,
+order-uncertainty and phase-gate decisions. Escalate based on ambiguity, conflicting
+evidence and failed approaches; once an Astra-reviewed contract is frozen, return
+its scoped implementation to Sol where appropriate.
+
+Model choice never changes task authority, financial limits, review requirements or
+owner gates. Every PR still receives final-diff review, meaningful validation and
+hosted CI on the reviewed SHA. The register governs development workflow only; P6.4
+separately governs model/provider selection and expenditure for the trading agent.
