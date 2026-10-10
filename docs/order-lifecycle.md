@@ -5,9 +5,9 @@ implements its [atomic synthetic admission](order-admission.md) subset and P4.3
 implements the [fenced synthetic writer](order-writer.md). P4.4 implements
 [synthetic reconciliation](order-reconciliation.md). No broker adapter exists. The
 [P4.5 protection contract](order-protection.md) defines exposure controls and their
-acceptance scenarios. Its package A pure evaluator is implemented; transactional
-packages B–G remain pending. These components must be tested together before the
-Phase 4 exit gate can pass.
+acceptance scenarios. Packages A–G are implemented with
+[integrated acceptance evidence](order-protection-acceptance.md). Durable period
+policy and broader system faults remain P4.6/P4.7 before the Phase 4 exit gate.
 
 ## Authority and scope
 
@@ -213,8 +213,9 @@ No repair, halt clearance or period renewal occurs as a read side effect.
 ## Synthetic acceptance cases
 
 These are required test vectors for the named implementation PRs. P4.2–P4.4 now
-cover their applicable admission, writer and reconciliation portions; P4.5 cases
-remain specifications. Use invented prices/IDs and a controllable clock/adapter; every
+cover their applicable admission, writer and reconciliation portions; the
+[P4.5 matrix](order-protection-acceptance.md#overlapping-order-lifecycle-vectors)
+maps the protection and cancellation overlaps to executable tests. Use invented prices/IDs and a controllable clock/adapter; every
 case checks persisted events, quantities, resources, attempts and dispatch counts
 after reopening the store. No credentials, network or licensed bars are needed.
 
@@ -251,4 +252,5 @@ protocol, fee allocation, pending-sale accounting and incident recovery. Its
 X01–X24 scenarios refine the protection and cancellation cases above. Packages A
 and B implement the pure permission and durable allocation portions. Package C
 implements reviewed cumulative sell accounting and pending lots in [PR #38](https://github.com/derekrivers/trad3r/pull/38);
-packages D–G remain.
+packages D/E add fenced cancellation and reducing dispatch, F persists controls,
+and G supplies the [integrated rehearsals](order-protection-acceptance.md).

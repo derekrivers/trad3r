@@ -328,19 +328,22 @@ def _read(connection):
 
 def _verify_evidence_binding(connection, record, evidence):
     request = record["request"]
+    snapshot = None
     if record["target_source"] == "entry":
         snapshots = [order_reconciliation._snapshot(store.decode(row[0])) for row in
                      connection.execute("SELECT payload FROM reconciliation_inbox")]
         snapshot = next((item for item in snapshots
                          if item["reconciliation_id"] == evidence["evidence_id"]), None)
-        if snapshot is None:
-            raise ValueError("Cancellation entry evidence is missing")
+    if snapshot is not None:
         targets = [{"client_order_id": item["client_order_id"],
                     "order_id": item["broker_order_id"], "side": "buy",
                     "state": item["state"], "original_quantity": item["original_quantity"],
                     "cumulative_executed_quantity": item["cumulative_executed_quantity"]}
                    for item in snapshot["orders"]]
     else:
+        # An entry target may first be mapped by the entry journal and later
+        # become terminal in cumulative reducing evidence. Bind the resolution
+        # to its actual retained snapshot, not the marker's historical source.
         from . import order_sell_reconciliation
         row = connection.execute(
             "SELECT payload FROM reducing_reconciliation_inbox WHERE reconciliation_id=?",

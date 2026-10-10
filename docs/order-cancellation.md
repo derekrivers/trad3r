@@ -34,6 +34,15 @@ operation: `cancelled` becomes `confirmed_cancelled`, `filled` becomes
 entire possible remainder until terminal evidence. A response arriving after the
 order filled is retained without regressing the order.
 
+Package G verifies the complete entry-to-protection handoff. Terminal entry
+cancellation is resolved before entry reconciliation records its remaining writer
+blockers, in the same transaction. This permits a fresh fenced writer to protect
+the surviving holding without an extra evidence round. A target first mapped in
+the entry journal may subsequently resolve from cumulative reducing evidence;
+replay binds that resolution to its actual retained snapshot. An accepted cancel
+with a still-working order continues to block, and a failed projection commit
+rolls back cancellation resolution and account effects together.
+
 The cancellation journal stores every request, command digest, adapter response,
 incident, transition and writer-event digest. Reads replay contiguous events and
 verify state projection, SQL identity columns, writer fencing, and the exact
@@ -44,8 +53,9 @@ retry cannot issue a blind second cancellation.
 
 The CLI also exposes `order-cancel-status` and `order-cancel-history`. These are
 read-only. Package D does not add reducing-order submission, stop replacement,
-incident recovery, settlement release or a new entry episode; those remain in the
-ordered P4.5 packages E–G.
+incident recovery, settlement release or a new entry episode. Packages E/F add
+synthetic reducing dispatch and controls; G supplies [integrated acceptance](order-protection-acceptance.md).
+Durable settlement release remains P4.6, and a new entry episode remains separate.
 
 Twelve deterministic tests cover accepted, rejected, denied and lost responses;
 partial entry and sell fills; fill-before-response; confirmed cancellation;

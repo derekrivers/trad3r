@@ -41,9 +41,8 @@ time unless the owner explicitly authorises parallel work.
 
 | Order | Work package | Tasks | Start model | Completion evidence |
 | ---: | --- | --- | --- | --- |
-| 1 | Integrated protection faults and lifecycle rehearsal | P4.5 G | Sol high, Astra review | Map all X01–X24 to store/writer integration tests; restart, concurrency, cancellation/fill faults and full numeric lifecycle |
-| 2 | Produce dated broker/entity capability matrix | P2.1–P2.2 | Sol medium/high | Primary-source matrix with exact UK entity/account/API facts and explicit unknowns; no account action |
-| 3 | Build dated cost feasibility model | P2.4 | Sol high | Sourced fees/spread/FX/recurring costs compared with £3 trade risk and £10 monthly ceiling |
+| 1 | Produce dated broker/entity capability matrix | P2.1–P2.2 | Sol medium/high | Primary-source matrix with exact UK entity/account/API facts and explicit unknowns; no account action |
+| 2 | Build dated cost feasibility model | P2.4 | Sol high | Sourced fees/spread/FX/recurring costs compared with £3 trade risk and £10 monthly ceiling |
 
 The bounded Massive access check is recorded in [PR #28](https://github.com/derekrivers/trad3r/pull/28);
 original FX identity recovery and registered historical reproduction remain
@@ -62,9 +61,10 @@ with 20 deterministic tests. Package B is implemented in
 [PR #37](https://github.com/derekrivers/trad3r/pull/37) with 19 focused tests and
 Astra review fixes for retained-input replay, freshness and identity blocking;
 package C is delivered in [PR #38](https://github.com/derekrivers/trad3r/pull/38) with 19 focused tests and critical review fixes. Package D is delivered in [PR #39](https://github.com/derekrivers/trad3r/pull/39) with 12 focused tests and critical review fixes. Package E is delivered in [PR #40](https://github.com/derekrivers/trad3r/pull/40) with 14 focused tests for marker-first reducing-limit and protective-stop dispatch. Package F in [PR #41](https://github.com/derekrivers/trad3r/pull/41) adds [durable controls and synthetic owner recovery](order-controls.md) with 19 focused tests.
-Package G covers integrated faults. Return
-to Astra for changed financial/identity semantics and critical final-diff review.
-The scenarios are specifications until executable implementation evidence is linked.
+Package G in [PR #42](https://github.com/derekrivers/trad3r/pull/42) completes [integrated acceptance](order-protection-acceptance.md), including
+actual process death, result rollback, concurrent exits, cancellation/fill races
+and the full numeric trace. Return to Astra for changed financial/identity
+semantics and critical final-diff review.
 
 P0.3 and the off-host portion of P1.6 remain owner-input blockers. They do not block
 the independent queue above. P5 connected paper submissions and all P10 activity
@@ -120,7 +120,7 @@ remain behind their explicit owner gates.
 | P4.2 | complete | [atomic synthetic admission](order-admission.md); no adapter/dispatch | Sol high, Astra review | One transaction binds intent/attempt/versions/expiry and reserves cash/exposure/loss; duplicate, conflict, concurrency, restart, rollback and corruption tests |
 | P4.3 | complete | [fenced synthetic writer](order-writer.md); no broker/network endpoint | Sol high, Astra review | Single writer and durable queue; marker precedes adapter call; lost acknowledgement becomes unknown; ownership epochs, rollback and no-retry faults tested |
 | P4.4 | complete | [synthetic reconciliation](order-reconciliation.md); account-safety follow-up #34; connected adapter remains P5 | Sol high, Astra review | Synthetic cumulative entry reconciliation, including empty-account cash/settlement checks, mark/halts and reservation ownership; full independent inbox-to-account replay remains outside this delivered slice |
-| P4.5 | in progress | [design and vectors defined](order-protection.md); packages A–F complete; G next | Astra high for control/recovery semantics; Sol high for bounded integration | Package F persists pause/objectives/incidents and evidence-bound synthetic owner recovery; package G integrated acceptance is next |
+| P4.5 | complete | [contract](order-protection.md) and [integrated acceptance](order-protection-acceptance.md); packages A–G complete | Astra high for control/recovery semantics; Sol high for bounded integration | All X01–X24 mapped to executable evidence; lifecycle, concurrent exits, restart and cancellation/fill faults; synthetic-only scope |
 | P4.6 | not started | proposal ready after durable account schema; implementation requires owner review | Astra high | Persistent daily/weekly transition and restart proposal preserves all history/halts; implement only approved policy |
 | P4.7 | not started | grows with P4.1–P4.6 | Sol high | Fault-injection suite for death, timeout, stale approval, concurrency, storage, duplicates and missing broker state; invariants survive restart |
 

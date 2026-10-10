@@ -646,6 +646,19 @@ def apply(path, raw):
         updated = deepcopy(submission)
         updated.update(state=submission_state, broker_order_id=order["broker_order_id"],
                        reason=reason, resolved_at=at.isoformat())
+        if connection.execute("PRAGMA user_version").fetchone()[0] == store.REDUCING_DATABASE_VERSION:
+            from . import order_cancellation
+            # Resolve cancellation from this validated, retained snapshot before
+            # copying writer blockers into the entry projection. Otherwise a
+            # terminal cancellation leaves an obsolete blocker in that projection
+            # and prevents a fresh writer from managing the surviving holding.
+            order_cancellation.apply_evidence(connection, at, [{
+                "client_order_id": order["client_order_id"],
+                "order_id": order["broker_order_id"], "side": "buy",
+                "state": order["state"], "original_quantity": order["original_quantity"],
+                "cumulative_executed_quantity": executed,
+            }], snapshot["reconciliation_id"])
+            current_writer, _, _ = writer._read_writer(connection)
         clear = sorted(TRANSIENT_REASONS | {"submission_unknown", "submission_rejected"})
         remaining_writer_reasons = sorted(set(current_writer["unresolved_reasons"]) - set(clear))
         state.update(status="reconciled" if not remaining_writer_reasons else "unresolved",
@@ -663,15 +676,6 @@ def apply(path, raw):
         state, _ = _append(connection, "snapshot_applied", at, store.digest(snapshot), state)
         _disarm(connection, snapshot["reconciliation_id"], at,
                 remaining_writer_reasons, clear, updated)
-        if connection.execute("PRAGMA user_version").fetchone()[0] == store.REDUCING_DATABASE_VERSION:
-            from . import order_cancellation
-            projection = state["order_projection"]
-            order_cancellation.apply_evidence(connection, at, [{
-                "client_order_id": projection["client_order_id"],
-                "order_id": projection["broker_order_id"], "side": "buy",
-                "state": projection["state"], "original_quantity": projection["original_quantity"],
-                "cumulative_executed_quantity": projection["executed_quantity"],
-            }], snapshot["reconciliation_id"])
         result = _report(connection, state)
         result.update(outcome=state["status"], duplicate=False, adjustment=adjustment,
                       account=store._report(account, state))

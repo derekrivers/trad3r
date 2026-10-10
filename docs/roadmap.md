@@ -12,7 +12,7 @@ retained as engineering history, not a second master plan.
 | 1 | Recoverable offline research service | Synthetic host runtime/recovery/restore verified; off-host backup open |
 | 2 | Broker and data capability decision | Account-specific evidence and owner decision open |
 | 3 | Qualified datasets and protocol | Engineering sample/results exist; qualification open |
-| 4 | Durable order and account controls | P4.1–P4.4 delivered; P4.5 packages A–F implemented; package G integrated faults and period transition pending |
+| 4 | Durable order and account controls | P4.1–P4.5 delivered; durable period transition and broader system faults remain |
 | 5 | Deterministic paper application | Not started; connected submissions need owner approval |
 | 6 | Discretionary shadow agent | Not started |
 | 7 | Discretionary paper experiment | Not started; protocol and owner approval required |
@@ -107,7 +107,7 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   empty-order mark/settlement checks, newer-reservation ownership and unsent expiry
   tombstones; full independent inbox-to-account replay remains future hardening.
 - Defined: [P4.5 protection contract](order-protection.md), 24 acceptance scenarios
-  and seven bounded implementation packages. Integrated acceptance remains pending.
+  and seven bounded implementation packages; [integrated acceptance](order-protection-acceptance.md) is delivered.
 - Delivered: P4.5 package A pure protection/quantity/permission evaluator with
   deterministic X01–X05/X16 coverage and no persistence or dispatch surface.
 - Delivered in [PR #37](https://github.com/derekrivers/trad3r/pull/37): P4.5 package B
@@ -121,9 +121,10 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   marker-first synthetic reducing-limit and protective-stop dispatch.
 - Delivered in [PR #41](https://github.com/derekrivers/trad3r/pull/41): [package F durable protection controls](order-controls.md), including
   pause, desired action, latched incidents and evidence-bound synthetic owner recovery.
-- Next: package G integrated restart, concurrency, fault and lifecycle rehearsal
-  on Sol High, with Astra review of financial and recovery invariants.
-  Close private-input and off-host
+- Delivered in [PR #42](https://github.com/derekrivers/trad3r/pull/42): package G [integrated acceptance](order-protection-acceptance.md), including
+  process death, concurrent exits, stop/cancel/fill races and the numeric lifecycle.
+- Next: dated broker/entity capability matrix (P2.1–P2.2), then cost feasibility
+  (P2.4). Close private-input and off-host
   backup dependencies independently and qualify forward data.
   Durable paper period transitions require a separate owner-reviewed policy.
 
