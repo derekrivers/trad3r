@@ -14,10 +14,11 @@ account tariff or establish executable spreads. The result is conditional:
   zero. No purchase or subscription is authorised.
 
 This continues the [broker/entity capability matrix](broker-capability-matrix.md).
-IBKR remains the first integration candidate and Saxo the alternative; P2.2,
-P2.3 and P2.5 remain open. All sources were consulted on 10 October 2026. Vendor
-pages are mutable and the actual account trade ticket, agreement, invoice and
-commission events take precedence when later verified.
+The owner selected IBKR as the intended broker on 10 October 2026 but has not yet
+set up the account; Saxo remains a documented fallback. P2.2 and P2.3 remain open,
+and P2.5 is only partially resolved. All sources were consulted on 10 October
+2026. Vendor pages are mutable and the actual account trade ticket, agreement,
+invoice and commission events take precedence when later verified.
 
 ## Scope and accounting boundaries
 
@@ -232,7 +233,7 @@ The recurring conclusion is therefore **unresolved on current evidence**. IBKR's
 direct-network route is a plausible fit, but no complete stack is evidenced to
 pass until the selected network/API rights and existing VPS/project allocation are
 known. A future
-P2.5 selection may not omit hosting, reuse a private subscription at zero, assume
+P2.5 recommendation may not omit hosting, reuse a private subscription at zero, assume
 commission waivers or silently raise the £10 ceiling.
 
 ## Closure evidence and handoff

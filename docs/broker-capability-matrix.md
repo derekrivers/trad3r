@@ -1,17 +1,23 @@
 # Broker/entity capability matrix — 10 October 2026
 
 P2.1's public research deliverable and P2.2's documented capability/gap record.
-**IBKR remains the first integration candidate; Saxo remains the alternative.**
-Neither is a verified connected-paper path. P2.1's matrix is complete; P2.2 stays
-in progress until the account-specific evidence below is obtained. P2.5's owner
-selection and Phase 2 exit gate remain open. The [P2.4 cost screen](cost-feasibility.md)
-now records explicitly conditional tariffs and measured-data gaps.
+**On 10 October 2026 the owner selected IBKR as the intended broker and confirmed
+that the account has not yet been set up. Saxo is now a documented fallback, not
+the selected route.** Neither is a verified connected-paper path. P2.1's matrix is
+complete; P2.2 stays in progress until the account-specific evidence below is
+obtained. P2.5 is in progress: its broker-intent component is recorded, while the
+feed, session, universe and proceed/revise/stop decision and Phase 2 exit gate
+remain open. The [P2.4 cost screen](cost-feasibility.md) records explicitly
+conditional tariffs and measured-data gaps.
 
 Scope: UK retail individual, ordinary taxable account, whole US-listed ordinary
 shares, long only, cash funded. No margin, CFDs, derivatives or fractional-share
 dependency. AAPL, MSFT and F are existing engineering symbols, not an approved
 paper universe. No account was accessed, opened or funded; no API application,
-subscription or order was created. Live execution remains disabled.
+subscription or order was created. The owner, not the development agent, will set
+up the IBKR account. This record does not approve funding, paid subscriptions, API
+activation, connected submissions or live execution; live execution remains
+disabled.
 
 This updates the [4 October feasibility research][prior] in the canonical
 [plan's Phase 2](project-plan.md#phase-2-establish-broker-and-data-feasibility).
@@ -107,13 +113,13 @@ changing [synthetic reconciliation](order-reconciliation.md) or
 
 | Gap | Owner / dependency | Closure evidence | Blocks |
 | --- | --- | --- | --- |
-| G01 Exact entity/account and permissions | Derek supplies existing non-secret account facts; agent checks current agreement and full FCA record | Dated private agreement/permissions evidence and public redacted conclusion | P2.2 verification, P2.5 selection |
-| G02 Paper/API access and auth operations | Existing access facts first; account creation/funding and connected submissions require separate owner authority | Supported account/environment proof; pinned version and witnessed login/expiry/recovery drill | P5.1/P5.6 |
+| G01 Exact entity/account and permissions | IBKR selected in principle; Derek completes setup and then supplies non-secret account facts; agent checks the current agreement and full FCA record | Dated private agreement/permissions evidence and public redacted conclusion | P2.2 verification, P2.5 completion |
+| G02 Paper/API access and auth operations | No account exists yet; account setup is an owner action, while funding, paid access and connected submissions require separate owner decisions | Supported account/environment proof; pinned version and witnessed login/expiry/recovery drill | P5.1/P5.6 |
 | G03 Instrument and protection semantics | Account metadata/terms now; explicit permission before later paper orders | P2.2: qualified metadata and supported order semantics; P5: paper lifecycle/partial-fill/race results | P2.2 account mapping; P5.3/P5.7 operational proof |
 | G04 Cash, settlement and fee finality | Account documentation/statements and a reviewed mapping; later authorised paper observations | P2.2: field/fee/value-date contract; P5: reconciled buy/sell/fees/FX trace with no unexplained difference | P2.2 account mapping; P4.6/P5 reconciliation |
 | G05 Overnight history and corrections | Broker-supported query/report availability | Restart spanning midnight and outage beyond query horizon; corrected execution and late fee trace | Connected restart readiness |
 | G06 Forward data and rights | P2.3; broker/feed entitlement and terms | Quote/FX coverage, timestamps, usage/retention/model rights and exact recurring tariff | Qualified economics and P5.2 |
-| G07 Costs and owner decision | P2.4 then P2.5 | Dated intended-quantity costs, FX scenarios and total recurring bills; Derek's decision | Phase 2 exit |
+| G07 Costs and owner decision | P2.4 complete; IBKR intent recorded; remaining P2.5 fields await G01–G06 | Dated intended-quantity costs, FX scenarios and total recurring bills; feed/session/universe and proceed/revise/stop decision | Phase 2 exit |
 
 P2.2 account mapping uses supported documentation and available read-only evidence.
 P2.5 must explicitly record any remaining operational conditions; order-based

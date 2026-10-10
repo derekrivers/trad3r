@@ -63,10 +63,11 @@ is not a broker paper account. No funding or subscription purchase is implied he
 ## Ordered implementation backlog
 
 1. Close P2.2/P2.3 account/feed/invoice [broker matrix gaps](broker-capability-matrix.md)
-   against the delivered [P2.4 cost screen](cost-feasibility.md), then obtain P2.5
-   owner selection. P4.5 synthetic protection is delivered; its
-   [X01–X24 acceptance evidence](order-protection-acceptance.md) still needs
-   applicable connected-paper qualification.
+   for the owner-selected intended IBKR route against the delivered
+   [P2.4 cost screen](cost-feasibility.md), then complete P2.5's feed, session,
+   universe and proceed/revise/stop decision. P4.5 synthetic protection is
+   delivered; its [X01–X24 acceptance evidence](order-protection-acceptance.md)
+   still needs applicable connected-paper qualification.
 2. Once account/API details are available, implement an explicit paper-only adapter
    and verify the environment. Do not trust a user-selected port or label alone as
    evidence that an account is paper. No live mode or live credentials path.

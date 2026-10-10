@@ -27,6 +27,7 @@ cost-conscious starting model to all 64 master-plan tasks.
 | P2.2 capabilities | in progress | Selected account and authorised observations | [PR #43](https://github.com/derekrivers/trad3r/pull/43); [execution/account gap record](broker-capability-matrix.md#p22--execution-and-account-evidence) with closure evidence | G01–G06 remain unverified, including Gateway overnight history, correction/fee mapping and settled cash |
 | P2.3 feed evidence | in progress | Exact selected account/feed and rights | Bounded Massive stock/FX access and current public feed-price screening | Forward quotes, decision-time delivery, retention/model rights and selected broker API entitlements remain unverified |
 | P2.4 costs | complete | Public conditional research | [PR #44](https://github.com/derekrivers/trad3r/pull/44); [dated cost model](cost-feasibility.md); broker fees, FX, spread/slippage formula and recurring stack compared with caps | Per-trade cases remain conditional; no complete recurring stack is evidenced under £10/month; account tariffs/invoices remain P2.2/P2.3 inputs |
+| P2.5 broker/feed decision | in progress | P2.2/P2.3 evidence and remaining owner fields | Owner selected IBKR as the intended broker on 10 October 2026 and confirmed the account is not yet set up | Verify the eventual account and costs, then record feed, session, universe, availability and proceed/revise/stop; no setup, funding or paid access is authorised to the agent |
 | P4.1 order contract | complete | Independent synthetic design | [PR #29](https://github.com/derekrivers/trad3r/pull/29); [order lifecycle v1](order-lifecycle.md); reviewed transition/identity contract and 14 synthetic acceptance specifications | Definition complete; implementation credit is tracked separately in P4.2–P4.5 |
 | P4.2 atomic admission | complete | P4.1 contract | [PR #30](https://github.com/derekrivers/trad3r/pull/30); [atomic admission](order-admission.md); deterministic duplicate/conflict/concurrency/restart/rollback tests | Synthetic flat-account reservations only; no writer, adapter, fills, cancellation or migration of the existing risk/ledger history |
 | P4.3 single writer | complete | P4.1–P4.2 | [PR #31](https://github.com/derekrivers/trad3r/pull/31); [fenced synthetic writer](order-writer.md); durable marker and projection replay; deterministic ownership, lost-acknowledgement, restart and commit-failure tests | Synthetic adapter only; P4.4 now resolves supplied evidence; version-1 stores require explicit writer migration |
@@ -59,7 +60,8 @@ and historical dependencies.
 3. Close P2.2/P2.3 account, quote/data and recurring-invoice evidence using the
    delivered [broker matrix](broker-capability-matrix.md) and
    [conditional cost model](cost-feasibility.md). G01–G06 remain explicit.
-4. P2.5 owner broker/feed and proceed/revise/stop decisions remain open;
+4. Complete P2.5 after the recorded IBKR intent: feed, session, universe,
+   availability and proceed/revise/stop remain open;
    then P3.1–P3.6 qualification and P4.6–P4.7 controls. No cross-day settlement
    release precedes P4.6; no existing v3 account migrates without a separate reviewed migration. Per-task status is maintained
    in the register; existing offline work keeps its credit in the roadmap.
