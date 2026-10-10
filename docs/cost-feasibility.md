@@ -14,11 +14,12 @@ account tariff or establish executable spreads. The result is conditional:
   zero. No purchase or subscription is authorised.
 
 This continues the [broker/entity capability matrix](broker-capability-matrix.md).
-The owner selected IBKR as the intended broker on 10 October 2026 but has not yet
-set up the account; Saxo remains a documented fallback. P2.2 and P2.3 remain open,
-and P2.5 is only partially resolved. All sources were consulted on 10 October
-2026. Vendor pages are mutable and the actual account trade ticket, agreement,
-invoice and commission events take precedence when later verified.
+The owner selected IBKR as the intended broker on 10 October 2026 and subsequently
+reported that the account was created and approved; exact entity, configuration,
+tariffs and permissions remain unverified. Saxo remains a documented fallback.
+P2.2 and P2.3 remain open, and P2.5 is only partially resolved. All sources were
+consulted on 10 October 2026. Vendor pages are mutable and the actual account trade
+ticket, agreement, invoice and commission events take precedence when later verified.
 
 ## Scope and accounting boundaries
 
@@ -254,9 +255,9 @@ record of:
 6. rerun decomposition from the retained registered bundles without changing the
    hypothesis, stop, £3 cap or any halt.
 
-G01–G06 in the capability matrix remain open. No account was accessed, funded or
-changed; no quote subscription, model service or hosting upgrade was purchased;
-no paper or live order was sent. Live execution remains disabled.
+G01–G06 in the capability matrix remain open. The development agent did not access,
+fund or change the account; no quote subscription, model service or hosting upgrade
+was purchased, and no paper or live order was sent. Live execution remains disabled.
 
 [ib-stock]: https://www.interactivebrokers.co.uk/en/pricing/commissions-stocks.php
 [ib-fx]: https://www.interactivebrokers.co.uk/en/pricing/commissions-spot-currencies.php

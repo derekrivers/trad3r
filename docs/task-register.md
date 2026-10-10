@@ -46,10 +46,10 @@ time unless the owner explicitly authorises parallel work.
 
 The [dated broker/entity matrix](broker-capability-matrix.md) delivers P2.1 public
 research and the P2.2 capability/gap record. The [P2.4 conditional cost screen](cost-feasibility.md)
-is delivered. The owner selected IBKR as the intended broker on 10 October 2026
-and confirmed that the account has not yet been set up. P2.2/P2.3 account and feed
-verification remains conditional on G01–G06 and exact recurring invoices; the
-remaining P2.5 decision stays owner-gated.
+is delivered. The owner selected IBKR and subsequently reported that the account
+was created and approved on 10 October 2026. Exact configuration and access remain
+unverified. P2.2/P2.3 account and feed verification remains conditional on G01–G06
+and exact recurring invoices; the remaining P2.5 decision stays owner-gated.
 
 The bounded Massive access check is recorded in [PR #28](https://github.com/derekrivers/trad3r/pull/28);
 original FX identity recovery and registered historical reproduction remain

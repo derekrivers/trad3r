@@ -127,7 +127,8 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   (P2.1 and public P2.2 record); account-specific verification remains open.
 - Delivered: [conditional intended-quantity cost feasibility](cost-feasibility.md)
   (P2.4); no complete recurring stack is evidenced below the £10 monthly cap.
-- Owner decision: IBKR is the intended broker; the account has not yet been set up.
+- Owner update: IBKR is the intended broker and the account is reported created
+  and approved; configuration, permissions and connected access remain unverified.
 - Next: account/data/invoice evidence and completion of the feed, session, universe
   and proceed/revise/stop decision (P2.2/P2.3/P2.5).
   Close private-input and off-host
