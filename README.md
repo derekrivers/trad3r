@@ -126,6 +126,11 @@ snapshots still check cash and settlement and persist risk halts; older-order
 evidence preserves newer reservations or records an unresolved exposure conflict.
 These components have no broker or network endpoint.
 
+The [P4.5 protection contract](docs/order-protection.md) defines cancellation races,
+shared sell reservations, reducing exits and incident recovery, with 24 acceptance
+scenarios and an ordered implementation handoff. This design is specified; its
+runtime behavior is not yet implemented.
+
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
 costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable
 ledger events, not evidence of strategy profitability.

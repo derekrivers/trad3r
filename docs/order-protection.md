@@ -38,6 +38,29 @@ entries. A definitive rejection requests flattening; an uncertain submission
 first requires reconciliation of its possible sell commitment. Do not submit a
 second stop or emergency sell simply because the first acknowledgement was lost.
 
+For package A, use a pure evaluator over a validated internal snapshot, with an
+explicit UTC evaluation time. Its minimum inputs are account/environment and
+instrument identity, applied account/evidence versions, snapshot time and
+completeness, quantity, all known entry/sell projections and committed remainders,
+confirmed stop prices, quote/FX times, fee allocations, pause/halts and open
+incidents. The result includes exposure/protection states, verified and covered
+quantities, committed and available sell quantities, and separate reason lists
+for blocked entries, cancellations and reductions. It is diagnostic output,
+not a reusable authorization token. Persisted command authorization arrives later.
+
+Derive states deterministically. Invalid quantity/identity/completeness or a
+negative capacity makes exposure unresolved and available quantity unknown, not
+zero. Otherwise positive holdings are verified long; zero holdings are verified
+flat only with no remaining reserved/possible order, and unresolved otherwise.
+For protection, verified flat takes `not_required`; missing quantity proof takes
+`unknown`. With a verified holding, uncertain or cancel-pending stop remainders
+take `unknown`, then full confirmed coverage takes `active`, positive incomplete
+coverage takes `partial`, and queued/submitting stop remainders take `pending`.
+With no coverage or pending stop, the most recent definitive protection rejection
+takes `rejected`; otherwise use `missing`. A successful later stop can restore
+coverage while the earlier incident continues to block entries until resolution.
+Reject a purported coverage quantity greater than holdings as conflicting evidence.
+
 ## Verified management authority
 
 Management permissions may survive an entry pause, a loss halt, or a protection
@@ -57,9 +80,11 @@ A known order with unknown acceptance or cancel outcome can coexist with a
 verified quantity proof only if complete execution/position evidence and an
 exhaustive known-order inventory establish its maximum possible sell remainder.
 That entire remainder stays committed. Unknown external activity or missing
-execution detail invalidates the proof. Missing or contradictory cash/fee evidence
-also blocks a new sell authorization; it need not prevent cancelling a uniquely
-identified order.
+execution detail invalidates the proof. Unbounded or contradictory cash/fee
+exposure also blocks a new sell authorization; it need not prevent cancelling a
+uniquely identified order. A pending final fee report can use its already persisted
+conservative allowance for management only when confirmed settled cash covers
+every outstanding allocation. Final fee completeness still gates new entries.
 
 A cancel authorization binds the exact known order, immutable cancellation
 operation ID, current versions, owner/epoch and its own decision/expiry. Cancelling
@@ -235,7 +260,7 @@ that share, so a concurrent one-share ordinary exit has zero available quantity.
 If the stop is confirmed cancelled without executions, a new one-share exit may
 reserve it. Selling at $99.50 with a final $0.35 fee leaves zero holdings,
 $399.65 settled cash and a $99.15 pending lot. Total USD cash plus receivables is
-$498.80, not $598.30 or $498.45. With complete terminal/fee evidence all three
+$498.80. With complete terminal/fee evidence all three
 entry allocations can release. Entry attempts and all loss latches stay unchanged.
 For a 4 September 2026 sale, the existing calendar yields 8 September settlement
 and a 9 September 04:00 UTC research cutoff; P4.5 does not execute that release.

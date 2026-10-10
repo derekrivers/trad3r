@@ -27,13 +27,15 @@ cost-conscious starting model to all 64 master-plan tasks.
 | P4.2 atomic admission | complete | P4.1 contract | [PR #30](https://github.com/derekrivers/trad3r/pull/30); [atomic admission](order-admission.md); deterministic duplicate/conflict/concurrency/restart/rollback tests | Synthetic flat-account reservations only; no writer, adapter, fills, cancellation or migration of the existing risk/ledger history |
 | P4.3 single writer | complete | P4.1–P4.2 | [PR #31](https://github.com/derekrivers/trad3r/pull/31); [fenced synthetic writer](order-writer.md); durable marker and projection replay; deterministic ownership, lost-acknowledgement, restart and commit-failure tests | Synthetic adapter only; P4.4 now resolves supplied evidence; version-1 stores require explicit writer migration |
 | P4.4 reconciliation | complete | P4.1–P4.3 | [PR #32](https://github.com/derekrivers/trad3r/pull/32); [synthetic reconciliation](order-reconciliation.md); cumulative evidence, atomic account adjustments and replay; deterministic partial-fill, late-fee, disconnect, rollback and corruption tests | Synthetic USD entry evidence only; pending/sell settlement, cancellation and protection belong to P4.5; version-1/2 stores require explicit migration |
+| P4.5 protection | in progress | P4.1–P4.4 | [PR #35](https://github.com/derekrivers/trad3r/pull/35); [protection contract](order-protection.md), numeric fixture and 24 acceptance specifications; seven ordered implementation packages | Design defined; runtime pending. Package A permission/quantity evaluator is ready for Sol High; critical semantics/review return to Astra |
 
 P4.5 prerequisite review produced [PR #34](https://github.com/derekrivers/trad3r/pull/34):
 empty-order snapshots now check cash/settlement and persist marks/halts; older
 order evidence cannot release a newer reservation or resurrect an unsent expiry.
 Eight added regression tests cover these boundaries, late-exposure incidents,
-rollback and reservation replay. This is P4.4 hardening; P4.5 implementation remains
-next. Full independent reconstruction from inbox evidence is still a scope limit.
+rollback and reservation replay. This is P4.4 hardening; P4.5 now has a defined
+implementation contract. Full independent reconstruction from inbox evidence
+remains a v3 scope limit and is required for the new v4 implementation.
 
 P0's permitted exit is met: missing design/private inputs block only dependent
 work. The original stock sample and replay hashes are now verified. Other missing
@@ -50,10 +52,11 @@ and historical dependencies.
    registered historical reproduction (P0.3/P1.4).
 2. Owner selects an off-host backup destination/access route. Finish restore from
    that destination, recurring backup/monitoring and retention (P1.6).
-3. Next engineering increment: P4.5 position-reducing cancellation, protection and
-   exposure-incident handling on the delivered [reconciliation boundary](order-reconciliation.md).
-   Preserve verified quantities and all halts through partial-fill races and rejected
-   protection; ambiguous outcomes remain disarmed for intervention.
+3. Next engineering increment: P4.5 package A, the pure protection/quantity/permission
+   evaluator on Sol High. Follow the [ordered handoff](order-protection.md#ordered-implementation-handoff)
+   through allocations, cumulative sell evidence, cancellation, dispatch, incidents
+   and integrated faults. No cross-day settlement release precedes P4.6; no existing
+   v3 account migrates without a separate reviewed migration.
 4. P2.1–P2.5 broker/data feasibility and owner decisions can proceed independently;
    then P3.1–P3.6 qualification and P4.5–P4.7 controls. Per-task status is maintained
    in the register; existing offline work keeps its credit in the roadmap.
