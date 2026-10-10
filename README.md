@@ -142,7 +142,11 @@ execution-level fee finality and pending T+1 lots without making proceeds spenda
 [Package D](docs/order-cancellation.md) adds a durable marker-before-call
 cancellation journal, fenced synthetic outcomes and resolution from cumulative
 entry or reducing evidence. Acceptance alone releases no quantity, cash or risk.
-Reducing dispatch and packages E–G remain pending.
+[Package E](docs/order-reducing-dispatch.md) adds fenced synthetic reducing-limit
+and protective-stop dispatch. Its durable marker precedes every adapter call;
+acknowledgement or timeout retains the full sell remainder until correlated
+cumulative evidence, while a definitive rejection permits a newly fenced
+allocation. Packages F–G remain pending.
 
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
 costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable

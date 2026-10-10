@@ -10,6 +10,7 @@ import unittest
 
 from trad3r import order_allocations as allocations
 from trad3r import order_reconciliation as entry_reconciliation
+from trad3r import order_reducing_dispatch as dispatch
 from trad3r import order_sell_reconciliation as sells
 from trad3r import order_store as store
 from trad3r import order_writer as writer
@@ -135,6 +136,51 @@ class SellReconciliationTests(unittest.TestCase):
                 "currency": "USD", "amount_usd": "0.35", "at": "2026-09-04T14:00:31Z",
                 "revision": 0, "final": True}
 
+    def dispatch_allocations(self, max_count=None):
+        class FixedAdapter:
+            def submit(inner_self, command, outcome):
+                suffix = "-two" if command["client_order_id"].endswith("-two") else ""
+                return {"outcome": "acknowledged", "broker_order_id": "synthetic-exit" + suffix}
+
+        existing = {row["allocation_id"] for row in dispatch.status(self.path)["operations"]}
+        pending = [row for row in allocations.status(self.path)["allocations"]
+                   if row["state"] == "reserved" and row["allocation_id"] not in existing]
+        if max_count is not None:
+            pending = pending[:max_count]
+        for index, allocation in enumerate(pending):
+            ordinal = len(existing) + index
+            if writer.status(self.path)["disarmed"]:
+                managed = writer.status(self.path)
+                writer.claim(self.path, {
+                    "schema": "order-writer-claim-v1",
+                    "claim_id": "sell-dispatch-claim-" + str(ordinal),
+                    "owner_id": "management-writer",
+                    "at": f"2026-09-04T14:00:{52 + ordinal * 2:02d}Z",
+                    "expected_epoch": managed["epoch"],
+                })
+            account, entry, reducing, managed, allocated = (
+                store.status(self.path), entry_reconciliation.status(self.path),
+                sells.status(self.path), writer.status(self.path), allocations.status(self.path))
+            cancelled = __import__("trad3r.order_cancellation", fromlist=["status"]).status(self.path)
+            dispatched = dispatch.status(self.path)
+            at = f"2026-09-04T14:00:{53 + ordinal * 2:02d}Z"
+            dispatch.dispatch_synthetic(self.path, {
+                "schema": "reducing-dispatch-request-v1",
+                "operation_id": "dispatch-" + allocation["allocation_id"],
+                "allocation_id": allocation["allocation_id"], "account_id": "synthetic-test",
+                "environment": "synthetic", "owner_id": "management-writer",
+                "writer_epoch": managed["epoch"], "at": at,
+                "expires_at": "2026-09-04T14:01:30Z", "order_type": "limit",
+                "time_in_force": "day", "limit_price_usd": "99.5", "stop_price_usd": None,
+                "expected_account_version": account["version"],
+                "expected_entry_reconciliation_version": entry["version"],
+                "expected_reducing_reconciliation_version": reducing["version"],
+                "expected_writer_version": managed["version"],
+                "expected_allocation_version": allocated["version"],
+                "expected_cancellation_version": cancelled["version"],
+                "expected_dispatch_version": dispatched["version"],
+            }, "acknowledged", FixedAdapter())
+
     def sell_execution(self, identity="sell-fill", quantity=2, price="99.5",
                        at="2026-09-04T14:00:55Z", client="exit-order"):
         return {"execution_id": identity, "client_order_id": client,
@@ -158,7 +204,9 @@ class SellReconciliationTests(unittest.TestCase):
 
     def snapshot(self, identity="one", sell_executions=None, sell_fees=None,
                  sell_state="filled", position=0, pending=None, at="2026-09-04T14:01:00Z",
-                 complete=True, mark=None):
+                 complete=True, mark=None, auto_dispatch=True):
+        if auto_dispatch:
+            self.dispatch_allocations()
         sell_executions = sell_executions or []
         sell_fees = sell_fees or []
         pending = pending or []
@@ -230,6 +278,13 @@ class SellReconciliationTests(unittest.TestCase):
             self.prepare(allocation_quantity=1, fee_bound="0.15")
             self.allocate_exit("allocation-exit-two", "exit-order-two", 1, "0.20",
                                "2026-09-04T14:00:52Z")
+            self.dispatch_allocations(max_count=1)
+            interim = self.snapshot("first-working", sell_state="working", position=2,
+                                    at="2026-09-04T14:00:54Z", auto_dispatch=False)
+            interim["orders"][1].update(original_quantity=1,
+                                         cumulative_executed_quantity=0)
+            sells.apply(path, interim)
+            self.dispatch_allocations()
             first = self.sell_execution("sell-fill-one", quantity=1)
             second = self.sell_execution(
                 "sell-fill-two", quantity=1, price="100", at="2026-09-04T14:00:57Z",
@@ -427,6 +482,7 @@ class SellReconciliationTests(unittest.TestCase):
                 self.path = path
                 try:
                     self.prepare()
+                    self.dispatch_allocations()
                     snapshot.update(
                         expected_account_version=store.status(path)["version"],
                         expected_writer_version=writer.status(path)["version"],

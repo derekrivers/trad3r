@@ -57,6 +57,8 @@ def _initialize_tables(connection, account_id, at):
     order_sell_reconciliation._initialize_tables(connection, account_id, at)
     from . import order_cancellation
     order_cancellation._initialize_tables(connection, account_id, at)
+    from . import order_reducing_dispatch
+    order_reducing_dispatch._initialize_tables(connection, account_id, at)
 
 
 def initialize(path, snapshot):
@@ -178,12 +180,8 @@ def _baseline(connection):
     return baseline
 
 
-def _proof(connection, request):
-    """Derive admission capacity from retained entry evidence, never its copy in a record.
-
-    This deliberately supports the package-B single-buy reconciliation contract.
-    Package C must extend the derivation before any reducing execution is enabled.
-    """
+def _proof(connection, request, retained_evidence=None):
+    """Derive admission capacity from retained cumulative evidence."""
     baseline = _baseline(connection)
     _, reconciliation_events = order_reconciliation._read(connection)
     _, _, writer_events = order_writer._read_writer(connection)
@@ -208,11 +206,11 @@ def _proof(connection, request):
             or request["expected_policy_sha256"] != store.digest(baseline["policy"])):
         raise ValueError("Allocation reconciliation input binding mismatch")
     row = connection.execute(
-        "SELECT payload FROM reconciliation_adjustments WHERE committed_version=?",
-        (request["expected_account_version"],)).fetchone()
+        "SELECT payload FROM reconciliation_adjustments WHERE reconciliation_id=?",
+        (snapshot["reconciliation_id"],)).fetchone()
     if row is None:
-        raise ValueError("Allocation account evidence requires a fresh reconciliation")
-    adjustment = store._adjustment_payload(row[0])
+        raise ValueError("Allocation entry adjustment evidence is missing")
+    entry_adjustment = store._adjustment_payload(row[0])
     row = connection.execute("SELECT payload FROM intents WHERE intent_id=?",
                              (request["entry_intent_id"],)).fetchone()
     if row is None:
@@ -222,12 +220,11 @@ def _proof(connection, request):
     if (intent["state"] != "reserved" or proposal["instrument_id"] != request["instrument_id"]
             or proposal["account_id"] != baseline["account_id"]
             or proposal["side"] != "buy" or proposal["purpose"] != "entry"
-            or intent["committed_version"] >= adjustment["committed_version"]
-            or adjustment["committed_version"] != request["expected_account_version"]
-            or adjustment["intent_id"] != intent["intent_id"]
-            or adjustment["snapshot_id"] != snapshot["snapshot_id"]
-            or adjustment["reconciliation_id"] != snapshot["reconciliation_id"]
-            or utc(adjustment["at"]) != utc(snapshot["at"])):
+            or intent["committed_version"] >= entry_adjustment["committed_version"]
+            or entry_adjustment["intent_id"] != intent["intent_id"]
+            or entry_adjustment["snapshot_id"] != snapshot["snapshot_id"]
+            or entry_adjustment["reconciliation_id"] != snapshot["reconciliation_id"]
+            or utc(entry_adjustment["at"]) != utc(snapshot["at"])):
         raise ValueError("Allocation entry/account evidence binding mismatch")
     submissions = {}
     for item in writer_events[:wv]:
@@ -263,18 +260,77 @@ def _proof(connection, request):
                                   + money(proposal["slippage_usd_per_share"])) + allowance)
     if remaining:
         cash_reserve += max(money(proposal["entry_fee_usd"]) - fees, D("0"))
-    if (quantity <= 0 or quantity != adjustment["position_quantity"]
+    if (quantity <= 0 or quantity != entry_adjustment["position_quantity"]
             or reconciled["order_projection"] != projection
             or reconciled["executions"] != [executions[key] for key in sorted(executions)]
             or reconciled["commissions"] != [commissions[key] for key in sorted(commissions)]
-            or money(adjustment["settled_cash_usd"]) != money(snapshot["currency_cash"]["USD"])
-            or money(adjustment["reserved_cash_usd"]) != cash_reserve
-            or cash_reserve > money(adjustment["settled_cash_usd"])):
+            or money(entry_adjustment["settled_cash_usd"]) != money(snapshot["currency_cash"]["USD"])
+            or money(entry_adjustment["reserved_cash_usd"]) != cash_reserve
+            or cash_reserve > money(entry_adjustment["settled_cash_usd"])):
         raise ValueError("Allocation capacity replay disagrees with retained input")
+    row = connection.execute(
+        "SELECT payload FROM reconciliation_adjustments WHERE committed_version=?",
+        (request["expected_account_version"],)).fetchone()
+    if row is None:
+        raise ValueError("Allocation account evidence requires a fresh reconciliation")
+    adjustment = store._adjustment_payload(row[0])
+    from . import order_sell_reconciliation
+    sell_event_rows = connection.execute(
+        "SELECT sequence,event_id,kind,input_sha256,payload_sha256,payload "
+        "FROM reducing_reconciliation_events ORDER BY sequence").fetchall()
+    if retained_evidence is None:
+        sell_version = len(sell_event_rows)
+    else:
+        sell_version = retained_evidence.get("reducing_reconciliation_version", 0)
+    capacity_at = utc(snapshot["at"])
+    sell_evidence = {}
+    incurred_fee = D("0")
+    if sell_version:
+        if not 0 < sell_version <= len(sell_event_rows):
+            raise ValueError("Allocation reducing evidence version is unavailable")
+        sequence, event_id, kind, input_sha, payload_sha, raw = sell_event_rows[sell_version - 1]
+        sell_event = store.decode(raw)
+        if (sequence != sell_version or sell_event.get("event_id") != event_id
+                or sell_event.get("kind") != kind or sell_event.get("input_sha256") != input_sha
+                or store.digest(sell_event) != payload_sha):
+            raise ValueError("Allocation reducing event evidence is invalid")
+        sell_state = order_sell_reconciliation._state_payload(store.pack(sell_event["state"]))
+        row = connection.execute(
+            "SELECT payload_sha256,payload FROM reducing_reconciliation_inbox "
+            "WHERE payload_sha256=?", (sell_event["input_sha256"],)).fetchone()
+        if row is None:
+            raise ValueError("Allocation reducing reconciliation input is missing")
+        sell_snapshot = order_sell_reconciliation._snapshot(store.decode(row[1]))
+        if (row[0] != store.digest(sell_snapshot)
+                or sell_event["kind"] != "snapshot_applied"
+                or sell_state["status"] != "reconciled" or sell_state["unresolved_reasons"]
+                or not all(sell_snapshot["completeness"].values())
+                or sell_state["account_version"] != request["expected_account_version"]
+                or sell_state["entry_intent_id"] != request["entry_intent_id"]
+                or sell_state["instrument_id"] != request["instrument_id"]
+                or sell_event["account_adjustment_sha256"] != store.digest(adjustment)
+                or adjustment["snapshot_id"] != sell_snapshot["snapshot_id"]
+                or adjustment["reconciliation_id"] != sell_snapshot["reconciliation_id"]
+                or adjustment["position_quantity"] != sell_state["verified_quantity"]
+                or utc(sell_event["at"]) != utc(sell_snapshot["at"])):
+            raise ValueError("Allocation reducing evidence binding mismatch")
+        quantity = sell_state["verified_quantity"]
+        incurred_fee = money(sell_state["incurred_exit_fees_usd"])
+        capacity_at = utc(sell_snapshot["at"])
+        sell_evidence = {
+            "reducing_reconciliation_version": sell_version,
+            "reducing_snapshot_sha256": store.digest(sell_snapshot),
+            "reducing_reconciliation_event_sha256": store.digest(sell_event),
+        }
+    elif (adjustment != entry_adjustment
+          or adjustment["committed_version"] != request["expected_account_version"]):
+        raise ValueError("Allocation account evidence is newer than its reducing proof")
+    if quantity <= 0 or adjustment["position_quantity"] != quantity:
+        raise ValueError("Allocation current quantity proof is not a verified long position")
     decision = utc(request["decision_at"])
     if (writer["disarmed"] or writer["unresolved_reasons"]
             or (writer["owner_id"], writer["epoch"]) != (request["owner_id"], request["writer_epoch"])
-            or utc(writer_event["at"]) < utc(event["at"])
+            or utc(writer_event["at"]) < max(utc(event["at"]), capacity_at)
             or decision < utc(writer_event["at"])):
         raise ValueError("Allocation writer evidence is disarmed, changed or future")
     if store._periods(request["decision_at"]) != (baseline["session"], baseline["week"]):
@@ -282,7 +338,7 @@ def _proof(connection, request):
     bounds = store.session_bounds(baseline["session"])
     if bounds is None or not bounds[0] <= decision < bounds[1]:
         raise ValueError("Reducing allocation is outside the regular session")
-    for label, at in (("snapshot", snapshot["at"]), ("quote", request["quote_at"]),
+    for label, at in (("snapshot", capacity_at.isoformat()), ("quote", request["quote_at"]),
                       ("fx", request["fx_at"])):
         if not timedelta(0) <= decision - utc(at) <= store.MAX_FRESHNESS:
             raise ValueError("Reducing allocation " + label + " is stale or future")
@@ -290,8 +346,8 @@ def _proof(connection, request):
                 "reconciliation_event_sha256": store.digest(event),
                 "account_adjustment_sha256": store.digest(adjustment),
                 "writer_event_sha256": store.digest(writer_event),
-                "entry_intent_sha256": store.digest(intent)}
-    return quantity, allowance, evidence
+                "entry_intent_sha256": store.digest(intent), **sell_evidence}
+    return quantity, allowance, incurred_fee, evidence
 
 
 def _read(connection):
@@ -339,6 +395,22 @@ def _read(connection):
         raise ValueError("Reducing allocation audit/state reconstruction mismatch")
     reserved_quantity = 0
     reserved_fee = D("0")
+    from . import order_reducing_dispatch
+    _, dispatch_records, _, _ = order_reducing_dispatch._read(connection)
+
+    def quantity_released_before(allocation_id, at):
+        return any(row["allocation_id"] == allocation_id
+                   and row["state"] in ("rejected", "cancelled", "filled")
+                   and row["resolved_at"] is not None
+                   and utc(row["resolved_at"]) <= at
+                   for row in dispatch_records.values())
+
+    def fee_released_before(allocation_id, at):
+        return any(row["allocation_id"] == allocation_id
+                   and row["state"] in ("rejected", "cancelled", "filled")
+                   and row["resolved_at"] is not None
+                   and utc(row["resolved_at"]) <= at
+                   for row in dispatch_records.values())
     episode = None
     baseline = _baseline(connection)
     account = store._parse_state(connection.execute(
@@ -377,8 +449,18 @@ def _read(connection):
                                                    "expected_writer_version")):
                 raise ValueError("Allocation evidence versions moved backwards")
             prior_records.append(item)
+    capacity_records = []
     for record in records:
         request = record["request"]
+        decision_at = utc(request["decision_at"])
+        reserved_quantity = sum(
+            row["quantity"] for row in capacity_records
+            if row["state"] == "reserved"
+            and not quantity_released_before(row["allocation_id"], decision_at))
+        reserved_fee = sum(
+            (money(row["fee_bound_usd"]) for row in capacity_records
+             if row["state"] == "reserved"
+             and not fee_released_before(row["allocation_id"], decision_at)), D("0"))
         if connection.execute("SELECT 1 FROM intents WHERE intent_id=? OR client_order_id=?",
                               (request["allocation_id"], request["client_order_id"])).fetchone():
             raise ValueError("Allocation identity overlaps an entry intent")
@@ -390,8 +472,15 @@ def _read(connection):
             episode = current_episode
         elif current_episode != episode:
             raise ValueError("Reducing allocation audit crosses entry episodes")
+        quantity, allowance, incurred_fee, evidence = _proof(
+            connection, request, record["evidence"])
+        reserved_fee += incurred_fee
+        if (record["verified_quantity"] != quantity
+                or money(record["exit_fee_allowance_usd"]) != allowance
+                or record["evidence"] != evidence):
+            raise ValueError("Reducing allocation capacity replay evidence mismatch")
         reasons = []
-        if record["quantity"] > record["verified_quantity"] - reserved_quantity:
+        if record["quantity"] > quantity - reserved_quantity:
             reasons.append("sell_quantity_unavailable")
         if money(record["fee_bound_usd"]) > current_episode[2] - reserved_fee:
             reasons.append("exit_fee_allowance_unavailable")
@@ -399,14 +488,10 @@ def _read(connection):
         expected_state = "rejected" if reasons else "reserved"
         if (record["state"], record["reasons"]) != (expected_state, reasons):
             raise ValueError("Reducing allocation outcome disagrees with capacity replay")
-        quantity, allowance, evidence = _proof(connection, request)
-        if (record["verified_quantity"] != quantity
-                or money(record["exit_fee_allowance_usd"]) != allowance
-                or record["evidence"] != evidence):
-            raise ValueError("Reducing allocation capacity replay evidence mismatch")
         if expected_state == "reserved":
             reserved_quantity += record["quantity"]
             reserved_fee += money(record["fee_bound_usd"])
+        capacity_records.append(record)
     latest = records[-1] if records else None
     expected_reasons = ["allocation_identity_conflict"] if incidents else []
     if latest is None:
@@ -586,7 +671,7 @@ def admit(path, raw):
             raise ValueError("Reducing allocation predates current account evidence")
         projection = reconciliation["order_projection"]
         if (projection is None or projection["intent_id"] != raw["entry_intent_id"]
-                or projection["executed_quantity"] != account["position_quantity"]
+                or projection["executed_quantity"] < account["position_quantity"]
                 or account["position_quantity"] <= 0):
             raise ValueError("Verified long entry evidence is required for reducing allocation")
         intent_row = connection.execute(
@@ -599,22 +684,38 @@ def admit(path, raw):
                 or proposal["side"] != "buy" or proposal["purpose"] != "entry"):
             raise ValueError("Reducing allocation entry identity mismatch")
         allowance = money(proposal["exit_fee_usd"])
-        if money(account["reserved_cash_usd"]) < allowance:
-            raise ValueError("Entry exit-fee allowance is not reserved in settled cash")
         if state["entry_intent_id"] is not None and (
                 state["entry_intent_id"] != raw["entry_intent_id"]
                 or state["instrument_id"] != raw["instrument_id"]
                 or money(state["exit_fee_allowance_usd"]) != allowance):
             raise ValueError("Reducing allocation entry episode changed")
 
-        quantity, proved_allowance, evidence = _proof(connection, raw)
+        quantity, proved_allowance, incurred_fee, evidence = _proof(connection, raw)
         if quantity != account["position_quantity"] or proved_allowance != allowance:
             raise ValueError("Reducing allocation current evidence mismatch")
+        if money(account["reserved_cash_usd"]) < max(allowance - incurred_fee, D("0")):
+            raise ValueError("Remaining exit-fee allowance is not reserved in settled cash")
 
-        available_quantity = account["position_quantity"] - state["reserved_quantity"]
+        from . import order_reducing_dispatch
+        _, dispatch_records, _, _ = order_reducing_dispatch._read(connection)
+        quantity_released = {row["allocation_id"] for row in dispatch_records.values()
+                             if row["state"] in ("rejected", "cancelled", "filled")
+                             and row["resolved_at"] is not None
+                             and utc(row["resolved_at"]) <= decision}
+        fee_released = {row["allocation_id"] for row in dispatch_records.values()
+                        if row["state"] in ("rejected", "cancelled", "filled")
+                        and row["resolved_at"] is not None
+                        and utc(row["resolved_at"]) <= decision}
+        active_quantity = sum(row["quantity"] for row in records
+                              if row["state"] == "reserved"
+                              and row["allocation_id"] not in quantity_released)
+        active_fee = incurred_fee + sum(
+            (money(row["fee_bound_usd"]) for row in records
+             if row["state"] == "reserved" and row["allocation_id"] not in fee_released), D("0"))
+        available_quantity = account["position_quantity"] - active_quantity
         if available_quantity < 0:
             raise ValueError("Current position is below already reserved reducing quantity")
-        available_fee = allowance - money(state["reserved_fee_usd"])
+        available_fee = allowance - active_fee
         reasons = []
         if raw["quantity"] > available_quantity:
             reasons.append("sell_quantity_unavailable")
@@ -644,8 +745,11 @@ def admit(path, raw):
             exit_fee_allowance_usd=str(allowance),
         )
         if not reasons:
-            state["reserved_quantity"] += raw["quantity"]
-            state["reserved_fee_usd"] = str(money(state["reserved_fee_usd"]) + fee)
+            state["reserved_quantity"] = active_quantity + raw["quantity"]
+            state["reserved_fee_usd"] = str(active_fee + fee)
+        else:
+            state["reserved_quantity"] = active_quantity
+            state["reserved_fee_usd"] = str(active_fee)
         _write_state(connection, state)
         records.append(record)
         result = _report(state, records)
