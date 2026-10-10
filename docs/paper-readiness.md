@@ -52,7 +52,7 @@ success report when those checks fail.
 | Durable order lifecycle | Not implemented | Atomic intent/attempt reservation; stable client IDs; acknowledgements, rejects, partial fills, cancellations and commission events |
 | Restart reconciliation | Offline risk and experiment jobs tested | Start disarmed; reconcile broker open orders, executions, positions and cash; resolve unknown outcomes before any new submission |
 | Period transitions | Durable store blocks new dates | Separate owner-reviewed transition policy; no inherited historical-only rollover exception and no halt clearing |
-| VPS operations | Offline service template and runbook | Confirm actual host, install pinned build, verify isolation, backups, time sync and recovery on that host |
+| VPS operations | [ATLAS synthetic offline service](vps-deployment-2026-10-10.md): pinned build, isolation, time sync, recovery and local restore verified | Off-host backup and separate connected-paper deployment/incident verification remain open |
 | Pilot acceptance | No forward trial protocol yet | Preregister sessions, permitted behavior, discrepancy/failure criteria and reports before the pilot begins |
 
 The official [IBKR paper API limitations](https://www.interactivebrokers.com/docs/tws-api/doc/notes-limitations/limitations/paper-trading)

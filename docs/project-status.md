@@ -1,40 +1,47 @@
 # Project status
 
-Updated 10 October 2026. [Master plan](project-plan.md) version 1.0 is canonical
-once this adoption PR merges. [Decisions](decisions.md) retain owner gates.
-Initial inspected code: `ea44cc8ec78703cc3310107e65cfc80739adb46a`.
+Updated 10 October 2026. [Master plan](project-plan.md) version 1.0 is canonical,
+adopted in [PR #24](https://github.com/derekrivers/trad3r/pull/24), merge
+`413075d227a407b4be7a2b372ca77a7edb0c3b14`.
+[Decisions](decisions.md) retain owner gates. Runtime remains pinned to reviewed
+`ea44cc8ec78703cc3310107e65cfc80739adb46a`; documentation has advanced separately.
 
 ## Active package
 
 | Task | Status | Dependency | PR / revision and validation | Remaining limitation / next action |
 | --- | --- | --- | --- | --- |
-| P0.1 workspace | complete | Existing checkout | Adoption PR; clean main at `ea44cc8`; matching origin and passing hosted CI recorded in [baseline](vps-baseline-2026-10-10.md) | Preserve branch isolation for each increment |
-| P0.2 plan adoption | in progress | P0.1 | Adoption PR; exact supplied plan, README/roadmap links, status and decisions | Review and hosted CI before merge |
-| P0.3 design v2 | blocked | Owner artifact | D002; scoped filename inventory | Supply location; map actual requirements without inventing text |
-| P0.4 VPS baseline | complete | P0.1 | `ea44cc8`; 236 tests passed, no skips; 17 rehearsal checks passed | Service sandbox requires separate verification |
-| P0.5 private inventory | complete | P0.1 | [Scoped inventory](vps-baseline-2026-10-10.md); original hashes remain in historical records | Assets absent; hash matching and historical reproduction blocked |
-| P1.1 pinned runtime | not started | P0 adoption | Existing service template and reviewed code | Install immutable release and unprivileged account |
-| P1.2 stage job | not started | P1.1 | Existing register-experiment CLI | Stage labelled synthetic fixture; register with installed build |
-| P1.3 host sandbox | not started | P1.1–2 | Existing template only | Verify effective networking, writes and resource limits |
-| P1.4 execute job | not started | P1.3 | Existing run-job/inspect commands | Run and repeat synthetic job; historical run awaits private data |
-| P1.5 recovery | not started | P1.4 | Existing subprocess recovery tests passed in VPS suite | Exercise installed build and preserve host evidence |
-| P1.6 backups | not started | P1.4 | Existing runbook | Local inventory/restore/retention and disk/log checks; off-host destination awaits owner |
+| P0.1 workspace | complete | Existing checkout | #24; clean main at `ea44cc8`, matching origin and hosted CI recorded in [baseline](vps-baseline-2026-10-10.md) | Preserve branch isolation |
+| P0.2 plan adoption | complete | P0.1 | #24; supplied bytes preserved; self-review and hosted CI passed on `0f596df` before expected-head merge | Update status as evidence changes |
+| P0.3 design v2 | blocked | Owner artifact | #24 / D002; owner confirms no transfer yet | Transfer actual design; map requirements/conflicts |
+| P0.4 VPS baseline | complete | P0.1 | #24 / `ea44cc8`; 236 tests, no skips; 17 control checks | Baseline establishes engineering controls only |
+| P0.5 private inventory | complete | P0.1 | #24; scoped inventory and historical hash references | Generated data absent; supplied ZIP is downloader only; hash matching blocked |
+| P1.1 pinned runtime | complete | P0 adoption | `ea44cc8`; [deployment record](vps-deployment-2026-10-10.md); unprivileged user, root-owned release and venv | Preserve build for registered jobs |
+| P1.2 stage job | complete | P1.1 | `ea44cc8`; AAA synthetic job registered before execution; protected inputs | Historical inputs still absent |
+| P1.3 host sandbox | complete | P1.1–2 | `ea44cc8`; all 16 actual host probe checks passed | No power-loss or OOM-exhaustion guarantee |
+| P1.4 execute job | in progress | P1.3 | `ea44cc8`; synthetic job completed, inspected and repeat returned already_complete | Synthetic portion complete; historical reproduction blocked on retained private inputs |
+| P1.5 recovery | complete | P1.4 synthetic | `ea44cc8`; eight installed-package recovery tests passed inside sandbox | Offline job faults only; no broker reconciliation claim |
+| P1.6 backups | in progress | P1.4 synthetic | `ea44cc8`; five-file checksum inventory and separate restore returned already_complete; disk/log checks recorded | Select off-host destination, recurring backup/monitoring and bounded retention; local copies insufficient |
 
-P0 may exit after adoption: missing design/private inputs block only dependent
+P0's permitted exit is met: missing design/private inputs block only dependent
 work. Inventory completion means missing assets are explicitly recorded, not
-that their hashes were verified. P1 cannot be declared fully complete without
-its host evidence and approved off-host backup path.
+that their hashes were verified. The **synthetic P1 milestone** is verified; P1's
+full exit gate remains open for the recorded backup and historical dependencies.
 
 ## Ordered continuation
 
-1. Finish adoption review/CI/merge; deploy the reviewed offline runtime.
-2. Complete the synthetic P1 service, isolation, recovery and local restore package.
-3. Locate private inputs and design v2; choose an off-host backup destination.
-4. P2.1–P2.5 broker/data feasibility and owner decisions; P4.1 durable order-state
-   contract and synthetic execution work can follow independently.
-5. P3.1–P3.6 data qualification; P4.2–P4.7 persistent controls; then P5–P10 in the
-   canonical dependency order. These new tasks are not started; existing offline
-   capabilities retain credit in [roadmap](roadmap.md).
+1. Transfer design v2 and original private source/FX, assumptions, registrations and
+   result bundles; verify retained hashes before historical reproduction (P0.3/P1.4).
+2. Owner selects an off-host backup destination/access route. Finish restore from
+   that destination, recurring backup/monitoring and retention (P1.6).
+3. Independent next engineering increment: P4.1 durable order-state contract and
+   broker-neutral synthetic lifecycle. Preserve unknown submission outcomes;
+   never blindly retry. P4.2 atomic reservations/attempt counts follows.
+4. P2.1–P2.5 broker/data feasibility and owner decisions can proceed independently;
+   then P3.1–P3.6 qualification and P4.3–P4.7 controls. All these new tasks are not
+   started; existing offline work keeps its implementation credit in the roadmap.
+5. P5–P10 remain not started in the canonical dependency order. No AI/classifier
+   integration precedes the accounting/execution controls.
 
-Connected paper submissions, live execution, purchases and changes to financial
-policy remain gated. No unattended work or daily service timer is scheduled.
+Connected paper submissions, live execution, purchases and financial-policy
+changes remain gated. The offline units are inactive after successful explicit
+runs. No unattended work or daily service timer is scheduled.
