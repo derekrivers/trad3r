@@ -96,3 +96,18 @@ identity and limitations are recorded in [the intake report](massive-fx-intake-2
 This verifies access and structural coverage only. It does not reconstruct the
 missing original combined archive, qualify the history, establish broker costs or
 authorize paid services, account actions or live execution.
+
+## D008 — Durable order lifecycle definition, 10 October 2026
+
+Freeze [order-lifecycle-v1](order-lifecycle.md) as P4.1's implementation contract.
+Persist stable intent, client-order, operation and execution identities. Treat a
+possibly sent submission as unknown until reconciled; never blindly resubmit.
+Keep execution quantity, account exposure, reservation release and reconciliation
+separate from the order-status label. Terminal status does not establish flatness
+or settled cash. Preserve late evidence, all halts and every consumed attempt slot.
+
+This is a definition milestone, not an implemented durable execution system.
+P4.2 starts with a reviewed single-store transaction and allocation design;
+P4.3–P4.5 supply writer, reconciliation and protection. The existing diagnostic
+risk store remains unchanged. No persistent period renewal or connected order
+capability is approved by this contract; the original owner gates still apply.

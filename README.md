@@ -112,6 +112,11 @@ The [entry diagnostic](docs/entry-checks.md) checks coherent risk/ledger snapsho
 all-in planned loss, exposure, settled cash, entry windows and attempt counts.
 It neither reserves cash nor authorises live orders.
 
+The [durable order lifecycle contract](docs/order-lifecycle.md) defines stable
+identities, allowed transitions, uncertain submissions and synthetic fault cases
+for Phase 4. It is a reviewed implementation specification; the order store,
+atomic reservations, writer and broker reconciliation remain to be implemented.
+
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
 costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable
 ledger events, not evidence of strategy profitability.
