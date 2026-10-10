@@ -58,7 +58,8 @@ The [P4.5 protection contract](order-protection.md) and 24 acceptance specificat
 are defined in [PR #35](https://github.com/derekrivers/trad3r/pull/35). Packages A–G
 are sequential subdivisions of P4.5, not new master-plan tasks. Package A's pure
 evaluator is implemented in [PR #36](https://github.com/derekrivers/trad3r/pull/36)
-with 20 deterministic tests. Package B is implemented with 12 focused tests and
+with 20 deterministic tests. Package B is implemented in
+[PR #37](https://github.com/derekrivers/trad3r/pull/37) with 12 focused tests and
 awaits Astra review; later packages cover
 cumulative sell evidence, cancellation, protective/reducing dispatch, incidents
 and integrated faults. Return

@@ -123,7 +123,8 @@ adapter-call coverage.
 
 ### Package B implementation
 
-`trad3r.order_allocations` adds explicit fresh version-4 initialization and an
+Package B in [PR #37](https://github.com/derekrivers/trad3r/pull/37) adds
+`trad3r.order_allocations`, explicit fresh version-4 initialization and an
 atomic reducing-allocation journal in the same SQLite order store. Version-3
 initialization and reads remain unchanged; allocation commands reject v1–v3 stores
 and there is no migration or downgrade command. The CLI exposes `order-v4-init`,
@@ -406,7 +407,7 @@ approval. Every merge still requires the repository's reviewed-head CI controls.
 | Package | Bounded deliverable and dependencies | Completion boundary |
 | --- | --- | --- |
 | A | **Complete:** pure protection/quantity/permission evaluator and 20 deterministic tests; [PR #36](https://github.com/derekrivers/trad3r/pull/36). | X01–X05/X16 fact and permission portions; explicit reasons, no persistence or dispatch claim. |
-| B | **Implemented:** explicit fresh v4 initialization, authoritative quantity/fee allocations, audit replay and atomic reducing admission; final Astra review pending. Depends A. | X04/X15/X23 reservation/storage portions; preserve v3 reads, no migration or enabled dispatch. |
+| B | **Implemented in [PR #37](https://github.com/derekrivers/trad3r/pull/37):** explicit fresh v4 initialization, authoritative quantity/fee allocations, audit replay and atomic reducing admission; final Astra review pending. Depends A. | X04/X15/X23 reservation/storage portions; preserve v3 reads, no migration or enabled dispatch. |
 | C | V4 cumulative multi-order buy/sell reconciliation, execution-level fee completeness, pending lots and retained contradictions. Depends B. | X02/X06/X14/X17–X20/X22 accounting portions; no durable period transition or cash-release command. |
 | D | Separate fenced cancellation operation and deterministic adapter outcomes, integrated with cumulative evidence. Depends C. | X07–X10/X13/X15/X16/X23 cancellation portions; no release from an acknowledgement alone. |
 | E | Fenced synthetic reducing-limit and protective-stop dispatch using the common quantity pool and management permissions. Depends D. | X01/X03–X05/X11–X13/X16/X22/X23 dispatch portions; no network or fallback market orders. |
