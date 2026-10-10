@@ -202,3 +202,19 @@ FX range, Massive real-time NBBO is far above it, and Saxo data pricing is unkno
 Keep P2.2/P2.3 and G01–G06 open, then require Derek's P2.5
 proceed/revise/stop choice. Do not purchase access, manufacture commission waivers,
 change the frozen hypothesis or weaken a financial limit.
+
+## D014 — IBKR intended broker, account not yet set up, 10 October 2026
+
+The owner selected Interactive Brokers as the intended broker and confirmed that
+the account has not yet been set up. This resolves only the broker-intent component
+of P2.5. Saxo remains a documented fallback rather than the selected route. Keep
+P2.5 in progress until the exact account, feed, session, initial universe, owner
+availability, unresolved restrictions and proceed/revise/stop recommendation are
+recorded after P2.2/P2.3 evidence closes the material unknowns.
+
+Account setup is an owner action. This decision does not authorise the development
+agent to open or fund an account, accept account terms, purchase data, enable API
+access, handle credentials, place paper or live orders, or enable live execution.
+Once setup is complete, collect only the redacted G01–G06 evidence described in the
+[broker matrix](broker-capability-matrix.md); any funding, paid subscription or
+connected-paper action remains a separate explicit owner decision.

@@ -22,7 +22,9 @@ IBKR and Saxo and records account, fee-finality and restart-history gaps. Public
 research is delivered. The [conditional cost model](docs/cost-feasibility.md)
 screens commissions, FX, spread/slippage and recurring bills against the £3 trade
 and £10 monthly caps; no complete recurring stack currently passes on evidenced
-costs. Connected verification and owner selection remain open.
+costs. On 10 October 2026 the owner selected IBKR as the intended broker but
+confirmed that the account has not yet been set up. Connected verification, feed
+selection and the remaining P2.5 decision stay open.
 The discretionary product will propose
 traceable theses and conditional plans; deterministic code retains account, risk
 and execution authority. The existing baseline is a comparison hypothesis.
