@@ -1,5 +1,6 @@
 """Atomic v4 synthetic reducing-order allocations; no dispatch capability."""
 from copy import deepcopy
+from datetime import timedelta
 from decimal import Decimal as D
 
 from .ledger import utc
@@ -18,10 +19,15 @@ REQUEST_FIELDS = {
     "decision_at", "expires_at", "owner_id", "writer_epoch",
     "expected_account_version", "expected_reconciliation_version",
     "expected_writer_version", "expected_allocation_version", "expected_policy_sha256",
+    "quote_at", "fx_at",
 }
 
 
 def _initialize_tables(connection, account_id, at):
+    connection.execute("CREATE TABLE reducing_allocation_baseline "
+                       "(id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT NOT NULL)")
+    connection.execute("INSERT INTO reducing_allocation_baseline "
+                       "SELECT id,payload FROM account_state WHERE id=1")
     state = {
         "schema": STATE_SCHEMA, "version": 0, "account_id": account_id,
         "environment": "synthetic", "as_of": at.isoformat(), "entry_intent_id": None,
@@ -91,7 +97,7 @@ def _record_payload(raw):
     required = {
         "allocation_id", "client_order_id", "request_sha256", "request", "state",
         "reasons", "quantity", "fee_bound_usd", "verified_quantity",
-        "exit_fee_allowance_usd", "committed_version",
+        "exit_fee_allowance_usd", "committed_version", "evidence",
     }
     if not isinstance(value, dict) or set(value) != required:
         raise ValueError("Invalid reducing allocation record")
@@ -125,7 +131,8 @@ def _record_payload(raw):
 
 def _incident_payload(raw):
     value = store.decode(raw)
-    required = {"incident_id", "kind", "at", "incoming", "matches", "committed_version"}
+    required = {"incident_id", "kind", "at", "incoming", "matches", "committed_version",
+                "request"}
     if (not isinstance(value, dict) or set(value) != required
             or value["kind"] != "allocation_identity_conflict"):
         raise ValueError("Invalid reducing allocation incident")
@@ -133,12 +140,17 @@ def _incident_payload(raw):
     store._timestamp_string(value["at"], "allocation incident time")
     store._version(value["committed_version"], "allocation incident version")
     if (not isinstance(value["incoming"], dict)
+            or not isinstance(value["request"], dict)
             or set(value["incoming"]) != {"allocation_id", "client_order_id", "request_sha256"}
             or not isinstance(value["matches"], list)
             or value["matches"] != sorted(set(value["matches"]))):
         raise ValueError("Invalid reducing allocation incident identities")
     for field in ("allocation_id", "client_order_id"):
         store._identity(value["incoming"][field], "incoming " + field.replace("_", " "))
+        if value["request"].get(field) != value["incoming"][field]:
+            raise ValueError("Allocation incident disagrees with retained request")
+    if store.digest(value["request"]) != value["incoming"]["request_sha256"]:
+        raise ValueError("Allocation incident request digest mismatch")
     if (not isinstance(value["incoming"]["request_sha256"], str)
             or len(value["incoming"]["request_sha256"]) != 64
             or any(character not in "0123456789abcdef"
@@ -151,6 +163,133 @@ def _incident_payload(raw):
     return value
 
 
+def _baseline(connection):
+    row = connection.execute(
+        "SELECT payload FROM reducing_allocation_baseline WHERE id=1").fetchone()
+    if row is None:
+        raise ValueError("Reducing allocation baseline missing")
+    baseline = store._parse_state(row[0])
+    if baseline["version"] != 0 or baseline["position_quantity"] != 0:
+        raise ValueError("Invalid reducing allocation baseline")
+    return baseline
+
+
+def _proof(connection, request):
+    """Derive admission capacity from retained entry evidence, never its copy in a record.
+
+    This deliberately supports the package-B single-buy reconciliation contract.
+    Package C must extend the derivation before any reducing execution is enabled.
+    """
+    baseline = _baseline(connection)
+    _, reconciliation_events = order_reconciliation._read(connection)
+    _, _, writer_events = order_writer._read_writer(connection)
+    rv, wv = request["expected_reconciliation_version"], request["expected_writer_version"]
+    if not 0 < rv <= len(reconciliation_events) or not 0 < wv <= len(writer_events):
+        raise ValueError("Allocation evidence versions are unavailable")
+    event, writer_event = reconciliation_events[rv - 1], writer_events[wv - 1]
+    reconciled, writer = event["state"], writer_event["writer"]
+    row = connection.execute(
+        "SELECT payload_sha256,payload FROM reconciliation_inbox WHERE snapshot_id=?",
+        (reconciled["last_snapshot_id"],)).fetchone()
+    if row is None:
+        raise ValueError("Allocation reconciliation input is missing")
+    snapshot = order_reconciliation._snapshot(store.decode(row[1]))
+    if (row[0] != store.digest(snapshot) or event["input_sha256"] != row[0]
+            or event["kind"] != "snapshot_applied" or reconciled["status"] != "reconciled"
+            or reconciled["unresolved_reasons"] or not all(snapshot["completeness"].values())
+            or snapshot["expected_reconciliation_version"] != rv - 1
+            or utc(event["at"]) != utc(snapshot["at"])
+            or snapshot["account_id"] != baseline["account_id"]
+            or request["account_id"] != baseline["account_id"]
+            or request["expected_policy_sha256"] != store.digest(baseline["policy"])):
+        raise ValueError("Allocation reconciliation input binding mismatch")
+    row = connection.execute(
+        "SELECT payload FROM reconciliation_adjustments WHERE committed_version=?",
+        (request["expected_account_version"],)).fetchone()
+    if row is None:
+        raise ValueError("Allocation account evidence requires a fresh reconciliation")
+    adjustment = store._adjustment_payload(row[0])
+    row = connection.execute("SELECT payload FROM intents WHERE intent_id=?",
+                             (request["entry_intent_id"],)).fetchone()
+    if row is None:
+        raise ValueError("Allocation entry evidence missing")
+    intent = store._record_payload(row[0])
+    proposal = intent["proposal"]
+    if (intent["state"] != "reserved" or proposal["instrument_id"] != request["instrument_id"]
+            or proposal["account_id"] != baseline["account_id"]
+            or proposal["side"] != "buy" or proposal["purpose"] != "entry"
+            or intent["committed_version"] >= adjustment["committed_version"]
+            or adjustment["committed_version"] != request["expected_account_version"]
+            or adjustment["intent_id"] != intent["intent_id"]
+            or adjustment["snapshot_id"] != snapshot["snapshot_id"]
+            or adjustment["reconciliation_id"] != snapshot["reconciliation_id"]
+            or utc(adjustment["at"]) != utc(snapshot["at"])):
+        raise ValueError("Allocation entry/account evidence binding mismatch")
+    submissions = {}
+    for item in writer_events[:wv]:
+        if item["submission"] is not None:
+            submission = item["submission"]
+            submissions[submission["operation_id"]] = submission
+    prior = deepcopy(reconciliation_events[rv - 2]["state"] if rv > 1 else reconciled)
+    if rv == 1:
+        prior.update(executions=[], commissions=[], order_projection=None)
+    prior["baseline_settled_cash_usd"] = baseline["settled_cash_usd"]
+    reasons, submission, order, executions, commissions = order_reconciliation._validate_complete(
+        prior, snapshot, submissions)
+    if reasons or submission is None or order is None or submission["intent_id"] != intent["intent_id"]:
+        raise ValueError("Allocation retained input does not prove entry capacity")
+    if submission["command"] != order_writer._command(intent, submission["request"]):
+        raise ValueError("Allocation submission disagrees with its entry intent")
+    if (any(not utc(submission["marked_at"]) <= utc(item["at"]) <= utc(snapshot["at"])
+            for item in executions.values())
+            or any(not utc(executions[item["execution_id"]]["at"]) <= utc(item["at"]) <= utc(snapshot["at"])
+                   for item in commissions.values())
+            or {item["execution_id"] for item in commissions.values()} != set(executions)):
+        raise ValueError("Allocation entry execution/fee evidence is incomplete or future")
+    # A reconstructed projection must agree with the original cumulative input.
+    projection = dict(intent_id=intent["intent_id"], client_order_id=order["client_order_id"],
+                      broker_order_id=order["broker_order_id"], state=order["state"],
+                      original_quantity=order["original_quantity"],
+                      executed_quantity=order["cumulative_executed_quantity"])
+    quantity = sum(item["quantity"] for item in executions.values())
+    allowance = money(proposal["exit_fee_usd"])
+    remaining = proposal["quantity"] - quantity if order["state"] == "working" else 0
+    fees = sum((money(item["amount_usd"]) for item in commissions.values()), D("0"))
+    cash_reserve = (D(remaining) * (money(proposal["limit_price_usd"])
+                                  + money(proposal["slippage_usd_per_share"])) + allowance)
+    if remaining:
+        cash_reserve += max(money(proposal["entry_fee_usd"]) - fees, D("0"))
+    if (quantity <= 0 or quantity != adjustment["position_quantity"]
+            or reconciled["order_projection"] != projection
+            or reconciled["executions"] != [executions[key] for key in sorted(executions)]
+            or reconciled["commissions"] != [commissions[key] for key in sorted(commissions)]
+            or money(adjustment["settled_cash_usd"]) != money(snapshot["currency_cash"]["USD"])
+            or money(adjustment["reserved_cash_usd"]) != cash_reserve
+            or cash_reserve > money(adjustment["settled_cash_usd"])):
+        raise ValueError("Allocation capacity replay disagrees with retained input")
+    decision = utc(request["decision_at"])
+    if (writer["disarmed"] or writer["unresolved_reasons"]
+            or (writer["owner_id"], writer["epoch"]) != (request["owner_id"], request["writer_epoch"])
+            or utc(writer_event["at"]) < utc(event["at"])
+            or decision < utc(writer_event["at"])):
+        raise ValueError("Allocation writer evidence is disarmed, changed or future")
+    if store._periods(request["decision_at"]) != (baseline["session"], baseline["week"]):
+        raise ValueError("Reducing allocation requires owner period review")
+    bounds = store.session_bounds(baseline["session"])
+    if bounds is None or not bounds[0] <= decision < bounds[1]:
+        raise ValueError("Reducing allocation is outside the regular session")
+    for label, at in (("snapshot", snapshot["at"]), ("quote", request["quote_at"]),
+                      ("fx", request["fx_at"])):
+        if not timedelta(0) <= decision - utc(at) <= store.MAX_FRESHNESS:
+            raise ValueError("Reducing allocation " + label + " is stale or future")
+    evidence = {"snapshot_id": snapshot["snapshot_id"], "snapshot_sha256": store.digest(snapshot),
+                "reconciliation_event_sha256": store.digest(event),
+                "account_adjustment_sha256": store.digest(adjustment),
+                "writer_event_sha256": store.digest(writer_event),
+                "entry_intent_sha256": store.digest(intent)}
+    return quantity, allowance, evidence
+
+
 def _read(connection):
     if connection.execute("PRAGMA user_version").fetchone()[0] != store.REDUCING_DATABASE_VERSION:
         raise ValueError("Reducing allocations require a fresh v4 order database")
@@ -159,19 +298,20 @@ def _read(connection):
         raise ValueError("Reducing allocation state missing; explicit recovery required")
     state = _state_payload(row[0])
     records = []
-    for allocation_id, client_order_id, request_sha, raw in connection.execute(
-            "SELECT allocation_id,client_order_id,request_sha256,payload "
+    for allocation_id, client_order_id, request_sha, version, raw in connection.execute(
+            "SELECT allocation_id,client_order_id,request_sha256,committed_version,payload "
             "FROM reducing_allocations ORDER BY committed_version"):
         record = _record_payload(raw)
-        if (allocation_id, client_order_id, request_sha) != (
-                record["allocation_id"], record["client_order_id"], record["request_sha256"]):
+        if (allocation_id, client_order_id, request_sha, version) != (
+                record["allocation_id"], record["client_order_id"], record["request_sha256"],
+                record["committed_version"]):
             raise ValueError("Reducing allocation identity columns disagree with payload")
         records.append(record)
     incidents = []
-    for incident_id, raw in connection.execute(
-            "SELECT incident_id,payload FROM reducing_allocation_incidents ORDER BY committed_version"):
+    for incident_id, version, raw in connection.execute(
+            "SELECT incident_id,committed_version,payload FROM reducing_allocation_incidents ORDER BY committed_version"):
         incident = _incident_payload(raw)
-        if incident_id != incident["incident_id"]:
+        if (incident_id, version) != (incident["incident_id"], incident["committed_version"]):
             raise ValueError("Reducing allocation incident identity mismatch")
         if not set(incident["matches"]) <= {record["allocation_id"] for record in records}:
             raise ValueError("Reducing allocation incident references an unknown allocation")
@@ -196,8 +336,48 @@ def _read(connection):
     reserved_quantity = 0
     reserved_fee = D("0")
     episode = None
+    baseline = _baseline(connection)
+    account = store._parse_state(connection.execute(
+        "SELECT payload FROM account_state WHERE id=1").fetchone()[0])
+    if (state["account_id"] != baseline["account_id"]
+            or any(account[key] != baseline[key] for key in (
+                "account_id", "environment", "policy", "session", "week", "session_start", "week_start"))):
+        raise ValueError("Allocation baseline account mismatch")
+    last_at = utc(baseline["at"])
+    prior_records = []
+    incident_seen = False
+    for item in combined:
+        at = utc(item["at"] if "incident_id" in item else item["request"]["decision_at"])
+        if at < last_at:
+            raise ValueError("Reducing allocation event time moved backwards")
+        last_at = at
+        if "incident_id" in item:
+            incoming = item["incoming"]
+            matched = [row for row in prior_records
+                       if row["allocation_id"] == incoming["allocation_id"]
+                       or row["client_order_id"] == incoming["client_order_id"]]
+            matches = sorted(row["allocation_id"] for row in matched)
+            if not matches or matches != item["matches"]:
+                raise ValueError("Allocation incident does not match prior identities")
+            if (at < utc(item["request"]["decision_at"])
+                    or (len(matched) == 1 and all(matched[0][key] == incoming[key]
+                                                for key in incoming))):
+                raise ValueError("Invalid allocation conflict transition")
+            incident_seen = True
+        else:
+            if incident_seen or item["request"]["expected_allocation_version"] != item["committed_version"] - 1:
+                raise ValueError("Allocation transition is unresolved or has a stale version")
+            if prior_records and any(item["request"][field] < prior_records[-1]["request"][field]
+                                     for field in ("expected_account_version",
+                                                   "expected_reconciliation_version",
+                                                   "expected_writer_version")):
+                raise ValueError("Allocation evidence versions moved backwards")
+            prior_records.append(item)
     for record in records:
         request = record["request"]
+        if connection.execute("SELECT 1 FROM intents WHERE intent_id=? OR client_order_id=?",
+                              (request["allocation_id"], request["client_order_id"])).fetchone():
+            raise ValueError("Allocation identity overlaps an entry intent")
         if request["account_id"] != state["account_id"]:
             raise ValueError("Reducing allocation record account mismatch")
         current_episode = (request["entry_intent_id"], request["instrument_id"],
@@ -215,6 +395,11 @@ def _read(connection):
         expected_state = "rejected" if reasons else "reserved"
         if (record["state"], record["reasons"]) != (expected_state, reasons):
             raise ValueError("Reducing allocation outcome disagrees with capacity replay")
+        quantity, allowance, evidence = _proof(connection, request)
+        if (record["verified_quantity"] != quantity
+                or money(record["exit_fee_allowance_usd"]) != allowance
+                or record["evidence"] != evidence):
+            raise ValueError("Reducing allocation capacity replay evidence mismatch")
         if expected_state == "reserved":
             reserved_quantity += record["quantity"]
             reserved_fee += money(record["fee_bound_usd"])
@@ -229,7 +414,7 @@ def _read(connection):
     actual = (state["entry_intent_id"], state["instrument_id"],
               state["verified_quantity"], money(state["exit_fee_allowance_usd"]))
     expected_as_of = (combined[-1]["at"] if "incident_id" in combined[-1]
-                      else combined[-1]["request"]["decision_at"]) if combined else state["as_of"]
+                      else combined[-1]["request"]["decision_at"]) if combined else baseline["at"]
     if (actual != expected or state["reserved_quantity"] != reserved_quantity
             or money(state["reserved_fee_usd"]) != reserved_fee
             or state["unresolved_reasons"] != expected_reasons
@@ -254,6 +439,7 @@ def _report(state, records):
         "available_fee_usd": str(available_fee),
         "unresolved_reasons": state["unresolved_reasons"],
         "allocations": deepcopy(records), "live_trading_enabled": False,
+        "capacity_scope": "at_last_allocation_decision", "dispatch_authorized": False,
     }
 
 
@@ -296,6 +482,8 @@ def _validated_request(raw):
     fee = store._decimal_string(raw["fee_bound_usd"], "reducing allocation fee bound")
     decision = store._timestamp_string(raw["decision_at"], "allocation decision time")
     expires = store._timestamp_string(raw["expires_at"], "allocation expiry")
+    for field in ("quote_at", "fx_at"):
+        store._timestamp_string(raw[field], field)
     if not decision < expires <= decision + store.MAX_FRESHNESS:
         raise ValueError("Reducing allocation expiry must be within 60 seconds")
     for field in ("writer_epoch", "expected_account_version",
@@ -331,8 +519,6 @@ def admit(path, raw):
                           duplicate=True, allocation=matches[0])
             return result
         if matches:
-            if shallow_at < utc(state["as_of"]):
-                raise ValueError("Reducing allocation incident time cannot move backwards")
             incoming = {"allocation_id": allocation_id, "client_order_id": client_order_id,
                         "request_sha256": request_sha}
             identities = sorted(row["allocation_id"] for row in matches)
@@ -343,16 +529,20 @@ def admit(path, raw):
                 "SELECT payload FROM reducing_allocation_incidents WHERE incident_id=?",
                 (incident_id,)).fetchone()
             if existing is None:
+                # Receipt ordering is distinct from source decision time. Even a
+                # stale conflicting command must latch, without moving time back.
+                incident_at = max(shallow_at, utc(state["as_of"]), utc(account["at"]))
                 version = state["version"] + 1
                 incident = dict(incident_key, incident_id=incident_id,
-                                at=shallow_at.isoformat(), committed_version=version)
+                                at=incident_at.isoformat(), committed_version=version,
+                                request=deepcopy(raw))
                 connection.execute(
                     "INSERT INTO reducing_allocation_incidents VALUES (?, ?, ?)",
                     (incident_id, version, store.pack(incident)))
                 connection.execute(
                     "INSERT INTO reducing_allocation_audit VALUES (?, 'incident', ?, ?)",
                     (version, incident_id, store.digest(incident)))
-                state.update(version=version, as_of=shallow_at.isoformat(),
+                state.update(version=version, as_of=incident_at.isoformat(),
                              unresolved_reasons=["allocation_identity_conflict"])
                 _write_state(connection, state)
             result = _report(state, records)
@@ -361,6 +551,9 @@ def admit(path, raw):
             return result
 
         decision, fee = _validated_request(raw)
+        if connection.execute("SELECT 1 FROM intents WHERE intent_id=? OR client_order_id=?",
+                              (allocation_id, client_order_id)).fetchone():
+            raise ValueError("Reducing identities collide with an entry intent")
         if decision < utc(state["as_of"]):
             raise ValueError("Reducing allocation decision time cannot move backwards")
         if raw["account_id"] != account["account_id"]:
@@ -410,6 +603,10 @@ def admit(path, raw):
                 or money(state["exit_fee_allowance_usd"]) != allowance):
             raise ValueError("Reducing allocation entry episode changed")
 
+        quantity, proved_allowance, evidence = _proof(connection, raw)
+        if quantity != account["position_quantity"] or proved_allowance != allowance:
+            raise ValueError("Reducing allocation current evidence mismatch")
+
         available_quantity = account["position_quantity"] - state["reserved_quantity"]
         if available_quantity < 0:
             raise ValueError("Current position is below already reserved reducing quantity")
@@ -428,6 +625,7 @@ def admit(path, raw):
             "quantity": raw["quantity"], "fee_bound_usd": str(fee),
             "verified_quantity": account["position_quantity"],
             "exit_fee_allowance_usd": str(allowance), "committed_version": version,
+            "evidence": evidence,
         }
         connection.execute(
             "INSERT INTO reducing_allocations VALUES (?, ?, ?, ?, ?)",

@@ -134,7 +134,10 @@ derives exposure, protection and request-specific permissions without persistenc
 or dispatch. It retains terminal fee reservations, checks current quantity proofs
 and applies the reviewed exchange-session bounds. Package B adds an explicitly
 selected fresh v4 store with atomic shared sell-quantity and fee reservations,
-audit replay and no dispatch path. Sell reconciliation and packages C–G remain
+replay against retained entry evidence and no dispatch path. New allocations
+require fresh snapshot/quote/FX evidence and a current fenced writer within the
+account's existing regular session. Allocation identity incidents block new
+entries and submission markers. Sell reconciliation and packages C–G remain
 pending.
 
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit

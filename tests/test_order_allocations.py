@@ -51,7 +51,8 @@ class ReducingAllocationTests(unittest.TestCase):
             "quote_at": "2026-09-04T14:00:05Z", "fx_at": "2026-09-04T14:00:05Z",
         }
 
-    def prepare_position(self, path, quantity=2):
+    def prepare_position(self, path, quantity=2, include_fee=True,
+                         execution_at="2026-09-04T14:00:30Z", fee_at="2026-09-04T14:00:31Z"):
         allocations.initialize(path, self.account())
         store.admit(path, self.entry())
         writer.claim(path, {
@@ -68,11 +69,11 @@ class ReducingAllocationTests(unittest.TestCase):
             "execution_id": "entry-fill", "client_order_id": "entry-order",
             "broker_order_id": broker_id, "instrument_id": self.instrument,
             "symbol": "AAPL", "currency": "USD", "side": "buy", "quantity": quantity,
-            "price_usd": "100", "at": "2026-09-04T14:00:30Z",
+            "price_usd": "100", "at": execution_at,
         }
         fee = {
             "commission_id": "entry-fee", "execution_id": "entry-fill", "currency": "USD",
-            "amount_usd": "0.35", "at": "2026-09-04T14:00:31Z", "revision": 0,
+            "amount_usd": "0.35", "at": fee_at, "revision": 0,
         }
         reconciliation.apply(path, {
             "schema": "synthetic-reconciliation-snapshot-v1", "snapshot_id": "entry-snapshot",
@@ -85,8 +86,9 @@ class ReducingAllocationTests(unittest.TestCase):
                         "state": "filled" if quantity == 2 else "working",
                         "original_quantity": 2,
                         "cumulative_executed_quantity": quantity}],
-            "executions": [execution], "commissions": [fee],
-            "currency_cash": {"USD": "299.65" if quantity == 2 else "399.65"},
+            "executions": [execution], "commissions": [fee] if include_fee else [],
+            "currency_cash": {"USD": ("299.65" if quantity == 2 else "399.65")
+                              if include_fee else ("300" if quantity == 2 else "400")},
             "positions": [{"instrument_id": self.instrument, "symbol": "AAPL",
                            "currency": "USD", "quantity": quantity}],
             "unsettled_usd": "0", "pending_settlements": [],
@@ -113,6 +115,7 @@ class ReducingAllocationTests(unittest.TestCase):
             "purpose": purpose, "quantity": quantity, "fee_bound_usd": fee,
             "decision_at": "2026-09-04T14:00:50Z",
             "expires_at": "2026-09-04T14:01:35Z",
+            "quote_at": "2026-09-04T14:00:45Z", "fx_at": "2026-09-04T14:00:45Z",
             "owner_id": "management-writer", "writer_epoch": managed["epoch"],
             "expected_account_version": account["version"],
             "expected_reconciliation_version": reconciled["version"],
@@ -272,6 +275,133 @@ class ReducingAllocationTests(unittest.TestCase):
         report = allocations.status(self.path)
         self.assertEqual((report["version"], report["reserved_quantity"], report["allocations"]),
                          (0, 0, []))
+
+    def test_stale_future_and_other_period_evidence_cannot_reserve(self):
+        cases = (
+            {"decision_at": "2026-09-04T14:02:00Z", "expires_at": "2026-09-04T14:02:30Z"},
+            {"decision_at": "2026-09-04T14:00:42Z", "expires_at": "2026-09-04T14:01:00Z"},
+            {"quote_at": "2026-09-04T13:59:49Z"},
+            {"quote_at": "2026-09-04T14:00:51Z"},
+            {"fx_at": "2026-09-04T13:59:49Z"},
+            {"fx_at": "2026-09-04T14:00:51Z"},
+            {"decision_at": "2026-09-08T14:00:50Z", "expires_at": "2026-09-08T14:01:30Z"},
+            {"decision_at": "2026-09-04T20:00:00Z", "expires_at": "2026-09-04T20:00:30Z"},
+        )
+        for changes in cases:
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                allocations.admit(self.path, self.request(**changes))
+        self.assertEqual(allocations.status(self.path)["version"], 0)
+
+    def next_snapshot(self, at="2026-09-04T16:00:00Z", **changes):
+        with store.database(self.path) as connection:
+            snapshot = store.decode(connection.execute(
+                "SELECT payload FROM reconciliation_inbox WHERE snapshot_id='entry-snapshot'"
+            ).fetchone()[0])
+        snapshot.update(snapshot_id="next-snapshot", reconciliation_id="next-reconciliation",
+                        at=at, expected_reconciliation_version=1)
+        snapshot.update(changes)
+        return snapshot
+
+    def test_fresh_regular_session_management_outside_entry_window_preserves_old_replay(self):
+        allocations.admit(self.path, self.request("early", quantity=1, fee="0.15"))
+        reconciliation.apply(self.path, self.next_snapshot())
+        writer.claim(self.path, {
+            "schema": "order-writer-claim-v1", "claim_id": "next-claim",
+            "owner_id": "management-writer", "at": "2026-09-04T16:00:05Z", "expected_epoch": 2,
+        })
+        result = allocations.admit(self.path, self.request(
+            "late", quantity=1, fee="0.20", decision_at="2026-09-04T16:00:10Z",
+            expires_at="2026-09-04T16:00:40Z", quote_at="2026-09-04T16:00:05Z",
+            fx_at="2026-09-04T16:00:05Z"))
+        self.assertEqual((result["outcome"], result["reserved_quantity"]), ("reserved", 2))
+        self.assertEqual(len(allocations.history(self.path)), 2)
+        self.assertIn("daily", store.status(self.path)["assessment"]["halt_reasons"])
+
+    def test_incomplete_or_mistimed_entry_evidence_withholds_allocation(self):
+        cases = ({"include_fee": False}, {"execution_at": "2026-09-04T14:00:19Z"},
+                 {"execution_at": "2026-09-04T14:00:41Z", "fee_at": "2026-09-04T14:00:42Z"},
+                 {"fee_at": "2026-09-04T14:00:29Z"})
+        for index, changes in enumerate(cases):
+            with self.subTest(changes=changes):
+                path = Path(self.root.name) / f"entry-evidence-{index}.sqlite"
+                self.prepare_position(path, **changes)
+                # V3's completeness flag alone cannot prove fee or source-time completeness.
+                self.assertEqual(reconciliation.status(path)["status"], "reconciled")
+                with self.assertRaisesRegex(ValueError, "execution/fee evidence is incomplete"):
+                    allocations.admit(path, self.request_for(path, "incomplete"))
+                self.assertEqual(allocations.status(path)["reserved_quantity"], 0)
+
+    def test_stale_conflicts_latch_and_exact_conflict_retry_precedes_time_checks(self):
+        request = self.request()
+        allocations.admit(self.path, request)
+        stale = dict(request, quantity=1, decision_at="2026-09-04T14:00:49Z")
+        self.assertEqual(allocations.admit(self.path, stale)["outcome"], "identity_conflict")
+        later = dict(request, quantity=3, decision_at="2026-09-04T14:00:52Z")
+        allocations.admit(self.path, later)
+        self.assertTrue(allocations.admit(self.path, stale)["duplicate"])
+        self.assertTrue(allocations.admit(self.path, request)["duplicate"])
+        report = writer.status(self.path)
+        self.assertFalse(report["dispatch_allowed"])
+        self.assertIn("allocation_identity_conflict", report["unresolved_reasons"])
+        self.assertIn("allocation_identity_conflict", store.status(self.path)["blocked_reasons"])
+        with self.assertRaisesRegex(ValueError, "unresolved"):
+            writer.mark_submission(self.path, {
+                "schema": "order-submission-operation-v1", "operation_id": "new-submit",
+                "intent_id": "entry-intent", "owner_id": "management-writer", "epoch": 2,
+                "at": "2026-09-04T14:00:53Z", "expected_account_version": 2,
+            })
+        with self.assertRaisesRegex(ValueError, "unresolved"):
+            store.admit(self.path, dict(self.entry(), intent_id="new-entry",
+                                      candidate_id="new-candidate", client_order_id="new-order"))
+        self.assertEqual(allocations.status(self.path)["reserved_quantity"], 2)
+
+    def test_entry_and_reducing_identity_namespaces_cannot_overlap(self):
+        for changes in ({"allocation_id": "entry-intent"}, {"client_order_id": "entry-order"}):
+            with self.subTest(changes=changes), self.assertRaisesRegex(ValueError, "collide"):
+                allocations.admit(self.path, self.request(**changes))
+        allocations.admit(self.path, self.request())
+        for changes in ({"intent_id": "allocation-one"}, {"client_order_id": "reduce-order-one"}):
+            proposal = dict(self.entry(), intent_id="new-entry", candidate_id="new-candidate",
+                            client_order_id="new-entry-order")
+            proposal.update(changes)
+            with self.subTest(changes=changes), self.assertRaisesRegex(ValueError, "collide"):
+                store.admit(self.path, proposal)
+        self.assertEqual(store.status(self.path)["attempts"], 1)
+
+    def test_coherent_capacity_forgery_cannot_replace_retained_entry_evidence(self):
+        for field, forged in (("verified_quantity", 3), ("exit_fee_allowance_usd", "1.00")):
+            with self.subTest(field=field):
+                path = Path(self.root.name) / (field + ".sqlite")
+                self.prepare_position(path)
+                allocations.admit(path, self.request_for(path, "forged"))
+                with store.database(path, write=True) as connection:
+                    record = store.decode(connection.execute(
+                        "SELECT payload FROM reducing_allocations").fetchone()[0])
+                    state = store.decode(connection.execute(
+                        "SELECT payload FROM reducing_allocation_state").fetchone()[0])
+                    record[field] = state[field] = forged
+                    connection.execute("UPDATE reducing_allocations SET payload=?", (store.pack(record),))
+                    connection.execute("UPDATE reducing_allocation_audit SET payload_sha256=?",
+                                       (store.digest(record),))
+                    connection.execute("UPDATE reducing_allocation_state SET payload=?", (store.pack(state),))
+                for read in (allocations.status, store.status, writer.status, reconciliation.status):
+                    with self.assertRaisesRegex(ValueError, "capacity replay"):
+                        read(path)
+
+    def test_replay_requires_retained_snapshot_and_sql_version_binding(self):
+        mutations = (
+            "DELETE FROM reconciliation_inbox",
+            "UPDATE reducing_allocations SET committed_version=9",
+        )
+        for index, sql in enumerate(mutations):
+            with self.subTest(sql=sql):
+                path = Path(self.root.name) / f"evidence-{index}.sqlite"
+                self.prepare_position(path)
+                allocations.admit(path, self.request_for(path, "evidence"))
+                with store.database(path, write=True) as connection:
+                    connection.execute(sql)
+                with self.assertRaises(ValueError):
+                    allocations.status(path)
 
     def test_replay_detects_record_audit_and_projection_damage(self):
         request = self.request()

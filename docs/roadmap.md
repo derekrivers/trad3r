@@ -111,10 +111,10 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   remain pending.
 - Delivered: P4.5 package A pure protection/quantity/permission evaluator with
   deterministic X01–X05/X16 coverage and no persistence or dispatch surface.
-- Implemented in [PR #37](https://github.com/derekrivers/trad3r/pull/37), pending
-  Astra review: P4.5 package B fresh-v4 shared sell-quantity and fee allocations,
-  with no migration or dispatch surface.
-- Next after review: P4.5 package C cumulative sell accounting and pending lots on
+- Delivered in [PR #37](https://github.com/derekrivers/trad3r/pull/37): P4.5 package B
+  fresh-v4 shared sell-quantity and fee allocations, retained-input capacity replay,
+  fresh evidence and incident blocking, with no migration or dispatch surface.
+- Next: P4.5 package C cumulative sell accounting and pending lots on
   Sol High; later packages add cancellation and incidents.
   Close private-input and off-host
   backup dependencies independently and qualify forward data.

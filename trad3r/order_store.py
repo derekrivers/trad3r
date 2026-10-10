@@ -360,10 +360,23 @@ def _read_state(connection):
     return state
 
 
-def _report(state, reconciliation=None):
+def _allocation_blocks(connection):
+    if connection.execute("PRAGMA user_version").fetchone()[0] != REDUCING_DATABASE_VERSION:
+        return []
+    from . import order_allocations
+    allocation, _, _ = order_allocations._read(connection)
+    return allocation["unresolved_reasons"]
+
+
+def _require_allocation_clear(connection):
+    if _allocation_blocks(connection):
+        raise ValueError("Reducing allocation state is unresolved")
+
+
+def _report(state, reconciliation=None, allocation_blocks=()):
     assessment = assess(_mark(state["mark"]), _mark(state["session_start"]),
                         _mark(state["week_start"]), tuple(state["halt_reasons"]))
-    blocked = list(state["halt_reasons"] + state["unresolved_reasons"])
+    blocked = list(state["halt_reasons"] + state["unresolved_reasons"]) + list(allocation_blocks)
     if reconciliation is not None and reconciliation["status"] != "reconciled":
         blocked.extend(reconciliation["unresolved_reasons"] or ["reconciliation_required"])
     if state["attempts"] >= MAX_ATTEMPTS:
@@ -491,7 +504,7 @@ def status(path):
         if connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
             from . import order_reconciliation
             reconciliation, _ = order_reconciliation._read(connection)
-        return _report(state, reconciliation)
+        return _report(state, reconciliation, _allocation_blocks(connection))
 
 
 def history(path):
@@ -641,6 +654,12 @@ def admit(path, proposal):
                 return result
             return _current_result(records[0], state, duplicate=True,
                                    reconciliation=reconciliation)
+        _require_allocation_clear(connection)
+        if connection.execute("PRAGMA user_version").fetchone()[0] == REDUCING_DATABASE_VERSION:
+            if connection.execute(
+                    "SELECT 1 FROM reducing_allocations WHERE allocation_id=? OR client_order_id=?",
+                    (intent_id, client_order_id)).fetchone():
+                raise ValueError("Entry identities collide with a reducing allocation")
         if records:
             incoming = {"intent_id": intent_id, "candidate_id": candidate_id,
                         "client_order_id": client_order_id, "proposal_sha256": proposal_sha}

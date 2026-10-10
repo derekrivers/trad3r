@@ -371,6 +371,7 @@ def _read_writer(connection):
 
 def _report(connection, writer=None, submissions=None):
     account_state = store._read_state(connection)
+    allocation_blocks = store._allocation_blocks(connection)
     if writer is None or submissions is None:
         writer, submissions, events = _read_writer(connection)
     return {
@@ -378,12 +379,13 @@ def _report(connection, writer=None, submissions=None):
         "epoch": writer["epoch"], "owner_id": writer["owner_id"],
         "claim_id": writer["claim_id"], "claimed_at": writer["claimed_at"],
         "disarmed": writer["disarmed"],
-        "dispatch_allowed": (not writer["disarmed"] and not writer["unresolved_reasons"]
+        "dispatch_allowed": (not allocation_blocks and not writer["disarmed"] and not writer["unresolved_reasons"]
                              and not any(row["state"] == "submitting"
                                          for row in submissions.values())),
-        "unresolved_reasons": writer["unresolved_reasons"],
+        "unresolved_reasons": sorted(set(writer["unresolved_reasons"] + allocation_blocks)),
         "submissions": [submissions[key] for key in sorted(submissions)],
-        "account": store._report(account_state), "live_trading_enabled": False,
+        "account": store._report(account_state, allocation_blocks=allocation_blocks),
+        "live_trading_enabled": False,
     }
 
 
@@ -428,6 +430,7 @@ def claim(path, payload):
             result = _report(connection, writer, submissions)
             result.update(outcome="claimed", duplicate=True)
             return result
+        store._require_allocation_clear(connection)
         if connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
             from . import order_reconciliation
             reconciliation, _ = order_reconciliation._read(connection)
@@ -500,6 +503,7 @@ def mark_submission(path, payload):
                     "duplicate": True, "should_call_adapter": False,
                     "submission": existing, "writer": _report(connection, writer, submissions),
                     "live_trading_enabled": False}
+        store._require_allocation_clear(connection)
         if reconciliation is not None and reconciliation["status"] != "reconciled":
             raise ValueError("Reconciliation is required before marking a submission")
         if existing is not None or by_intent is not None:
