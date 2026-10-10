@@ -42,7 +42,7 @@ PENDING_FIELDS = {
     "execution_id", "gross_usd", "fee_usd", "fee_status", "net_usd", "settles_on",
     "available_at", "settlement_calendar_id", "cash_release_policy",
 }
-ORDER_STATES = {"working", "filled", "unknown"}
+ORDER_STATES = {"working", "filled", "cancelled", "unknown"}
 DURABLE_REASONS = {
     "snapshot_identity_conflict", "reconciliation_identity_conflict",
     "execution_identity_conflict", "execution_history_changed",
@@ -303,7 +303,8 @@ def _derive(connection, snapshot, prior_state):
                                    for key in ("client_order_id", "order_id", "side",
                                                "original_quantity"))
                 or current["cumulative_executed_quantity"] < row["cumulative_executed_quantity"]
-                or (row["state"] == "filled" and current["state"] != "filled")):
+                or (row["state"] == "filled" and current["state"] != "filled")
+                or (row["state"] == "cancelled" and current["state"] not in ("cancelled", "filled"))):
             reasons.append("order_identity_changed")
     prior_commissions, _, _ = _latest_commissions(prior_state["commissions"])
     for identity, row in prior_commissions.items():
@@ -389,6 +390,8 @@ def _derive(connection, snapshot, prior_state):
             reasons.append("execution_overfill")
         if ((order["state"] == "filled" and executed != expected_quantity)
                 or (order["state"] == "working" and executed >= expected_quantity)):
+            reasons.append("order_identity_changed")
+        if order["state"] == "cancelled" and executed >= expected_quantity:
             reasons.append("order_identity_changed")
         fee_bound_remaining = (money(mapping["fee_bound_usd"])
                                if expected_side == "sell" else D("0"))
@@ -886,6 +889,9 @@ def apply(path, raw):
                                writer_sha, allocation_sha, store.digest(adjustment), state)
         order_reconciliation._disarm(connection, snapshot["reconciliation_id"], at,
                                       unresolved, sorted(set(prior_reasons) & TRANSIENT_REASONS))
+        from . import order_cancellation
+        order_cancellation.apply_evidence(connection, at, state["orders"],
+                                          snapshot["reconciliation_id"])
         result = _report(state)
         result.update(outcome=state["status"], duplicate=False, adjustment=adjustment, event=event)
         return result

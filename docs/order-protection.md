@@ -4,8 +4,10 @@ Contract `order-protection-v1` defines the P4.5 extension to the
 [order lifecycle](order-lifecycle.md). It fixes the implementation rules and
 acceptance scenarios for cancellation, reducing exits, protective stops and
 exposure incidents. Packages A and B implement the evaluator and capacity journal;
-package C's accounting journal is delivered in [PR #38](https://github.com/derekrivers/trad3r/pull/38), and D–G
-remain specifications. P4.5 completes only when all packages pass their executable tests
+package C's accounting journal is delivered in [PR #38](https://github.com/derekrivers/trad3r/pull/38).
+Package D's fenced synthetic cancellation is delivered in
+[PR #39](https://github.com/derekrivers/trad3r/pull/39), and E–G remain specifications.
+P4.5 completes only when all packages pass their executable tests
 and integrated fault cases.
 
 The scope remains one synthetic account and one qualified USD equity position,
@@ -234,6 +236,29 @@ The current allocator still requires P4.4 entry evidence. Allocating or releasin
 new reducing capacity after cumulative sell accounting needs the later cancellation
 and dispatch packages to bind the current cumulative proof. Existing allocations
 remain historical reservations; status is not new management authority.
+
+### Package D implementation
+
+Package D adds `trad3r.order_cancellation` and the
+[fenced cancellation contract](order-cancellation.md) to fresh v4 stores. A request
+binds the exact known order, owner/epoch, decision/expiry and all current account,
+writer, allocation and reconciliation versions. It needs no quote, FX or free
+quantity. The committed marker disarms the shared writer before the synthetic
+adapter is called, and exact duplicates never call it again.
+
+Accepted responses remain unresolved until cumulative entry or reducing evidence
+proves `cancelled` or `filled`. Bare denials and lost responses remain unknown;
+confirmed rejection with working status restores the evidenced working outcome.
+Partial fills retain the full residual commitment. No response directly changes
+cash, quantity, risk, fees or settlement, and late responses cannot regress a
+filled order.
+
+The separate journal replays retained inputs, SQL identities, writer fencing and
+the exact reconciliation snapshot behind each evidence transition. Identity
+conflicts latch, marker/result writes are atomic, and a failed result commit leaves
+the marker in place so restart cannot cause a blind retry. Twelve deterministic
+tests cover the package-D portions of X07–X10, X15–X16 and X23. X13's complete
+stop-to-exit flow remains with reducing dispatch and integrated packages E–G.
 
 ## Verified management authority
 

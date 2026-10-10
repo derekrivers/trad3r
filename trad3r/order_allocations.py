@@ -55,6 +55,8 @@ def _initialize_tables(connection, account_id, at):
                        (store.pack(state),))
     from . import order_sell_reconciliation
     order_sell_reconciliation._initialize_tables(connection, account_id, at)
+    from . import order_cancellation
+    order_cancellation._initialize_tables(connection, account_id, at)
 
 
 def initialize(path, snapshot):

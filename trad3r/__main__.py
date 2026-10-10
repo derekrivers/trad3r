@@ -13,7 +13,7 @@ from .data import decode, load_sample, parse_bar
 from .risk import Mark, assess
 from .ledger import Ledger, replay_ledger
 from .admission import check_entry
-from . import (order_allocations, order_reconciliation, order_sell_reconciliation,
+from . import (order_allocations, order_cancellation, order_reconciliation, order_sell_reconciliation,
                order_store, order_writer, risk_store)
 from .simulation import simulate, simulate_series, simulate_research_series
 from .batches import completed_batches
@@ -138,6 +138,15 @@ def main(argv=None):
         sub.add_argument("input", type=Path)
     for command in ("order-reconciliation-status", "order-reconciliation-history"):
         sub = commands.add_parser(command, help="Inspect durable synthetic reconciliation")
+        sub.add_argument("database", type=Path)
+    cancellation = commands.add_parser(
+        "order-cancel-synthetic", help="Fenced synthetic cancellation; no broker or live endpoint")
+    cancellation.add_argument("database", type=Path)
+    cancellation.add_argument("input", type=Path)
+    cancellation.add_argument("--outcome", required=True,
+                              choices=("accepted", "rejected_working", "denied", "accept_then_timeout"))
+    for command in ("order-cancel-status", "order-cancel-history"):
+        sub = commands.add_parser(command, help="Inspect durable synthetic cancellation")
         sub.add_argument("database", type=Path)
     args = parser.parse_args(argv)
     try:
@@ -304,6 +313,16 @@ def main(argv=None):
                 result = order_reconciliation.history(args.database)
             else:
                 result = order_reconciliation.status(args.database)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
+        if args.command in ("order-cancel-synthetic", "order-cancel-status", "order-cancel-history"):
+            if args.command == "order-cancel-synthetic":
+                result = order_cancellation.dispatch_synthetic(
+                    args.database, decode(args.input.read_bytes()), args.outcome)
+            elif args.command == "order-cancel-history":
+                result = order_cancellation.history(args.database)
+            else:
+                result = order_cancellation.status(args.database)
             print(json.dumps(result, default=str, sort_keys=True, indent=2))
             return 0
         if args.command in ("risk-init", "risk-status", "risk-history", "risk-record"):
