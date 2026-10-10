@@ -43,3 +43,22 @@ Broker/feed selection, connected-paper defaults/protocol, durable period changes
 model expenditure, alerts/off-host destinations and any live decision remain the
 owner gates in the canonical plan. No spending or account secrets are needed to
 finish the independent synthetic package.
+
+## D004 — Synthetic runtime and retention, 10 October 2026
+
+Reuse the reviewed `ea44cc8` runtime and existing synthetic fixtures rather than
+rebuilding delivered functionality. Each job pins its own release through a
+systemd instance drop-in; future deployments must not repoint an active job to new
+code. Root owns the release and the three read-only inputs. Host evidence is in
+[vps-deployment-2026-10-10.md](vps-deployment-2026-10-10.md).
+
+Keep the first local backup, original job, restore evidence and matching code.
+No automatic pruning or recurring execution has been configured. Inspect storage
+before explicit jobs/backups; pause new research at 80% disk use or less than
+2 GiB free pending capacity review. These operational thresholds do not change
+financial limits. Off-host storage, ongoing backup/alert operations and the VPS
+cost allocation remain unresolved owner inputs; no paid destination was selected.
+
+The subsequently supplied `trad3r-data-downloader.zip` contains only its README and
+Python downloader, not the generated data package. It was inspected without
+execution and does not satisfy the missing historical-input dependency.

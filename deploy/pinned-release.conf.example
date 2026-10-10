@@ -1,0 +1,8 @@
+# Copy to trad3r-backtest@JOB_ID.service.d/10-pinned-release.conf.
+# Replace REVIEWED_SHA with the exact reviewed, CI-passing installed revision.
+# Stage the three inputs before starting this instance. Do not repoint active jobs.
+[Service]
+WorkingDirectory=/opt/trad3r/releases/REVIEWED_SHA
+ExecStart=
+ExecStart=/opt/trad3r/releases/REVIEWED_SHA/.venv/bin/python -m trad3r run-job /var/lib/trad3r/jobs/%i
+ReadOnlyPaths=/var/lib/trad3r/jobs/%i/source.zip /var/lib/trad3r/jobs/%i/assumptions.json /var/lib/trad3r/jobs/%i/registration.json

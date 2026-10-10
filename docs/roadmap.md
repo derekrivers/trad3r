@@ -8,8 +8,8 @@ retained as engineering history, not a second master plan.
 
 | Phase | Deliverable | Current state |
 | --- | --- | --- |
-| 0 | Adopt plan and verify VPS | Adoption and VPS baseline verification underway |
-| 1 | Recoverable offline research service | Job implementation exists; host deployment next |
+| 0 | Adopt plan and verify VPS | Adopted; VPS verified; design v2 not transferred |
+| 1 | Recoverable offline research service | Synthetic host runtime/recovery/restore verified; off-host backup open |
 | 2 | Broker and data capability decision | Account-specific evidence and owner decision open |
 | 3 | Qualified datasets and protocol | Engineering sample/results exist; qualification open |
 | 4 | Durable order and account controls | Risk persistence exists; order lifecycle absent |
@@ -87,10 +87,12 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   candidates each, all risk-rejected and no trades; zero contribution above cash.
   See [recorded results](first-engineering-results.md). No strategy qualification.
 - Delivered: recoverable offline jobs, duplicate-run exclusion and a network-disabled
-  systemd template with an operating/backup guide. Actual VPS deployment remains open.
+  systemd template with an operating/backup guide. [ATLAS synthetic deployment](vps-deployment-2026-10-10.md)
+  now verifies host isolation, installed-build recovery and local restore; off-host
+  backup and historical reproduction remain open.
 - Delivered: executable synthetic control rehearsal, retained risk/journal evidence
   and [explicit forward paper gates](paper-readiness.md).
-- Next: complete Phase 0 and the synthetic Phase 1 VPS package. Then implement
+- Next: close private-input and off-host backup dependencies. Independently implement
   durable broker-neutral order intents, reconciliation and qualified forward data.
   Durable paper period transitions require a separate owner-reviewed policy.
 

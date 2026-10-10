@@ -19,8 +19,10 @@ and execution authority. The existing baseline is a comparison hypothesis.
 
 ## Run locally
 
-For recoverable offline jobs and eventual deployment, see the
-[VPS operations guide](docs/vps-operations.md). No VPS is deployed yet.
+For recoverable offline jobs, see the [VPS operations guide](docs/vps-operations.md).
+The [ATLAS synthetic milestone](docs/vps-deployment-2026-10-10.md) has a pinned,
+network-disabled runtime with verified recovery and local restore. Historical
+reproduction and off-host backup remain open; no daily job is scheduled.
 Run `python -m trad3r rehearse-controls runs/controls-01` for a new synthetic control
 drill; see [paper readiness and remaining gates](docs/paper-readiness.md).
 
