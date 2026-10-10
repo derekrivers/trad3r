@@ -53,6 +53,8 @@ def _initialize_tables(connection, account_id, at):
         "payload_sha256 TEXT NOT NULL)")
     connection.execute("INSERT INTO reducing_allocation_state VALUES (1, ?)",
                        (store.pack(state),))
+    from . import order_sell_reconciliation
+    order_sell_reconciliation._initialize_tables(connection, account_id, at)
 
 
 def initialize(path, snapshot):

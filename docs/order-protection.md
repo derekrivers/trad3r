@@ -4,7 +4,8 @@ Contract `order-protection-v1` defines the P4.5 extension to the
 [order lifecycle](order-lifecycle.md). It fixes the implementation rules and
 acceptance scenarios for cancellation, reducing exits, protective stops and
 exposure incidents. Packages A and B implement the evaluator and capacity journal;
-packages C–G remain specifications. P4.5 completes only when all packages pass their executable tests
+package C's accounting journal is delivered in [PR #38](https://github.com/derekrivers/trad3r/pull/38), and D–G
+remain specifications. P4.5 completes only when all packages pass their executable tests
 and integrated fault cases.
 
 The scope remains one synthetic account and one qualified USD equity position,
@@ -147,7 +148,8 @@ window does not restrict management. No period baseline is renewed. A current
 account version must refer to a reconciled adjustment; an intervening entry
 admission requires fresh reconciliation before another allocation. Package B
 conservatively requires a reported commission (including explicit zero) for every
-entry execution; package C will add the full fee-completeness contract.
+entry execution; package C extends that contract with explicit finality and
+monotonic fee revisions.
 
 The allocator derives held quantity and the original exit-fee allowance from the
 complete reconciled entry evidence. Protective stops and ordinary reducing exits
@@ -177,6 +179,61 @@ path. Nineteen deterministic tests cover the package-B portions of X04, X15 and 
 including exact fee partitioning, concurrent full-quantity requests, fencing,
 rollback, restart/replay corruption, stale/future/session bounds, retained source
 evidence, cross-namespace identities, account-wide blocking and version-3 compatibility.
+
+### Package C implementation
+
+Package C adds `trad3r.order_sell_reconciliation` to freshly initialized v4
+stores. `order-reducing-reconcile` accepts a complete cumulative synthetic
+snapshot containing the retained entry order and every observed allocated sell;
+the status and history commands are read-only. This is an evidence/accounting
+boundary with no adapter or dispatch method.
+
+Every applied snapshot binds the exact writer event, allocation event, prior
+account version and retained P4.4 entry evidence. Replay independently derives
+buy cost, settled cash, holdings, possible sell remainders, fees, pending lots,
+reservations, risk latches and the account adjustment. Rehashed entry prices,
+account projections, event identities or authority evidence fail closed.
+
+Sell executions reduce both verified holdings and their allocation's possible
+remainder. An absent, working or unknown allocated sell retains its full possible
+remainder. Unknown orders, changed executions, overfills, source-time conflicts,
+negative capacity and manual activity retain the full incoming snapshot and latch
+an incident without replacing the last verified account facts. Ordinary snapshots
+cannot clear those incidents; recovery belongs to package F.
+
+Every execution requires an explicit fee record with a `final` flag. Missing fees
+use the allocation's conservative bound for the pending-lot projection; provisional
+and missing fees update verified quantity but retain the original exit allowance,
+entry exposure/loss reservations and an entry block. A monotonic final revision
+updates the same execution lot once. Actual final fees may exceed the plan and
+reduce pending proceeds; they never enlarge the allowance.
+
+Each sell execution produces one execution-keyed pending lot with gross, applied
+fee, net amount, scheduled settlement date, conservative availability cutoff and
+the existing policy identifiers. Settled cash excludes every lot. No clock,
+restart or snapshot releases it, and package C provides no release command.
+
+Version 4 currently supports one protected entry episode. After that episode is
+fully sold, `reducing_episode_transition_required` blocks another entry because
+package C cannot bind it to a fresh allocation history. The pending lot is not
+the cause of that block. A reviewed episode transition remains later scope.
+
+Nineteen deterministic package-C tests cover partial/full and multi-order remainders, duplicate
+envelopes, fee finality/revision, pending cash, working/unknown orders, identity
+and manual-activity incidents, non-recovery, rollback, replay corruption, restart
+and v3 isolation.
+
+Critical review added ordered incident replay, retained-input hash and SQL identity
+checks, required writer-disarm linkage, event-time checks and rejection of unaudited
+inbox rows. Later evidence cannot rewrite an earlier incident's classification.
+Entry-fee revisions debit settled cash; provisional entry fees retain any unused
+entry allowance even after the last share sells. Entry and reducing reconciliation
+IDs share a collision boundary. These corrections are included in PR #38.
+
+The current allocator still requires P4.4 entry evidence. Allocating or releasing
+new reducing capacity after cumulative sell accounting needs the later cancellation
+and dispatch packages to bind the current cumulative proof. Existing allocations
+remain historical reservations; status is not new management authority.
 
 ## Verified management authority
 
@@ -432,7 +489,7 @@ approval. Every merge still requires the repository's reviewed-head CI controls.
 | --- | --- | --- |
 | A | **Complete:** pure protection/quantity/permission evaluator and 20 deterministic tests; [PR #36](https://github.com/derekrivers/trad3r/pull/36). | X01–X05/X16 fact and permission portions; explicit reasons, no persistence or dispatch claim. |
 | B | **Complete in [PR #37](https://github.com/derekrivers/trad3r/pull/37):** explicit fresh v4 initialization, authoritative quantity/fee allocations, retained-input replay and atomic reducing admission; Astra review fixes included. Depends A. | X04/X15/X23 reservation/storage portions; 19 deterministic tests, preserve v3 reads, no migration or enabled dispatch. |
-| C | V4 cumulative multi-order buy/sell reconciliation, execution-level fee completeness, pending lots and retained contradictions. Depends B. | X02/X06/X14/X17–X20/X22 accounting portions; no durable period transition or cash-release command. |
+| C | **Complete in [PR #38](https://github.com/derekrivers/trad3r/pull/38):** v4 cumulative multi-order buy/sell reconciliation, execution-level fee completeness, pending lots and retained contradictions, including critical review fixes. Depends B. | X02/X06/X14/X17–X20/X22 accounting portions; 19 deterministic tests, no durable period transition or cash-release command. |
 | D | Separate fenced cancellation operation and deterministic adapter outcomes, integrated with cumulative evidence. Depends C. | X07–X10/X13/X15/X16/X23 cancellation portions; no release from an acknowledgement alone. |
 | E | Fenced synthetic reducing-limit and protective-stop dispatch using the common quantity pool and management permissions. Depends D. | X01/X03–X05/X11–X13/X16/X22/X23 dispatch portions; no network or fallback market orders. |
 | F | Durable pause, desired action, protection incidents and evidence-bound trusted owner recovery. Depends E. | X01/X02/X11/X14/X15/X20–X22 control portions; no halt/budget reset or invented owner authentication. |

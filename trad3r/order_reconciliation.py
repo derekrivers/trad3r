@@ -545,6 +545,11 @@ def _adjust_account(connection, account, snapshot, submission, order, executions
 def apply(path, raw):
     snapshot = _snapshot(raw)
     with store.database(path, write=True) as connection:
+        if connection.execute("PRAGMA user_version").fetchone()[0] == store.REDUCING_DATABASE_VERSION:
+            from . import order_sell_reconciliation
+            sell, _ = order_sell_reconciliation._read(connection)
+            if sell["version"]:
+                raise ValueError("Use reducing reconciliation after sell evidence begins")
         account = store._read_state(connection)
         state, events = _read(connection)
         current_writer, submissions, writer_events = writer._read_writer(connection)

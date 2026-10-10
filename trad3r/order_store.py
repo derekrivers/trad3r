@@ -1,5 +1,6 @@
 """Atomic synthetic order admission; no adapter, dispatch, fill, or live mode."""
 from contextlib import contextmanager
+from copy import deepcopy
 from dataclasses import asdict
 from datetime import time, timedelta
 from decimal import Decimal as D
@@ -357,6 +358,8 @@ def _read_state(connection):
         # reads must also fail closed when its allocation journal is damaged.
         from . import order_allocations
         order_allocations._read(connection)
+        from . import order_sell_reconciliation
+        order_sell_reconciliation._read(connection)
     return state
 
 
@@ -365,7 +368,16 @@ def _allocation_blocks(connection):
         return []
     from . import order_allocations
     allocation, _, _ = order_allocations._read(connection)
-    return allocation["unresolved_reasons"]
+    from . import order_sell_reconciliation
+    sell, _ = order_sell_reconciliation._read(connection)
+    reasons = allocation["unresolved_reasons"] + sell["unresolved_reasons"]
+    if (sell["entry_intent_id"] is not None and sell["verified_quantity"] == 0
+            and sell["committed_sell_quantity"] == 0):
+        # Package C deliberately has no mechanism for closing one protected
+        # entry episode and binding a later entry to fresh allocation history.
+        # A pending lot is not itself the blocker; the unsupported transition is.
+        reasons.append("reducing_episode_transition_required")
+    return sorted(set(reasons))
 
 
 def _require_allocation_clear(connection):
@@ -504,7 +516,14 @@ def status(path):
         if connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
             from . import order_reconciliation
             reconciliation, _ = order_reconciliation._read(connection)
-        return _report(state, reconciliation, _allocation_blocks(connection))
+        result = _report(state, reconciliation, _allocation_blocks(connection))
+        if connection.execute("PRAGMA user_version").fetchone()[0] == REDUCING_DATABASE_VERSION:
+            from . import order_sell_reconciliation
+            sell, _ = order_sell_reconciliation._read(connection)
+            result.update(pending_settlements=deepcopy(sell["pending_lots"]),
+                          unsettled_usd=str(sum((money(row["net_usd"])
+                                               for row in sell["pending_lots"]), D("0"))))
+        return result
 
 
 def history(path):

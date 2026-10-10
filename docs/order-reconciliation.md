@@ -12,6 +12,9 @@ python -m trad3r order-reconcile-invalidate runs/orders.sqlite examples/order-re
 python -m trad3r order-reconcile runs/orders.sqlite examples/order-reconciliation.json
 python -m trad3r order-reconciliation-status runs/orders.sqlite
 python -m trad3r order-reconciliation-history runs/orders.sqlite
+python -m trad3r order-reducing-reconcile runs/orders.sqlite /path/to/reducing-snapshot.json
+python -m trad3r order-reducing-reconciliation-status runs/orders.sqlite
+python -m trad3r order-reducing-reconciliation-history runs/orders.sqlite
 ```
 
 Startup recovery and explicit disconnect invalidation clear writer ownership,
@@ -101,3 +104,37 @@ an explicit version-3 migration before reconciliation. Existing v3 accounts also
 need a separate reviewed history-preserving migration before using v4 reducing
 allocations. No automatic migration,
 connected paper mode, cancellation dispatch, protection order or live mode exists.
+
+## Version-4 reducing reconciliation
+
+P4.5 package C extends a fresh v4 store with a separately replayed cumulative
+buy/sell projection while retaining the P4.4 entry inbox. Once sell evidence has
+begun, the entry-only apply command refuses further snapshots; subsequent evidence
+must use the comprehensive reducing schema so entry reconciliation cannot overwrite
+accounted sells.
+
+The reducing snapshot lists all current-episode orders, executions, fee revisions,
+position, settled USD and pending lots. Buy history must extend retained P4.4 facts
+without changing them. Sell orders map to package-B allocations. Every latest fee
+record states whether it is final. Missing/provisional fees use reserved bounds and
+block entries while allowing known quantity to be accounted conservatively.
+
+Accepted evidence atomically adds an account adjustment and reducing event.
+Settled cash equals initial cash less cumulative buy notionals and buy fees; sale
+proceeds remain in execution-keyed pending lots. The existing T+1 calendar and
+conservative availability cutoff are persisted, but no release is implemented.
+After a fully sold episode, a separate episode-transition block prevents another
+entry until later work can bind fresh entry and allocation history; pending cash
+is not treated as settled or as the transition blocker.
+
+Changed identities, manual orders, overfills, negative capacity and altered history
+are durable incidents. Incomplete snapshots do not change account facts. Exact
+duplicates precede version checks. Every read replays retained input and checks
+writer/allocation evidence, the prior account version, output adjustment and event
+digests. V3 behavior and schema remain unchanged.
+
+Replay checks each retained input's digest and identity columns and requires its
+writer-disarm event. Identity collisions are evaluated in receipt order, including
+IDs retained by entry reconciliation. A subsequent ordinary snapshot keeps an
+incident latched and the store readable. Fee revisions apply to buys as well as
+sells: entry costs adjust settled cash, while sale costs adjust the pending lot.

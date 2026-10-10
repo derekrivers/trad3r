@@ -13,7 +13,8 @@ from .data import decode, load_sample, parse_bar
 from .risk import Mark, assess
 from .ledger import Ledger, replay_ledger
 from .admission import check_entry
-from . import order_allocations, order_reconciliation, order_store, order_writer, risk_store
+from . import (order_allocations, order_reconciliation, order_sell_reconciliation,
+               order_store, order_writer, risk_store)
 from .simulation import simulate, simulate_series, simulate_research_series
 from .batches import completed_batches
 from .features import FEATURE_SCHEMA, feature_snapshots
@@ -114,6 +115,12 @@ def main(argv=None):
         sub = commands.add_parser(command, help="Synthetic reducing allocations; no dispatch or broker connection")
         sub.add_argument("database", type=Path)
         if command in ("order-v4-init", "order-reducing-admit"):
+            sub.add_argument("input", type=Path)
+    for command in ("order-reducing-reconcile", "order-reducing-reconciliation-status",
+                    "order-reducing-reconciliation-history"):
+        sub = commands.add_parser(command, help="Cumulative synthetic buy/sell evidence; no dispatch")
+        sub.add_argument("database", type=Path)
+        if command == "order-reducing-reconcile":
             sub.add_argument("input", type=Path)
     for command in ("order-writer-claim", "order-dispatch-synthetic", "order-writer-recover"):
         sub = commands.add_parser(command, help="Fenced synthetic order writer; no broker or live endpoint")
@@ -256,6 +263,17 @@ def main(argv=None):
                 result = order_allocations.history(args.database)
             else:
                 result = order_allocations.status(args.database)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
+        if args.command in ("order-reducing-reconcile", "order-reducing-reconciliation-status",
+                            "order-reducing-reconciliation-history"):
+            if args.command == "order-reducing-reconcile":
+                result = order_sell_reconciliation.apply(
+                    args.database, decode(args.input.read_bytes()))
+            elif args.command == "order-reducing-reconciliation-history":
+                result = order_sell_reconciliation.history(args.database)
+            else:
+                result = order_sell_reconciliation.status(args.database)
             print(json.dumps(result, default=str, sort_keys=True, indent=2))
             return 0
         if args.command in ("order-writer-claim", "order-dispatch-synthetic",
