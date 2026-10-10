@@ -14,23 +14,26 @@ adopted in [PR #24](https://github.com/derekrivers/trad3r/pull/24), merge
 | P0.2 plan adoption | complete | P0.1 | #24; supplied bytes preserved; self-review and hosted CI passed on `0f596df` before expected-head merge | Update status as evidence changes |
 | P0.3 design v2 | blocked | Owner artifact | #24 / D002; owner confirms no transfer yet | Transfer actual design; map requirements/conflicts |
 | P0.4 VPS baseline | complete | P0.1 | #24 / `ea44cc8`; 236 tests, no skips; 17 control checks | Baseline establishes engineering controls only |
-| P0.5 private inventory | complete | P0.1 | #24; scoped inventory and historical hash references | Generated data absent; supplied ZIP is downloader only; hash matching blocked |
+| P0.5 private inventory | complete | P0.1 | `8ebda1a`; [original stock intake](stock-sample-intake-2026-10-10.md) matches source/replay hashes; strict validation and full-window audit pass | Stock sample retained privately; FX/combined archive, assumptions, registrations and results still missing |
 | P1.1 pinned runtime | complete | P0 adoption | `ea44cc8`; [deployment record](vps-deployment-2026-10-10.md); unprivileged user, root-owned release and venv | Preserve build for registered jobs |
-| P1.2 stage job | complete | P1.1 | `ea44cc8`; AAA synthetic job registered before execution; protected inputs | Historical inputs still absent |
+| P1.2 stage job | complete | P1.1 | `ea44cc8`; AAA synthetic job registered before execution; protected inputs | Original stock sample received; historical FX and experiment files still missing |
 | P1.3 host sandbox | complete | P1.1–2 | `ea44cc8`; all 16 actual host probe checks passed | No power-loss or OOM-exhaustion guarantee |
-| P1.4 execute job | in progress | P1.3 | `ea44cc8`; synthetic job completed, inspected and repeat returned already_complete | Synthetic portion complete; historical reproduction blocked on retained private inputs |
+| P1.4 execute job | in progress | P1.3 | `ea44cc8`; synthetic job completed, inspected and repeat returned already_complete | Synthetic portion complete; original stock replay reproduced; backtests await FX and experiment files |
 | P1.5 recovery | complete | P1.4 synthetic | `ea44cc8`; eight installed-package recovery tests passed inside sandbox | Offline job faults only; no broker reconciliation claim |
 | P1.6 backups | in progress | P1.4 synthetic | `ea44cc8`; five-file checksum inventory and separate restore returned already_complete; disk/log checks recorded | Select off-host destination, recurring backup/monitoring and bounded retention; local copies insufficient |
 
 P0's permitted exit is met: missing design/private inputs block only dependent
-work. Inventory completion means missing assets are explicitly recorded, not
-that their hashes were verified. The **synthetic P1 milestone** is verified; P1's
-full exit gate remains open for the recorded backup and historical dependencies.
+work. The original stock sample and replay hashes are now verified. Other missing
+assets are explicitly recorded and their hashes remain unverified. The **synthetic
+P1 milestone** is verified; P1's full exit gate remains open for the recorded backup
+and historical dependencies.
 
 ## Ordered continuation
 
-1. Transfer design v2 and original private source/FX, assumptions, registrations and
-   result bundles; verify retained hashes before historical reproduction (P0.3/P1.4).
+1. Transfer design v2, the combined stock/FX archive (or original FX export),
+   assumptions, registrations and result bundles. The original stock sample is
+   already retained and verified; match remaining identities before registered
+   historical reproduction (P0.3/P1.4).
 2. Owner selects an off-host backup destination/access route. Finish restore from
    that destination, recurring backup/monitoring and retention (P1.6).
 3. Independent next engineering increment: P4.1 durable order-state contract and

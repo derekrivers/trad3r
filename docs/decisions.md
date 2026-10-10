@@ -62,3 +62,13 @@ cost allocation remain unresolved owner inputs; no paid destination was selected
 The subsequently supplied `trad3r-data-downloader.zip` contains only its README and
 Python downloader, not the generated data package. It was inspected without
 execution and does not satisfy the missing historical-input dependency.
+
+## D005 — Original stock sample received, 10 October 2026
+
+The owner subsequently supplied the generated stock archive. Its exact identity
+and deterministic replay match the original records; see the
+[intake evidence](stock-sample-intake-2026-10-10.md). Preserve it privately on ATLAS
+and credit P0.5 with verified stock availability. Earlier absence findings describe
+the state before this transfer. FX/combined history and original experiment files
+remain missing; no hypothetical FX or replacement cost assumptions are authorised
+as a substitute for the registered historical evidence.
