@@ -23,7 +23,7 @@ cost-conscious starting model to all 64 master-plan tasks.
 | P1.4 execute job | in progress | P1.3 | `ea44cc8`; synthetic job completed, inspected and repeat returned already_complete; new Massive archive structurally audited | Synthetic portion complete; original stock replay reproduced; registered historical reproduction awaits original FX/experiment files and qualification |
 | P1.5 recovery | complete | P1.4 synthetic | `ea44cc8`; eight installed-package recovery tests passed inside sandbox | Offline job faults only; no broker reconciliation claim |
 | P1.6 backups | in progress | P1.4 synthetic | `ea44cc8`; five-file checksum inventory and separate restore returned already_complete; disk/log checks recorded | Select off-host destination, recurring backup/monitoring and bounded retention; local copies insufficient |
-| P4.1 order contract | complete | Independent synthetic design | [Order lifecycle v1](order-lifecycle.md); reviewed transition/identity contract and 14 synthetic acceptance specifications | Definition only; order storage, writer, reconciliation and protection remain P4.2–P4.5 work |
+| P4.1 order contract | complete | Independent synthetic design | [PR #29](https://github.com/derekrivers/trad3r/pull/29); [order lifecycle v1](order-lifecycle.md); reviewed transition/identity contract and 14 synthetic acceptance specifications | Definition only; order storage, writer, reconciliation and protection remain P4.2–P4.5 work |
 
 P0's permitted exit is met: missing design/private inputs block only dependent
 work. The original stock sample and replay hashes are now verified. Other missing
