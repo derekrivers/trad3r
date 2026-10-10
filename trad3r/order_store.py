@@ -117,7 +117,15 @@ def database(path, write=False):
         if connection.execute("PRAGMA quick_check").fetchone()[0] != "ok":
             raise ValueError("Order database integrity check failed")
         connection.execute("BEGIN IMMEDIATE" if write else "BEGIN")
+        is_v4 = connection.execute("PRAGMA user_version").fetchone()[0] == REDUCING_DATABASE_VERSION
+        if is_v4:
+            from . import order_controls
+            order_controls._read(connection, check_sources=True)
         yield connection
+        if write and is_v4:
+            # Every v4 evidence mutation and its protection consequences commit
+            # together. Failure here rolls back the entire originating operation.
+            order_controls._sync(connection)
         connection.commit()
     except BaseException:
         connection.rollback()
@@ -364,10 +372,12 @@ def _read_state(connection):
         order_cancellation._read(connection)
         from . import order_reducing_dispatch
         order_reducing_dispatch._read(connection)
+        from . import order_controls
+        order_controls._read(connection)
     return state
 
 
-def _allocation_blocks(connection):
+def _allocation_blocks(connection, *, include_controls=True):
     if connection.execute("PRAGMA user_version").fetchone()[0] != REDUCING_DATABASE_VERSION:
         return []
     from . import order_allocations
@@ -386,11 +396,13 @@ def _allocation_blocks(connection):
         # entry episode and binding a later entry to fresh allocation history.
         # A pending lot is not itself the blocker; the unsupported transition is.
         reasons.append("reducing_episode_transition_required")
+    from . import order_controls
+    reasons.extend(order_controls._blocks(connection, management=not include_controls))
     return sorted(set(reasons))
 
 
-def _require_allocation_clear(connection):
-    if _allocation_blocks(connection):
+def _require_allocation_clear(connection, *, include_controls=True):
+    if _allocation_blocks(connection, include_controls=include_controls):
         raise ValueError("Reducing allocation state is unresolved")
 
 
@@ -682,12 +694,12 @@ def admit(path, proposal):
                 return result
             return _current_result(records[0], state, duplicate=True,
                                    reconciliation=reconciliation)
-        _require_allocation_clear(connection)
         if connection.execute("PRAGMA user_version").fetchone()[0] == REDUCING_DATABASE_VERSION:
             if connection.execute(
                     "SELECT 1 FROM reducing_allocations WHERE allocation_id=? OR client_order_id=?",
                     (intent_id, client_order_id)).fetchone():
                 raise ValueError("Entry identities collide with a reducing allocation")
+        _require_allocation_clear(connection)
         if records:
             incoming = {"intent_id": intent_id, "candidate_id": candidate_id,
                         "client_order_id": client_order_id, "proposal_sha256": proposal_sha}

@@ -374,7 +374,7 @@ class ReducingAllocationTests(unittest.TestCase):
                 path = Path(self.root.name) / (field + ".sqlite")
                 self.prepare_position(path)
                 allocations.admit(path, self.request_for(path, "forged"))
-                with store.database(path, write=True) as connection:
+                with contextlib.closing(sqlite3.connect(path)) as connection, connection:
                     record = store.decode(connection.execute(
                         "SELECT payload FROM reducing_allocations").fetchone()[0])
                     state = store.decode(connection.execute(
@@ -385,7 +385,7 @@ class ReducingAllocationTests(unittest.TestCase):
                                        (store.digest(record),))
                     connection.execute("UPDATE reducing_allocation_state SET payload=?", (store.pack(state),))
                 for read in (allocations.status, store.status, writer.status, reconciliation.status):
-                    with self.assertRaisesRegex(ValueError, "capacity replay"):
+                    with self.assertRaisesRegex(ValueError, "capacity replay|Protection source digest mismatch"):
                         read(path)
 
     def test_replay_requires_retained_snapshot_and_sql_version_binding(self):
@@ -398,7 +398,7 @@ class ReducingAllocationTests(unittest.TestCase):
                 path = Path(self.root.name) / f"evidence-{index}.sqlite"
                 self.prepare_position(path)
                 allocations.admit(path, self.request_for(path, "evidence"))
-                with store.database(path, write=True) as connection:
+                with contextlib.closing(sqlite3.connect(path)) as connection, connection:
                     connection.execute(sql)
                 with self.assertRaises(ValueError):
                     allocations.status(path)
@@ -451,7 +451,7 @@ class ReducingAllocationTests(unittest.TestCase):
                 "UPDATE reducing_allocation_audit SET payload_sha256=? "
                 "WHERE event_key='allocation-second'", (payload_sha,))
             connection.commit()
-        with self.assertRaisesRegex(ValueError, "capacity replay"):
+        with self.assertRaisesRegex(ValueError, "capacity replay|Protection source digest mismatch"):
             allocations.status(self.path)
 
     def request_for(self, path, identity):

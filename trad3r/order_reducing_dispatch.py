@@ -473,7 +473,9 @@ def mark(path, raw):
             state, _, _ = _append(connection, "incident", event_at, request, writer_event,
                                   state, incident=incident)
             return _report(state, records, duplicate=False, outcome="identity_conflict")
-        from . import order_allocations, order_cancellation, order_sell_reconciliation
+        from . import order_allocations, order_cancellation, order_sell_reconciliation, order_controls
+        if order_controls._blocks(connection, management=True):
+            raise ValueError("Protection control identity is unresolved")
         allocation_state, allocation_records, _ = order_allocations._read(connection)
         cancellation_state, _, _, _ = order_cancellation._read(connection)
         entry_state, _ = order_reconciliation._read(connection)

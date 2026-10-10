@@ -254,7 +254,7 @@ class CancellationTests(unittest.TestCase):
         connection.execute("UPDATE cancellation_events SET payload_sha256='bad' WHERE sequence=1")
         connection.commit()
         connection.close()
-        with self.assertRaisesRegex(ValueError, "Invalid cancellation event"):
+        with self.assertRaisesRegex(ValueError, "Invalid cancellation event|Protection source digest mismatch"):
             store.status(self.path)
 
     def test_sql_identity_corruption_blocks_all_account_reads(self):

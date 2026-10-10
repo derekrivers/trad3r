@@ -430,7 +430,7 @@ def claim(path, payload):
             result = _report(connection, writer, submissions)
             result.update(outcome="claimed", duplicate=True)
             return result
-        store._require_allocation_clear(connection)
+        store._require_allocation_clear(connection, include_controls=False)
         if connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
             from . import order_reconciliation
             reconciliation, _ = order_reconciliation._read(connection)
