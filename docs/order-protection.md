@@ -52,13 +52,14 @@ Derive states deterministically. Invalid quantity/identity/completeness or a
 negative capacity makes exposure unresolved and available quantity unknown, not
 zero. Otherwise positive holdings are verified long; zero holdings are verified
 flat only with no remaining reserved/possible order, and unresolved otherwise.
-For protection, verified flat takes `not_required`; missing quantity proof takes
-`unknown`. With a verified holding, uncertain or cancel-pending stop remainders
+For protection, verified flat takes `not_required`; unresolved exposure takes
+`unknown`. With verified long exposure, uncertain or cancel-pending stop remainders
 take `unknown`, then full confirmed coverage takes `active`, positive incomplete
 coverage takes `partial`, and queued/submitting stop remainders take `pending`.
-With no coverage or pending stop, the most recent definitive protection rejection
-takes `rejected`; otherwise use `missing`. A successful later stop can restore
-coverage while the earlier incident continues to block entries until resolution.
+With no coverage or pending stop, use `rejected` if the latest protection attempt
+for this entry episode was definitively rejected; otherwise use `missing`. A
+successful later stop can restore coverage while the earlier incident continues
+to block entries until resolution.
 Reject a purported coverage quantity greater than holdings as conflicting evidence.
 
 ## Verified management authority
@@ -122,11 +123,13 @@ blocks new dispatch; do not silently invent a short position or discard the fill
 
 Bind a settled-cash fee allowance to each reserved exit. Partition the entry's
 original exit-fee allowance between incurred exit fees and outstanding allocations;
-never count the same allowance twice. Their sum cannot exceed that original bound.
-A partial fill, cancellation or new exit ID cannot replenish it. If proposed
+never count the same allowance twice. A new authorization cannot make their sum
+exceed that original bound. A partial fill, cancellation or new exit ID cannot
+replenish it. If proposed
 fragmented exits need more fees than the original plan permits, record an incident
 and withhold those submissions; this contract grants no larger planned-risk budget.
-Actual unexpected charges still enter accounting and risk assessment. Keep the
+Actual unexpected charges may exceed that bound and must still enter accounting
+and risk assessment; they do not authorize another allocation. Keep the
 entry's original exposure/loss allocations conservatively until the position and
 entry remainder are gone and fees are accounted; do not prorate them merely
 because a stop exists. A fee-only residual can remain after verified flatness.
@@ -276,7 +279,7 @@ Run concurrency cases with independent connections; do not mock away transaction
 | ID | Scenario and required result | Package |
 | --- | --- | --- |
 | X01 | Paused and daily-halted account with verified holdings: block entry; permit a fully evidenced reduction with free capacity; preserve every halt and attempt. | A, E, F |
-| X02 | Flat, halted account with pending sale cash: flat/not-required protection, halt remains, pending cash unspendable. A paused flat account is still paused. | A, C, F |
+| X02 | Flat, halted account with pending sale cash: flat/not-required protection, halt remains, pending cash unspendable. A paused flat account is still paused. Zero holdings with a reserved or possibly live entry is unresolved exposure/unknown protection, never verified flat or active protection. | A, C, F |
 | X03 | A stop price in an entry proposal, then a queued/acknowledged stop: coverage remains zero until complete correlated working evidence; assert pending then active. | A, E |
 | X04 | Two distinct concurrent exits each seek all two held shares: exactly one reserves two, the other cannot dispatch; entry attempts unchanged. Two one-share requests may reserve one each with fee bounds $0.15 and $0.20; two $0.35 fee bounds cannot reuse the original $0.35 allowance. | B, E |
 | X05 | Stop already commits all shares: another exit cannot reserve them, including while the stop is submitting, unknown or cancel pending. | A, B, E |
