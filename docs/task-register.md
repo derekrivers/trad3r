@@ -61,7 +61,7 @@ evaluator is implemented in [PR #36](https://github.com/derekrivers/trad3r/pull/
 with 20 deterministic tests. Package B is implemented in
 [PR #37](https://github.com/derekrivers/trad3r/pull/37) with 19 focused tests and
 Astra review fixes for retained-input replay, freshness and identity blocking;
-package C is delivered in [PR #38](https://github.com/derekrivers/trad3r/pull/38) with 19 focused tests and critical review fixes. Package D is delivered in [PR #39](https://github.com/derekrivers/trad3r/pull/39) with 12 focused tests and critical review fixes. Package E is delivered in [PR #40](https://github.com/derekrivers/trad3r/pull/40) with 14 focused tests for marker-first reducing-limit and protective-stop dispatch. Package F in [PR #41](https://github.com/derekrivers/trad3r/pull/41) adds [durable controls and synthetic owner recovery](order-controls.md) with 18 focused tests.
+package C is delivered in [PR #38](https://github.com/derekrivers/trad3r/pull/38) with 19 focused tests and critical review fixes. Package D is delivered in [PR #39](https://github.com/derekrivers/trad3r/pull/39) with 12 focused tests and critical review fixes. Package E is delivered in [PR #40](https://github.com/derekrivers/trad3r/pull/40) with 14 focused tests for marker-first reducing-limit and protective-stop dispatch. Package F in [PR #41](https://github.com/derekrivers/trad3r/pull/41) adds [durable controls and synthetic owner recovery](order-controls.md) with 19 focused tests.
 Package G covers integrated faults. Return
 to Astra for changed financial/identity semantics and critical final-diff review.
 The scenarios are specifications until executable implementation evidence is linked.

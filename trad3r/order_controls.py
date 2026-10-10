@@ -201,12 +201,37 @@ def _request(raw):
     return value
 
 
+def _validate_step(connection, prior_sources, sources, kind):
+    deltas = {key: sources[key][0] - prior_sources[key][0] for key in SOURCES}
+    if any(delta < 0 for delta in deltas.values()):
+        raise ValueError("Protection sources moved backwards")
+    if kind != "observation":
+        if sources != prior_sources:
+            raise ValueError("Control command cannot replace an evidence observation")
+        return
+    # These journals advance at most once per public write transaction. A
+    # missing observation must not hide a transient contradiction or exposure.
+    if any(deltas[key] > 1 for key in ("account", "entry", "sell", "allocation")):
+        raise ValueError("Protection observation skipped an evidence transition")
+    for key in ("dispatch", "cancellation", "writer"):
+        if deltas[key] <= 1:
+            continue
+        crossed = _events(connection, SOURCES[key], sources[key][0])[prior_sources[key][0]:]
+        if key == "writer":
+            # Reconciliation can update several operations in one transaction;
+            # claims, markers and adapter results each have their own commit.
+            separate = any(event["kind"].startswith(("writer_", "submission_")) for event in crossed)
+        else:
+            separate = any(event["kind"] != "evidence" for event in crossed)
+        if separate or not (deltas["entry"] or deltas["sell"]):
+            raise ValueError("Protection observation skipped an operation transition")
+
+
 def _transition(connection, prior, event, commands):
     state = deepcopy(prior)
     sources = event["sources"]
     facts = _facts(connection, sources)
-    if any(sources[key][0] < prior["sources"][key][0] for key in SOURCES):
-        raise ValueError("Protection sources moved backwards")
+    _validate_step(connection, prior["sources"], sources, event["kind"])
     at = utc(event["at"])
     if at < max(utc(prior["as_of"]), utc(facts["as_of"])):
         raise ValueError("Protection control time moved backwards")

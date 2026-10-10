@@ -329,6 +329,22 @@ class ProtectionControlTests(unittest.TestCase):
         self.assertEqual(report["facts"]["covered_quantity"], 0)
         self.assertTrue(any(row["status"] == "open" for row in report["incidents"]))
 
+    def test_deleted_intermediate_observation_cannot_be_hidden_by_rehashing(self):
+        _, request = self.stop_position()
+        dispatch.dispatch_synthetic(self.path, request, "accept_then_timeout")
+        with sqlite3.connect(self.path) as connection:
+            rows = connection.execute(
+                "SELECT sequence,payload FROM protection_control_events ORDER BY sequence DESC LIMIT 3").fetchall()
+            latest, omitted, previous = rows
+            event = store.decode(latest[1])
+            prior = store.decode(previous[1])["state"]
+            event["prior_sha256"] = store.digest(prior)
+            connection.execute("DELETE FROM protection_control_events WHERE sequence>=?", (omitted[0],))
+            connection.execute("INSERT INTO protection_control_events VALUES (?, ?, ?)",
+                               (omitted[0], store.digest(event), store.pack(event)))
+        with self.assertRaisesRegex(ValueError, "skipped an operation transition"):
+            controls.status(self.path)
+
     def test_stop_lost_ack_holds_quantity_and_opens_an_incident(self):
         helper, request = self.stop_position()
         adapter = dispatch.SyntheticReducingAdapter()

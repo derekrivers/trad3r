@@ -34,7 +34,10 @@ changes. The observation and originating operation either both commit or both
 roll back. Protection replay reconstructs each historical observation from its
 bounded retained journal prefixes. It verifies every control transition, source
 digest, sequence, prior-state digest and materialized state. Missing observations
-and rehashed false control projections fail closed on reopening. Reads cannot
+and rehashed false control projections fail closed on reopening. Replay also
+rejects skipped observations across separately committed evidence/operation
+transitions, so an omitted intermediate incident cannot disappear behind newer
+source digests. Reads cannot
 repair the journal. The existing journals continue to validate their underlying
 inputs and accounting independently.
 
@@ -80,7 +83,7 @@ blocking conflict without applying the changed action.
 
 ## Evidence and limits
 
-Eighteen deterministic tests in `tests/test_order_controls.py` cover persisted pause/flatten gates, possible-entry
+Nineteen deterministic tests in `tests/test_order_controls.py` cover persisted pause/flatten gates, possible-entry
 flatness, paused/halted reductions, pending cash and halt preservation through
 recovery, forged authority/reset fields, new/fresh/version-bound recovery evidence,
 incident retention, manual quantity contradictions, concurrent exact retries,
