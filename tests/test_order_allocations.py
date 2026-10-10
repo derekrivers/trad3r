@@ -125,14 +125,14 @@ class ReducingAllocationTests(unittest.TestCase):
         return values
 
     def test_v4_starts_explicitly_and_v3_remains_readable_without_migration(self):
-        with sqlite3.connect(self.path) as connection:
+        with contextlib.closing(sqlite3.connect(self.path)) as connection:
             self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 4)
         self.assertEqual(allocations.status(self.path)["version"], 0)
         self.assertEqual(store.status(self.path)["position_quantity"], 2)
 
         old = Path(self.root.name) / "v3.sqlite"
         store.initialize(old, self.account())
-        with sqlite3.connect(old) as connection:
+        with contextlib.closing(sqlite3.connect(old)) as connection:
             self.assertEqual(connection.execute("PRAGMA user_version").fetchone()[0], 3)
         self.assertEqual(store.status(old)["version"], 0)
         with self.assertRaisesRegex(ValueError, "fresh v4"):
@@ -262,7 +262,7 @@ class ReducingAllocationTests(unittest.TestCase):
         self.assertEqual(allocations.status(self.path)["version"], 0)
 
     def test_failed_audit_write_rolls_back_reservation(self):
-        with sqlite3.connect(self.path) as connection:
+        with contextlib.closing(sqlite3.connect(self.path)) as connection:
             connection.execute(
                 "CREATE TRIGGER fail_reducing_audit BEFORE INSERT ON reducing_allocation_audit "
                 "BEGIN SELECT RAISE(ABORT, 'injected allocation audit failure'); END")
@@ -286,7 +286,7 @@ class ReducingAllocationTests(unittest.TestCase):
                 path = Path(self.root.name) / f"damage-{index}.sqlite"
                 self.prepare_position(path)
                 allocations.admit(path, self.request_for(path, "damage"))
-                with sqlite3.connect(path) as connection:
+                with contextlib.closing(sqlite3.connect(path)) as connection:
                     if index == 2:
                         raw = connection.execute(
                             "SELECT payload FROM reducing_allocation_state WHERE id=1").fetchone()[0]
@@ -306,7 +306,7 @@ class ReducingAllocationTests(unittest.TestCase):
         rejected = allocations.admit(self.path, self.request("second", quantity=2, fee="0"))
         self.assertEqual(rejected["state"] if "state" in rejected else rejected["outcome"],
                          "rejected")
-        with sqlite3.connect(self.path) as connection:
+        with contextlib.closing(sqlite3.connect(self.path)) as connection:
             raw = connection.execute(
                 "SELECT payload FROM reducing_allocations WHERE allocation_id='allocation-second'"
             ).fetchone()[0]
