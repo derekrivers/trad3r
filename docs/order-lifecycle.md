@@ -1,8 +1,9 @@
 # Durable order lifecycle contract
 
-Contract `order-lifecycle-v1`, defined for P4.1 on 10 October 2026. P4.2 now
-implements its [atomic synthetic admission](order-admission.md) subset. No broker
-adapter exists: P4.3 implements the writer; P4.4 implements reconciliation; P4.5
+Contract `order-lifecycle-v1`, defined for P4.1 on 10 October 2026. P4.2
+implements its [atomic synthetic admission](order-admission.md) subset and P4.3
+implements the [fenced synthetic writer](order-writer.md). No broker adapter
+exists: P4.4 implements reconciliation; P4.5
 implements exposure protection. These components must be tested together before
 the Phase 4 exit gate can pass.
 
@@ -234,8 +235,9 @@ after reopening the store. No credentials, network or licensed bars are needed.
 ## Handoff
 
 P4.1 is complete. P4.2 implements the reviewed single-store admission/allocation
-design and its portions of O02–O05, O11 and O14. P4.3 and P4.4 add writer and
-reconciliation evidence; none of their future acceptance cases are credited by
-the admission store. Return to Astra for changes to these states, identity
+design and its portions of O02–O05, O11 and O14. P4.3 implements the single writer,
+marker-before-call boundary, fenced ownership, explicit recovery and its portions
+of O02, O05, O06, O11, O13 and O14. P4.4 adds external reconciliation evidence;
+P4.3 does not claim its execution/accounting cases. Return to Astra for changes to these states, identity
 semantics, financial invariants or uncertain-outcome rules. Connected paper and
 live gates stay closed.

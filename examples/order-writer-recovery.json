@@ -1,0 +1,7 @@
+{
+  "schema": "order-writer-recovery-v1",
+  "recovery_id": "writer-recovery-001",
+  "owner_id": "synthetic-writer-001",
+  "epoch": 1,
+  "at": "2026-09-04T14:00:50Z"
+}

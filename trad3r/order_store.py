@@ -18,7 +18,8 @@ from .risk import Mark, Policy, assess, money, planned_long_loss
 
 
 APP_ID = 0x54524434
-DATABASE_VERSION = 1
+DATABASE_VERSION = 2
+SUPPORTED_DATABASE_VERSIONS = {1, 2}
 ACCOUNT_SCHEMA = "synthetic-order-account-v1"
 STATE_SCHEMA = "order-account-state-v1"
 ADMISSION_SCHEMA = "order-admission-v1"
@@ -109,7 +110,7 @@ def database(path, write=False):
         connection.execute("PRAGMA synchronous=FULL")
         if connection.execute("PRAGMA application_id").fetchone()[0] != APP_ID:
             raise ValueError("Not a Trad3r order database")
-        if connection.execute("PRAGMA user_version").fetchone()[0] != DATABASE_VERSION:
+        if connection.execute("PRAGMA user_version").fetchone()[0] not in SUPPORTED_DATABASE_VERSIONS:
             raise ValueError("Unsupported order database version")
         if connection.execute("PRAGMA quick_check").fetchone()[0] != "ok":
             raise ValueError("Order database integrity check failed")
@@ -198,6 +199,18 @@ def _record_payload(raw):
     return value
 
 
+def _release_payload(raw):
+    value = decode(raw)
+    if (not isinstance(value, dict) or set(value) != {
+            "intent_id", "reason", "at", "committed_version"}
+            or value["reason"] != "expired_authority"):
+        raise ValueError("Invalid stored reservation release")
+    _identity(value["intent_id"], "released intent id")
+    _timestamp_string(value["at"], "release time")
+    _version(value["committed_version"], "release committed version")
+    return value
+
+
 def _read_state(connection):
     row = connection.execute("SELECT payload FROM account_state WHERE id=1").fetchone()
     if row is None:
@@ -235,24 +248,40 @@ def _read_state(connection):
         if incident_id != digest(identity):
             raise ValueError("Stored order incident digest mismatch")
         incidents.append(incident)
+    releases = []
+    release_rows = [] if connection.execute("PRAGMA user_version").fetchone()[0] < 2 else connection.execute(
+        "SELECT intent_id,payload FROM reservation_releases ORDER BY committed_version")
+    for intent_id, raw in release_rows:
+        release = _release_payload(raw)
+        if intent_id != release["intent_id"]:
+            raise ValueError("Reservation release identity columns disagree with payload")
+        record = next((row for row in records if row["intent_id"] == intent_id), None)
+        if record is None or record["state"] != "reserved":
+            raise ValueError("Reservation release has no accepted admission")
+        if utc(release["at"]) < utc(record["reservation"]["expires_at"]):
+            raise ValueError("Reservation was released before its authority expired")
+        releases.append(release)
     events = []
     for expected, (sequence, kind, key, payload_sha) in enumerate(connection.execute(
             "SELECT sequence,kind,event_key,payload_sha256 FROM audit ORDER BY sequence"), 1):
-        if sequence != expected or kind not in ("admission", "incident"):
+        if sequence != expected or kind not in ("admission", "incident", "release"):
             raise ValueError("Order audit sequence or kind mismatch")
         events.append((kind, key, payload_sha))
     expected_events = (
         [(row["committed_version"], "admission", row["intent_id"], digest(row)) for row in records]
         + [(row["committed_version"], "incident", row["incident_id"], digest(row)) for row in incidents]
+        + [(row["committed_version"], "release", row["intent_id"], digest(row)) for row in releases]
     )
     expected_events = [(kind, key, payload_sha) for _, kind, key, payload_sha in sorted(expected_events)]
     if events != expected_events or state["version"] != len(events):
         raise ValueError("Order audit/state reconstruction mismatch")
     if any(row["committed_version"] != index for index, row in enumerate(
-            sorted(records + incidents, key=lambda item: item["committed_version"]), 1)):
+            sorted(records + incidents + releases, key=lambda item: item["committed_version"]), 1)):
         raise ValueError("Order committed versions are not contiguous")
     attempts = sum(row["attempt_consumed"] for row in records)
-    reserved = [row["reservation"] for row in records if row["state"] == "reserved"]
+    released_ids = {row["intent_id"] for row in releases}
+    reserved = [row["reservation"] for row in records
+                if row["state"] == "reserved" and row["intent_id"] not in released_ids]
     if len(reserved) > 1:
         raise ValueError("Multiple entry reservations violate the v1 account slot")
     totals = {
@@ -345,8 +374,17 @@ def initialize(path, snapshot):
         connection.execute("CREATE TABLE account_state (id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT NOT NULL)")
         connection.execute("CREATE TABLE intents (intent_id TEXT PRIMARY KEY, candidate_id TEXT UNIQUE NOT NULL, client_order_id TEXT UNIQUE NOT NULL, proposal_sha256 TEXT NOT NULL, committed_version INTEGER UNIQUE NOT NULL, payload TEXT NOT NULL)")
         connection.execute("CREATE TABLE incidents (incident_id TEXT PRIMARY KEY, committed_version INTEGER UNIQUE NOT NULL, payload TEXT NOT NULL)")
+        connection.execute("CREATE TABLE reservation_releases (intent_id TEXT PRIMARY KEY, committed_version INTEGER UNIQUE NOT NULL, payload TEXT NOT NULL)")
         connection.execute("CREATE TABLE audit (sequence INTEGER PRIMARY KEY, kind TEXT NOT NULL, event_key TEXT NOT NULL, payload_sha256 TEXT NOT NULL)")
+        connection.execute("CREATE TABLE writer_state (id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT NOT NULL)")
+        connection.execute("CREATE TABLE submissions (operation_id TEXT PRIMARY KEY, intent_id TEXT UNIQUE NOT NULL, client_order_id TEXT UNIQUE NOT NULL, broker_order_id TEXT UNIQUE, payload TEXT NOT NULL)")
+        connection.execute("CREATE TABLE writer_events (sequence INTEGER PRIMARY KEY, event_id TEXT UNIQUE NOT NULL, kind TEXT NOT NULL, payload_sha256 TEXT NOT NULL, payload TEXT NOT NULL)")
+        writer = {"schema": "order-writer-state-v1", "version": 0, "epoch": 0,
+                  "owner_id": None, "claim_id": None, "claimed_at": None,
+                  "disarmed": True, "unresolved_reasons": [],
+                  "live_trading_enabled": False}
         connection.execute("INSERT INTO account_state VALUES (1, ?)", (pack(state),))
+        connection.execute("INSERT INTO writer_state VALUES (1, ?)", (pack(writer),))
         connection.commit()
         connection.close()
     except BaseException:
@@ -367,7 +405,12 @@ def history(path):
         _read_state(connection)
         output = []
         for kind, key in connection.execute("SELECT kind,event_key FROM audit ORDER BY sequence"):
-            table, column = ("intents", "intent_id") if kind == "admission" else ("incidents", "incident_id")
+            if kind == "admission":
+                table, column = "intents", "intent_id"
+            elif kind == "incident":
+                table, column = "incidents", "incident_id"
+            else:
+                table, column = "reservation_releases", "intent_id"
             raw = connection.execute(f"SELECT payload FROM {table} WHERE {column}=?", (key,)).fetchone()[0]
             output.append(decode(raw))
         return output
@@ -443,6 +486,33 @@ def _write_state(connection, state):
     connection.execute("UPDATE account_state SET payload=? WHERE id=1", (pack(state),))
 
 
+def _release_reservation(connection, state, record, at):
+    """Release never-dispatched authority only after its immutable expiry."""
+    at = _timestamp_string(at, "release time")
+    if record["state"] != "reserved" or at < utc(record["reservation"]["expires_at"]):
+        raise ValueError("Reservation authority has not expired")
+    existing = connection.execute(
+        "SELECT payload FROM reservation_releases WHERE intent_id=?", (record["intent_id"],)
+    ).fetchone()
+    if existing is not None:
+        return _release_payload(existing[0])
+    if money(state["reserved_cash_usd"]) == 0:
+        raise ValueError("Reservation resources are already unavailable")
+    version = state["version"] + 1
+    release = {"intent_id": record["intent_id"], "reason": "expired_authority",
+               "at": at.isoformat(), "committed_version": version}
+    connection.execute("INSERT INTO reservation_releases VALUES (?, ?, ?)",
+                       (record["intent_id"], version, pack(release)))
+    connection.execute("INSERT INTO audit VALUES (?, 'release', ?, ?)",
+                       (version, record["intent_id"], digest(release)))
+    state["version"] = version
+    state["reserved_cash_usd"] = "0"
+    state["reserved_exposure_gbp"] = "0"
+    state["reserved_loss_gbp"] = "0"
+    _write_state(connection, state)
+    return release
+
+
 def admit(path, proposal):
     intent_id, candidate_id, client_order_id = _shallow_proposal(proposal)
     proposal_sha = digest(proposal)
@@ -456,6 +526,17 @@ def admit(path, proposal):
         if len(records) == 1 and all(records[0][field] == value for field, value in (
                 ("intent_id", intent_id), ("candidate_id", candidate_id),
                 ("client_order_id", client_order_id), ("proposal_sha256", proposal_sha))):
+            release = None
+            if connection.execute("PRAGMA user_version").fetchone()[0] >= 2:
+                release = connection.execute(
+                    "SELECT payload FROM reservation_releases WHERE intent_id=?", (intent_id,)
+                ).fetchone()
+            if release is not None:
+                released = _release_payload(release[0])
+                result = _current_result(records[0], state, duplicate=True)
+                result.update(outcome="cancelled", reasons=[released["reason"]],
+                              reservation=None, release=released)
+                return result
             return _current_result(records[0], state, duplicate=True)
         if records:
             incoming = {"intent_id": intent_id, "candidate_id": candidate_id,

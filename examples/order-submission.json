@@ -1,0 +1,9 @@
+{
+  "schema": "order-submission-operation-v1",
+  "operation_id": "submit-operation-001",
+  "intent_id": "intent-001",
+  "owner_id": "synthetic-writer-001",
+  "epoch": 1,
+  "at": "2026-09-04T14:00:40Z",
+  "expected_account_version": 1
+}

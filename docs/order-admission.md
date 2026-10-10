@@ -1,9 +1,11 @@
 # Atomic synthetic order admission
 
-P4.2 implements `order-admission-v1` in a new, broker-neutral SQLite store. It
+P4.2 implements `order-admission-v1` in a new, broker-neutral SQLite store. P4.3
+now extends newly created stores with the separate [synthetic writer](order-writer.md).
+Admission itself
 persists a synthetic account snapshot, immutable order identities, entry attempts,
 cash/risk reservations, identity incidents and an audit sequence in one local
-transaction. It has no adapter, network, submission, fill or cancellation method.
+transaction. It has no network, fill or broker reconciliation method.
 Every result states `live_trading_enabled: false`.
 
 This store is the implementation foundation for the
@@ -83,12 +85,11 @@ sequence holes or integrity errors fail closed. This detects inconsistent data; 
 does not provide cryptographic protection against a privileged actor coherently
 rewriting the entire database. Use a local filesystem and protected backups.
 
-An accepted intent stops in `reserved`. Expiry is stored and immutable, but no
-writer exists to revalidate or dispatch it. P4.3 must recheck expiry, every bound
-version, current evidence, halts, reconciliation and writer ownership. An expired
-reservation must be locally cancelled and released through a reviewed transaction;
-it cannot be extended, submitted or silently discarded. This PR does not yet
-implement that transition.
+An accepted intent stops in `reserved`. Expiry is stored and immutable. The P4.3
+writer rechecks expiry, every bound version, evidence age, halts and fenced
+ownership. It locally cancels and releases a never-dispatched expired reservation
+without refunding its attempt, and writes an operation tombstone so it cannot be
+submitted later. It cannot extend, renew or silently discard the authority.
 
 ## Verified scope and next work
 
@@ -98,8 +99,9 @@ versions/evidence, expiry binding, storage rollback, corruption and invalid inpu
 They also check each resource limit and latched loss rejection. Tests use only
 invented inputs.
 
-P4.3 adds the single fenced writer, durable dispatch marker and synthetic adapter.
-It must never submit automatically on restart or retry a possibly sent command.
-P4.4 then applies broker events and accounting/reconciliation atomically. P4.5 owns
+P4.3 now supplies the [single fenced writer](order-writer.md), durable dispatch
+marker and synthetic adapter. It never submits automatically on restart or retries
+a possibly sent command. P4.4 then applies broker events and
+accounting/reconciliation atomically. P4.5 owns
 position-reducing exits and protection incidents. Connected paper and live gates
 remain closed.

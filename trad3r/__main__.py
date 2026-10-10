@@ -13,7 +13,7 @@ from .data import decode, load_sample, parse_bar
 from .risk import Mark, assess
 from .ledger import Ledger, replay_ledger
 from .admission import check_entry
-from . import order_store, risk_store
+from . import order_store, order_writer, risk_store
 from .simulation import simulate, simulate_series, simulate_research_series
 from .batches import completed_batches
 from .features import FEATURE_SCHEMA, feature_snapshots
@@ -109,6 +109,16 @@ def main(argv=None):
         sub.add_argument("database", type=Path)
         if command in ("order-init", "order-admit"):
             sub.add_argument("input", type=Path, help="Synthetic account snapshot or entry proposal JSON")
+    for command in ("order-writer-claim", "order-dispatch-synthetic", "order-writer-recover"):
+        sub = commands.add_parser(command, help="Fenced synthetic order writer; no broker or live endpoint")
+        sub.add_argument("database", type=Path)
+        sub.add_argument("input", type=Path)
+        if command == "order-dispatch-synthetic":
+            sub.add_argument("--outcome", required=True,
+                             choices=("acknowledged", "rejected", "accept_then_timeout"))
+    for command in ("order-writer-status", "order-writer-history"):
+        sub = commands.add_parser(command, help="Inspect the synthetic order writer")
+        sub.add_argument("database", type=Path)
     args = parser.parse_args(argv)
     try:
         if args.command == "rehearse-controls":
@@ -221,6 +231,22 @@ def main(argv=None):
                 result = order_store.history(args.database)
             else:
                 result = order_store.status(args.database)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
+        if args.command in ("order-writer-claim", "order-dispatch-synthetic",
+                            "order-writer-recover", "order-writer-status",
+                            "order-writer-history"):
+            if args.command == "order-writer-claim":
+                result = order_writer.claim(args.database, decode(args.input.read_bytes()))
+            elif args.command == "order-dispatch-synthetic":
+                result = order_writer.dispatch_synthetic(
+                    args.database, decode(args.input.read_bytes()), args.outcome)
+            elif args.command == "order-writer-recover":
+                result = order_writer.recover(args.database, decode(args.input.read_bytes()))
+            elif args.command == "order-writer-history":
+                result = order_writer.history(args.database)
+            else:
+                result = order_writer.status(args.database)
             print(json.dumps(result, default=str, sort_keys=True, indent=2))
             return 0
         if args.command in ("risk-init", "risk-status", "risk-history", "risk-record"):

@@ -1,0 +1,7 @@
+{
+  "schema": "order-writer-claim-v1",
+  "claim_id": "writer-claim-001",
+  "owner_id": "synthetic-writer-001",
+  "at": "2026-09-04T14:00:35Z",
+  "expected_epoch": 0
+}
