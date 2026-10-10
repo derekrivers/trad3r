@@ -24,7 +24,7 @@ cost-conscious starting model to all 64 master-plan tasks.
 | P1.5 recovery | complete | P1.4 synthetic | `ea44cc8`; eight installed-package recovery tests passed inside sandbox | Offline job faults only; no broker reconciliation claim |
 | P1.6 backups | in progress | P1.4 synthetic | `ea44cc8`; five-file checksum inventory and separate restore returned already_complete; disk/log checks recorded | Select off-host destination, recurring backup/monitoring and bounded retention; local copies insufficient |
 | P4.1 order contract | complete | Independent synthetic design | [PR #29](https://github.com/derekrivers/trad3r/pull/29); [order lifecycle v1](order-lifecycle.md); reviewed transition/identity contract and 14 synthetic acceptance specifications | Definition complete; implementation credit is tracked separately in P4.2–P4.5 |
-| P4.2 atomic admission | complete | P4.1 contract | [Atomic admission](order-admission.md); deterministic duplicate/conflict/concurrency/restart/rollback tests | Synthetic flat-account reservations only; no writer, adapter, fills, cancellation or migration of the existing risk/ledger history |
+| P4.2 atomic admission | complete | P4.1 contract | [PR #30](https://github.com/derekrivers/trad3r/pull/30); [atomic admission](order-admission.md); deterministic duplicate/conflict/concurrency/restart/rollback tests | Synthetic flat-account reservations only; no writer, adapter, fills, cancellation or migration of the existing risk/ledger history |
 
 P0's permitted exit is met: missing design/private inputs block only dependent
 work. The original stock sample and replay hashes are now verified. Other missing
