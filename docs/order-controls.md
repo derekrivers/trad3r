@@ -1,6 +1,6 @@
 # Durable protection controls and synthetic owner recovery
 
-P4.5 package F adds `trad3r.order_controls` to freshly initialized version-4
+P4.5 package F in [PR #41](https://github.com/derekrivers/trad3r/pull/41) adds `trad3r.order_controls` to freshly initialized version-4
 synthetic order stores. It implements the control portions of X01/X02/X11/X14/
 X15/X20–X22. Package G remains responsible for the complete integrated acceptance
 matrix and lifecycle rehearsal.
@@ -80,7 +80,7 @@ blocking conflict without applying the changed action.
 
 ## Evidence and limits
 
-`tests/test_order_controls.py` covers persisted pause/flatten gates, possible-entry
+Eighteen deterministic tests in `tests/test_order_controls.py` cover persisted pause/flatten gates, possible-entry
 flatness, paused/halted reductions, pending cash and halt preservation through
 recovery, forged authority/reset fields, new/fresh/version-bound recovery evidence,
 incident retention, manual quantity contradictions, concurrent exact retries,

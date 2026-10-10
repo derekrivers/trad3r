@@ -119,7 +119,7 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   fenced synthetic cancellation and evidence-only quantity release.
 - Delivered in [PR #40](https://github.com/derekrivers/trad3r/pull/40): package E
   marker-first synthetic reducing-limit and protective-stop dispatch.
-- Delivered: [package F durable protection controls](order-controls.md), including
+- Delivered in [PR #41](https://github.com/derekrivers/trad3r/pull/41): [package F durable protection controls](order-controls.md), including
   pause, desired action, latched incidents and evidence-bound synthetic owner recovery.
 - Next: package G integrated restart, concurrency, fault and lifecycle rehearsal
   on Sol High, with Astra review of financial and recovery invariants.
