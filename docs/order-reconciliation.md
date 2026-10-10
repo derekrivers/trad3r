@@ -132,3 +132,9 @@ are durable incidents. Incomplete snapshots do not change account facts. Exact
 duplicates precede version checks. Every read replays retained input and checks
 writer/allocation evidence, the prior account version, output adjustment and event
 digests. V3 behavior and schema remain unchanged.
+
+Replay checks each retained input's digest and identity columns and requires its
+writer-disarm event. Identity collisions are evaluated in receipt order, including
+IDs retained by entry reconciliation. A subsequent ordinary snapshot keeps an
+incident latched and the store readable. Fee revisions apply to buys as well as
+sells: entry costs adjust settled cash, while sale costs adjust the pending lot.

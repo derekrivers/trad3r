@@ -232,6 +232,19 @@ def _latest_commissions(rows):
     return by_id, by_execution, conflict
 
 
+def _fee_extends(current, prior):
+    """A fee may keep its facts or advance revision without changing identity."""
+    if current is None:
+        return False
+    if all(current[key] == value for key, value in prior.items()):
+        return True
+    return (all(current[key] == prior[key] for key in
+                ("commission_id", "execution_id", "currency"))
+            and current["revision"] > prior["revision"]
+            and utc(current["at"]) >= utc(prior["at"])
+            and (not prior.get("final", False) or current["final"]))
+
+
 def _lot(execution, commission, fee_bound):
     gross = money(execution["price_usd"]) * execution["quantity"]
     if commission is None:
@@ -257,6 +270,11 @@ def _basis_adjustment(connection, version):
     if row is None:
         raise ValueError("Reducing reconciliation requires a reconciled account version")
     return store._adjustment_payload(row[0])
+
+
+def _entry_reconciliation_ids(connection):
+    return {store.decode(row[0])["reconciliation_id"] for row in connection.execute(
+        "SELECT payload FROM reconciliation_inbox")}
 
 
 def _derive(connection, snapshot, prior_state):
@@ -290,19 +308,13 @@ def _derive(connection, snapshot, prior_state):
     prior_commissions, _, _ = _latest_commissions(prior_state["commissions"])
     for identity, row in prior_commissions.items():
         current = commissions_by_id.get(identity)
-        if current != row:
-            stable = {key: value for key, value in row.items()
-                      if key not in ("amount_usd", "at", "revision", "final")}
-            changed = ({key: value for key, value in current.items()
-                        if key not in ("amount_usd", "at", "revision", "final")}
-                       if current is not None else None)
-            if (current is None or changed != stable or current["revision"] <= row["revision"]
-                    or utc(current["at"]) < utc(row["at"]) or (row["final"] and not current["final"])):
-                reasons.append("commission_history_changed")
+        if not _fee_extends(current, row):
+            reasons.append("commission_history_changed")
 
     allocation_state, allocation_records, _ = order_allocations._read(connection)
     reserved = {row["client_order_id"]: row for row in allocation_records
-                if row["state"] == "reserved"}
+                if row["state"] == "reserved"
+                and row["committed_version"] <= snapshot["expected_allocation_version"]}
     entry = connection.execute(
         "SELECT payload FROM intents WHERE intent_id=?", (allocation_state["entry_intent_id"],)).fetchone()
     if entry is None:
@@ -330,7 +342,7 @@ def _derive(connection, snapshot, prior_state):
             reasons.append("cash_history_mismatch")
     for retained in entry_state["commissions"]:
         current = commissions_by_id.get(retained["commission_id"])
-        if current is None or any(current[key] != value for key, value in retained.items()):
+        if not _fee_extends(current, retained):
             reasons.append("cash_history_mismatch")
     known_clients = set(reserved) | set(submissions)
     if set(orders) - known_clients:
@@ -474,7 +486,8 @@ def _account_effect(connection, snapshot, derived, prior_version):
                       if row["execution_id"] in entry_execution_ids), D("0"))
     reserve = D(remaining_buy) * (money(proposal["limit_price_usd"])
                                   + money(proposal["slippage_usd_per_share"]))
-    if remaining_buy:
+    final_entry_ids = {row["execution_id"] for row in derived["commissions"] if row["final"]}
+    if remaining_buy or not entry_execution_ids <= final_entry_ids:
         reserve += max(money(proposal["entry_fee_usd"]) - entry_fees, D("0"))
     reserve += money(derived["outstanding_exit_fees_usd"])
     retain_risk = (derived["verified_quantity"] > 0 or remaining_buy > 0
@@ -570,7 +583,10 @@ def _read(connection):
     if row is None:
         raise ValueError("Reducing reconciliation state missing; fresh v4 initialization required")
     stored = _state_payload(row[0])
-    initial_at = order_allocations._baseline(connection)["at"]
+    baseline = order_allocations._baseline(connection)
+    if stored["account_id"] != baseline["account_id"]:
+        raise ValueError("Reducing reconciliation baseline account mismatch")
+    initial_at = baseline["at"]
     projected = _state_payload(store.pack({
         **stored, "version": 0, "as_of": initial_at, "status": "reconciled",
         "last_snapshot_id": None, "account_version": 0, "entry_intent_id": None,
@@ -580,6 +596,10 @@ def _read(connection):
         "pending_lots": [],
     }))
     events = []
+    seen_inputs, seen_snapshots, seen_reconciliations = set(), set(), set()
+    seen_reconciliations.update(_entry_reconciliation_ids(connection))
+    _, _, writer_events = order_writer._read_writer(connection)
+    last_writer_version = 0
     last_at = utc(initial_at)
     for expected, (sequence, event_id, kind, input_sha, payload_sha, raw) in enumerate(
             connection.execute("SELECT sequence,event_id,kind,input_sha256,payload_sha256,payload "
@@ -604,30 +624,32 @@ def _read(connection):
         event_at = store._timestamp_string(event["at"], "reducing reconciliation event time")
         if event_at < last_at:
             raise ValueError("Reducing reconciliation event time moved backwards")
-        last_at = event_at
         inbox = connection.execute(
-            "SELECT receipt_id,payload_sha256,payload FROM reducing_reconciliation_inbox "
+            "SELECT receipt_id,payload_sha256,payload,snapshot_id,reconciliation_id "
+            "FROM reducing_reconciliation_inbox "
             "WHERE payload_sha256=?", (input_sha,)).fetchone()
         if inbox is None or inbox[0] != input_sha or inbox[1] != input_sha:
             raise ValueError("Reducing reconciliation retained input is missing")
         snapshot = _snapshot(store.decode(inbox[2]))
-        if kind != "incident" and (
+        if (store.digest(snapshot) != input_sha or input_sha in seen_inputs
+                or (snapshot["snapshot_id"], snapshot["reconciliation_id"]) != inbox[3:]):
+            raise ValueError("Reducing reconciliation retained input binding mismatch")
+        identity_reason = ("snapshot_identity_conflict" if snapshot["snapshot_id"] in seen_snapshots
+                           else "reconciliation_identity_conflict"
+                           if snapshot["reconciliation_id"] in seen_reconciliations else None)
+        identity_incident = identity_reason is not None
+        if not identity_incident and (
                 snapshot["expected_reducing_reconciliation_version"] != sequence - 1
-                or snapshot["expected_account_version"] != event["prior_account_version"]):
+                or snapshot["expected_account_version"] != event["prior_account_version"]
+                or snapshot["account_id"] != stored["account_id"]
+                or utc(snapshot["at"]) != event_at):
             raise ValueError("Reducing reconciliation event expected versions disagree")
-        same_snapshot = connection.execute(
-            "SELECT COUNT(*) FROM reducing_reconciliation_inbox WHERE snapshot_id=?",
-            (snapshot["snapshot_id"],)).fetchone()[0] > 1
-        same_reconciliation = connection.execute(
-            "SELECT COUNT(*) FROM reducing_reconciliation_inbox WHERE reconciliation_id=?",
-            (snapshot["reconciliation_id"],)).fetchone()[0] > 1
-        identity_incident = kind == "incident" and bool(
-            set(event["reasons"]) & {"snapshot_identity_conflict", "reconciliation_identity_conflict"})
         if identity_incident:
             if event["writer_evidence_sha256"] is not None or event["allocation_evidence_sha256"] is not None:
                 raise ValueError("Identity incident unexpectedly claims current authority")
+            if event_at < utc(snapshot["at"]):
+                raise ValueError("Identity incident precedes its source time")
         else:
-            _, _, writer_events = order_writer._read_writer(connection)
             _, allocation_records, allocation_incidents = order_allocations._read(connection)
             allocation_history = sorted(allocation_records + allocation_incidents,
                                         key=lambda row: row["committed_version"])
@@ -635,28 +657,47 @@ def _read(connection):
             av = snapshot["expected_allocation_version"]
             if (not 0 < wv <= len(writer_events) or not 0 < av <= len(allocation_history)
                     or store.digest(writer_events[wv - 1]) != event["writer_evidence_sha256"]
-                    or store.digest(allocation_history[av - 1]) != event["allocation_evidence_sha256"]):
+                    or store.digest(allocation_history[av - 1]) != event["allocation_evidence_sha256"]
+                    or event_at < utc(writer_events[wv - 1]["at"])):
                 raise ValueError("Reducing reconciliation authority evidence mismatch")
+            if store._periods(snapshot["at"]) != (baseline["session"], baseline["week"]):
+                raise ValueError("Reducing reconciliation account time binding mismatch")
         derived = ({"reasons": []} if identity_incident
                    else _derive(connection, snapshot, projected))
         durable = sorted(set(derived["reasons"]) & DURABLE_REASONS)
-        if kind in ("snapshot_applied", "snapshot_unresolved"):
-            if event["reasons"] != derived["reasons"]:
-                raise ValueError("Reducing reconciliation outcome reasons disagree with replay")
+        if identity_incident:
+            expected_kind = "incident"
+            expected_reasons = sorted(set(projected["unresolved_reasons"] + [identity_reason]))
+        elif durable or set(projected["unresolved_reasons"]) & DURABLE_REASONS:
+            expected_kind = "incident"
+            expected_reasons = sorted(set(projected["unresolved_reasons"] + durable))
         else:
-            possible = set(projected["unresolved_reasons"] + durable)
-            if same_snapshot:
-                possible.add("snapshot_identity_conflict")
-            elif same_reconciliation:
-                possible.add("reconciliation_identity_conflict")
-            if set(event["reasons"]) != possible:
-                raise ValueError("Reducing reconciliation incident reasons disagree with replay")
+            expected_kind = ("snapshot_unresolved" if set(derived["reasons"]) - {"fee_incomplete"}
+                             else "snapshot_applied")
+            expected_reasons = derived["reasons"]
+        if (kind, event["reasons"]) != (expected_kind, expected_reasons):
+            raise ValueError("Reducing reconciliation outcome disagrees with replay")
         reasons = event["reasons"]
+        clear = ([] if kind == "incident" else
+                 sorted(set(projected["unresolved_reasons"]) & TRANSIENT_REASONS))
+        expected_request = order_reconciliation._writer_reconciliation_request(
+            snapshot["reconciliation_id"], event_at, clear, reasons)
+        candidates = (writer_events[last_writer_version:] if identity_incident
+                      else writer_events[wv:wv + 1])
+        disarm = next((item for item in candidates
+                       if item["kind"] == "reconciliation_disarmed"
+                       and item["request"] == expected_request and utc(item["at"]) == event_at
+                       and item["committed_version"] > last_writer_version), None)
+        if disarm is None:
+            raise ValueError("Reducing reconciliation writer disarm binding mismatch")
+        last_writer_version = disarm["committed_version"]
         expected_state = deepcopy(projected)
         expected_state.update(
             version=sequence, as_of=event["at"], status="unresolved" if reasons else "reconciled",
             last_snapshot_id=snapshot["snapshot_id"], unresolved_reasons=reasons)
         if kind == "snapshot_applied":
+            if event_at < utc(_basis_adjustment(connection, event["prior_account_version"])["at"]):
+                raise ValueError("Reducing reconciliation predates its account basis")
             expected_state.update({key: derived[key] for key in (
                 "entry_intent_id", "instrument_id", "verified_quantity",
                 "committed_sell_quantity", "incurred_exit_fees_usd",
@@ -676,6 +717,13 @@ def _read(connection):
             raise ValueError("Reducing reconciliation state disagrees with retained input replay")
         projected = expected_state
         events.append(event)
+        last_at = event_at
+        seen_inputs.add(input_sha)
+        seen_snapshots.add(snapshot["snapshot_id"])
+        seen_reconciliations.add(snapshot["reconciliation_id"])
+    if len(seen_inputs) != connection.execute(
+            "SELECT COUNT(*) FROM reducing_reconciliation_inbox").fetchone()[0]:
+        raise ValueError("Reducing reconciliation inbox contains unaudited evidence")
     if stored != projected:
         raise ValueError("Reducing reconciliation projection disagrees with event history")
     return stored, events
@@ -735,7 +783,8 @@ def apply(path, raw):
             reasons = ["snapshot_identity_conflict"]
         elif connection.execute(
                 "SELECT 1 FROM reducing_reconciliation_inbox WHERE reconciliation_id=?",
-                (snapshot["reconciliation_id"],)).fetchone():
+                (snapshot["reconciliation_id"],)).fetchone() or (
+                snapshot["reconciliation_id"] in _entry_reconciliation_ids(connection)):
             reasons = ["reconciliation_identity_conflict"]
         else:
             reasons = []

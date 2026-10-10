@@ -137,7 +137,7 @@ selected fresh v4 store with atomic shared sell-quantity and fee reservations,
 replay against retained entry evidence and no dispatch path. New allocations
 require fresh snapshot/quote/FX evidence and a current fenced writer within the
 account's existing regular session. Allocation identity incidents block new
-entries and submission markers. Package C adds cumulative v4 buy/sell evidence,
+entries and submission markers. [Package C](https://github.com/derekrivers/trad3r/pull/38) adds cumulative v4 buy/sell evidence,
 execution-level fee finality and pending T+1 lots without making proceeds spendable.
 Cancellation, reducing dispatch and packages D–G remain pending.
 

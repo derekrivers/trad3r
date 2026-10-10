@@ -371,7 +371,7 @@ def _allocation_blocks(connection):
     from . import order_sell_reconciliation
     sell, _ = order_sell_reconciliation._read(connection)
     reasons = allocation["unresolved_reasons"] + sell["unresolved_reasons"]
-    if (sell["version"] > 0 and sell["verified_quantity"] == 0
+    if (sell["entry_intent_id"] is not None and sell["verified_quantity"] == 0
             and sell["committed_sell_quantity"] == 0):
         # Package C deliberately has no mechanism for closing one protected
         # entry episode and binding a later entry to fresh allocation history.

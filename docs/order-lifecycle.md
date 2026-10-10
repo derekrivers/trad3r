@@ -250,5 +250,5 @@ the shared sell-quantity bound, separate management permissions, cancellation
 protocol, fee allocation, pending-sale accounting and incident recovery. Its
 X01–X24 scenarios refine the protection and cancellation cases above. Packages A
 and B implement the pure permission and durable allocation portions. Package C
-implements cumulative sell accounting and pending lots pending critical review;
+implements reviewed cumulative sell accounting and pending lots in [PR #38](https://github.com/derekrivers/trad3r/pull/38);
 packages D–G remain.

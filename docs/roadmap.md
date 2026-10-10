@@ -114,9 +114,9 @@ Jev is a later optional classifier; its confidence is not a probability of profi
 - Delivered in [PR #37](https://github.com/derekrivers/trad3r/pull/37): P4.5 package B
   fresh-v4 shared sell-quantity and fee allocations, retained-input capacity replay,
   fresh evidence and incident blocking, with no migration or dispatch surface.
-- Implemented pending Astra review: P4.5 package C cumulative buy/sell accounting,
+- Delivered in [PR #38](https://github.com/derekrivers/trad3r/pull/38): P4.5 package C cumulative buy/sell accounting,
   fee finality, retained contradictions and pending lots with no cash-release path.
-- Next after review: package D fenced cancellation operations on Sol High.
+- Next: package D fenced cancellation operations on Sol High.
   Close private-input and off-host
   backup dependencies independently and qualify forward data.
   Durable paper period transitions require a separate owner-reviewed policy.

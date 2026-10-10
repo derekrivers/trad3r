@@ -556,6 +556,136 @@ class SellReconciliationTests(unittest.TestCase):
         self.assertFalse(sells.status(self.path)["dispatch_authorized"])
         self.assertFalse(sells.status(self.path)["settlement_release_enabled"])
 
+    def test_identity_incident_followed_by_fresh_evidence_remains_readable_and_latched(self):
+        execution = self.sell_execution()
+        snapshot = self.snapshot("identity-chain", [execution], [self.sell_fee()],
+                                 pending=[self.lot(execution)])
+        sells.apply(self.path, snapshot)
+        changed = deepcopy(snapshot)
+        changed["mark"]["equity"] = "999"
+        sells.apply(self.path, changed)
+        clean = self.snapshot("clean-after-identity", [execution], [self.sell_fee()],
+                              pending=[self.lot(execution)], at="2026-09-04T14:01:05Z")
+        result = sells.apply(self.path, clean)
+        self.assertEqual(result["unresolved_reasons"], ["snapshot_identity_conflict"])
+        self.assertEqual(sells.status(self.path)["version"], 3)
+        # A later collision must not retrospectively change an older incident's reasons.
+        later = deepcopy(clean)
+        later["mark"]["equity"] = "998"
+        sells.apply(self.path, later)
+        self.assertEqual(len(sells.history(self.path)), 4)
+        self.assertIn("snapshot_identity_conflict", store.status(self.path)["blocked_reasons"])
+
+    def test_revised_entry_fee_debits_settled_cash_without_changing_sale_lot(self):
+        execution = self.sell_execution()
+        snapshot = self.snapshot("entry-fee-initial", [execution], [self.sell_fee()],
+                                 pending=[self.lot(execution)])
+        sells.apply(self.path, snapshot)
+        revised = self.snapshot("entry-fee-revised", [execution], [self.sell_fee()],
+                                pending=[self.lot(execution)], at="2026-09-04T14:01:05Z")
+        revised["commissions"][0].update(amount_usd="0.45", revision=1,
+                                         at="2026-09-04T14:01:01Z")
+        revised["currency_cash"]["USD"] = "299.55"
+        result = sells.apply(self.path, revised)
+        self.assertEqual(result["outcome"], "reconciled")
+        self.assertEqual(store.status(self.path)["settled_cash_usd"], "299.55")
+        self.assertEqual(store.status(self.path)["unsettled_usd"], "198.65")
+        self.assertTrue(sells.apply(self.path, revised)["duplicate"])
+
+    def test_retained_input_digest_and_sql_identity_are_verified_on_every_read(self):
+        for field in ("payload", "snapshot_id", "reconciliation_id"):
+            with self.subTest(field=field):
+                original = self.path
+                self.path = Path(self.root.name) / f"retained-{field}.sqlite"
+                try:
+                    self.prepare()
+                    snapshot = self.snapshot("incomplete-binding", complete=False)
+                    sells.apply(self.path, snapshot)
+                    with contextlib.closing(sqlite3.connect(self.path)) as connection:
+                        if field == "payload":
+                            snapshot["mark"]["equity"] = "999"
+                            value = store.pack(sells._snapshot(snapshot))
+                        else:
+                            value = "changed-identity"
+                        connection.execute(
+                            f"UPDATE reducing_reconciliation_inbox SET {field}=?", (value,))
+                        connection.commit()
+                    for read in (store.status, sells.status, writer.status,
+                                 entry_reconciliation.status, allocations.status):
+                        with self.assertRaises(ValueError):
+                            read(self.path)
+                finally:
+                    self.path = original
+
+    def test_entry_reconciliation_id_collision_is_retained_without_account_effect(self):
+        execution = self.sell_execution()
+        snapshot = self.snapshot("cross-namespace", [execution], [self.sell_fee()],
+                                 pending=[self.lot(execution)])
+        snapshot["reconciliation_id"] = "entry-reconciliation"
+        before = store.status(self.path)
+        result = sells.apply(self.path, snapshot)
+        self.assertEqual(result["unresolved_reasons"], ["reconciliation_identity_conflict"])
+        self.assertEqual(store.status(self.path)["version"], before["version"])
+        self.assertTrue(sells.apply(self.path, snapshot)["duplicate"])
+        self.assertEqual(len(sells.history(self.path)), 1)
+
+    def test_provisional_entry_fee_keeps_unused_entry_allowance_when_flat(self):
+        execution = self.sell_execution()
+        snapshot = self.snapshot("entry-provisional", [execution], [self.sell_fee()],
+                                 pending=[self.lot(execution)])
+        snapshot["commissions"][0].update(amount_usd="0.10", revision=1, final=False,
+                                          at="2026-09-04T14:00:59Z")
+        snapshot["currency_cash"]["USD"] = "299.90"
+        result = sells.apply(self.path, snapshot)
+        self.assertEqual(result["unresolved_reasons"], ["fee_incomplete"])
+        account = store.status(self.path)
+        self.assertEqual(money(account["reserved_cash_usd"]), D("0.60"))
+        self.assertGreater(money(account["reserved_loss_gbp"]), D("0"))
+
+    def test_replay_rejects_missing_disarm_rehashed_event_time_and_orphan_input(self):
+        for mutation in ("disarm", "time", "orphan"):
+            with self.subTest(mutation=mutation):
+                original = self.path
+                self.path = Path(self.root.name) / f"binding-{mutation}.sqlite"
+                try:
+                    self.prepare()
+                    snapshot = self.snapshot("binding", complete=False)
+                    sells.apply(self.path, snapshot)
+                    with contextlib.closing(sqlite3.connect(self.path)) as connection:
+                        if mutation == "disarm":
+                            version = writer.status(self.path)["version"]
+                            prior = store.decode(connection.execute(
+                                "SELECT payload FROM writer_events WHERE sequence=?",
+                                (version - 1,)).fetchone()[0])
+                            connection.execute("DELETE FROM writer_events WHERE sequence=?", (version,))
+                            connection.execute("UPDATE writer_state SET payload=?",
+                                               (store.pack(prior["writer"]),))
+                        elif mutation == "time":
+                            event = store.decode(connection.execute(
+                                "SELECT payload FROM reducing_reconciliation_events").fetchone()[0])
+                            event["at"] = event["state"]["as_of"] = "2026-09-04T14:01:02+00:00"
+                            event["event_id"] = store.digest(
+                                {key: value for key, value in event.items() if key != "event_id"})
+                            connection.execute(
+                                "UPDATE reducing_reconciliation_events "
+                                "SET event_id=?,payload_sha256=?,payload=?",
+                                (event["event_id"], store.digest(event), store.pack(event)))
+                            connection.execute("UPDATE reducing_reconciliation_state SET payload=?",
+                                               (store.pack(event["state"]),))
+                        else:
+                            extra = sells._snapshot(snapshot)
+                            extra.update(snapshot_id="orphan", reconciliation_id="orphan")
+                            sha = store.digest(extra)
+                            connection.execute(
+                                "INSERT INTO reducing_reconciliation_inbox VALUES (?, ?, ?, ?, ?)",
+                                (sha, "orphan", "orphan", sha, store.pack(extra)))
+                        connection.commit()
+                    for read in (store.status, sells.status, writer.status, allocations.status):
+                        with self.assertRaises(ValueError):
+                            read(self.path)
+                finally:
+                    self.path = original
+
 
 if __name__ == "__main__":
     unittest.main()
