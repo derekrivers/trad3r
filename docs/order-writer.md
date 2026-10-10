@@ -41,14 +41,15 @@ python -m trad3r order-writer-recover runs/orders.sqlite examples/order-writer-r
 ```
 
 Recovery never dispatches queued work. A committed `submitting` operation becomes
-`unknown`, retains all resources and leaves the writer disarmed. Clean recovery
-with no in-flight command clears ownership, after which a new claim must name the
-current epoch and receives the next epoch. An old owner or epoch cannot mark or
-commit a result. There is no automatic lease expiry or unfenced takeover.
+`unknown`, retains all resources and leaves the writer disarmed. Every recovery,
+including one with no in-flight command, also invalidates reconciliation. A new
+claim therefore requires a complete [P4.4 snapshot](order-reconciliation.md), then
+names the current epoch and receives the next epoch. An old owner or epoch cannot
+mark or commit a result. There is no automatic lease expiry or unfenced takeover.
 
 ## Durable boundary
 
-The version-2 database contains three related projections:
+The version-3 database contains four related projections:
 
 - the account audit retains admissions, attempts, reservations, identity
   incidents and locally proved expiry releases;
@@ -56,6 +57,8 @@ The version-2 database contains three related projections:
   writer identity incidents in its own contiguous sequence;
 - writer and submission rows are reconstructed and compared with that event log
   on every operation.
+- reconciliation inbox, event log and projection retain cumulative external
+  evidence and atomically audited account adjustments.
 
 Each submission binds one immutable operation ID, admitted intent,
 `client_order_id`, canonical command and digest, writer owner and epoch. Exact
@@ -90,10 +93,10 @@ capacity over a duplicate economic order.
 
 ## Compatibility and remaining scope
 
-New databases use store version 2. Version-1 admission databases remain readable
-and continue to provide exact admission retries, but writer commands reject them
-with an explicit migration requirement. P4.3 does not attempt an in-place
-financial-state migration.
+New databases use store version 3. Version-1 admission and version-2 writer
+databases remain readable by their implemented subsets, but reconciliation rejects
+them with an explicit migration requirement. No in-place financial-state migration
+is attempted.
 
 P4.3 also does not add same-intent reauthorisation after bound account, ledger,
 risk or evidence versions change. Such a change fails without a marker or adapter
@@ -106,9 +109,9 @@ identity conflicts, marker and result commit failure, acceptance with lost
 acknowledgement, explicit restart recovery, stale account state, expiry release
 and resource retention. They use invented data and no network.
 
-P4.4 still owns startup and disconnect reconciliation against complete external
-orders, executions, positions, currency cash, commissions and settlement. It must
-resolve `submitting`, `unknown`, acknowledged and rejected states from correlated
-evidence before releasing resources or enabling further dispatch. P4.5 owns
-position-reducing cancellation and protection incidents. Connected paper and live
-execution remain behind their owner gates.
+P4.4 now implements synthetic startup and disconnect reconciliation against
+complete supplied orders, executions, positions, USD cash, commissions and an
+empty settlement set. It resolves `submitting`, `unknown`, acknowledged and rejected
+states only from correlated evidence. P4.5 owns position-reducing cancellation,
+sell settlement and protection incidents. Connected paper and live execution
+remain behind their owner gates.

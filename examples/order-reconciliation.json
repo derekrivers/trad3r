@@ -1,0 +1,31 @@
+{
+  "schema": "synthetic-reconciliation-snapshot-v1",
+  "snapshot_id": "snapshot-example-1",
+  "reconciliation_id": "reconciliation-example-1",
+  "account_id": "synthetic-example",
+  "environment": "synthetic",
+  "at": "2026-09-04T14:00:50+00:00",
+  "expected_reconciliation_version": 0,
+  "completeness": {
+    "orders": true,
+    "executions": true,
+    "positions": true,
+    "currency_cash": true,
+    "commissions": true,
+    "settlement": true
+  },
+  "orders": [{
+    "client_order_id": "order-example-1",
+    "broker_order_id": "synthetic-example-order-1",
+    "state": "working",
+    "original_quantity": 1,
+    "cumulative_executed_quantity": 0
+  }],
+  "executions": [],
+  "commissions": [],
+  "currency_cash": {"USD": "500"},
+  "positions": [],
+  "unsettled_usd": "0",
+  "pending_settlements": [],
+  "mark": {"equity": "1000", "deposits": "0", "withdrawals": "0"}
+}

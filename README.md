@@ -2,7 +2,7 @@
 
 An offline-first research project for a small, personal trading experiment.
 Current scope: historical bar replay, offline cash/position accounting, durable
-risk observations and a broker-free synthetic order writer.
+risk observations and a broker-free synthetic order writer and reconciler.
 The first [registered historical engineering runs](docs/first-engineering-results.md)
 are complete: eight candidates per cost case, all rejected by the £3 risk cap,
 zero trades and zero contribution above the same-cash reference.
@@ -119,8 +119,10 @@ for Phase 4. [Atomic synthetic admission](docs/order-admission.md) persists inte
 attempts and cash/risk reservations together. The
 [synthetic single writer](docs/order-writer.md) adds fenced ownership and a durable
 marker-before-call boundary with deterministic acknowledgement, rejection and
-lost-acknowledgement fixtures. It has no broker or network endpoint. Broker events,
-fills and account reconciliation remain absent.
+lost-acknowledgement fixtures. [Synthetic reconciliation](docs/order-reconciliation.md)
+adds cumulative order, execution, USD cash, position, commission and empty-settlement
+evidence with atomic accounting and restart/disconnect fencing. These components
+have no broker or network endpoint.
 
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
 costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable
