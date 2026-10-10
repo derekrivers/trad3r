@@ -103,6 +103,9 @@ Jev is a later optional classifier; its confidence is not a probability of profi
 - Delivered: [P4.4 synthetic reconciliation](order-reconciliation.md), including
   startup/disconnect fencing, cumulative executions and commissions, atomic cash,
   position, reservation and risk-latch updates, and durable contradiction handling.
+  [Account-safety follow-up #34](https://github.com/derekrivers/trad3r/pull/34) covers
+  empty-order mark/settlement checks, newer-reservation ownership and unsent expiry
+  tombstones; full independent inbox-to-account replay remains future hardening.
 - Next: P4.5 protection and exposure incidents. Close private-input and off-host
   backup dependencies independently and qualify forward data.
   Durable paper period transitions require a separate owner-reviewed policy.

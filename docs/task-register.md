@@ -49,7 +49,9 @@ The bounded Massive access check is recorded in [PR #28](https://github.com/dere
 original FX identity recovery and registered historical reproduction remain
 conditional on the original files. P2.3/P3.1 qualification work remains open.
 P4.1's contract, P4.2 atomic synthetic admission, P4.3's fenced synthetic writer
-and P4.4 synthetic reconciliation are implemented. Remaining lifecycle vectors
+and P4.4 synthetic reconciliation are implemented. P4.5 prerequisite review found
+empty-account and reservation-ownership defects, fixed in
+[PR #34](https://github.com/derekrivers/trad3r/pull/34). Remaining lifecycle vectors
 belong to protection and connected-paper phases. See [current evidence](project-status.md).
 
 P0.3 and the off-host portion of P1.6 remain owner-input blockers. They do not block
@@ -105,7 +107,7 @@ remain behind their explicit owner gates.
 | P4.1 | complete | [contract defined](order-lifecycle.md); runtime implementation belongs to P4.2–P4.5 | Astra medium | State/transition tables, stable identity rules, invalid transitions, late evidence and unknown-outcome handling; 14 synthetic acceptance specifications |
 | P4.2 | complete | [atomic synthetic admission](order-admission.md); no adapter/dispatch | Sol high, Astra review | One transaction binds intent/attempt/versions/expiry and reserves cash/exposure/loss; duplicate, conflict, concurrency, restart, rollback and corruption tests |
 | P4.3 | complete | [fenced synthetic writer](order-writer.md); no broker/network endpoint | Sol high, Astra review | Single writer and durable queue; marker precedes adapter call; lost acknowledgement becomes unknown; ownership epochs, rollback and no-retry faults tested |
-| P4.4 | complete | [synthetic reconciliation](order-reconciliation.md); connected adapter remains P5 | Sol high, Astra review | Startup/disconnect reconciliation for orders, executions, positions, currency cash, commissions and settlement; differences block entries |
+| P4.4 | complete | [synthetic reconciliation](order-reconciliation.md); account-safety follow-up #34; connected adapter remains P5 | Sol high, Astra review | Synthetic cumulative entry reconciliation, including empty-account cash/settlement checks, mark/halts and reservation ownership; full independent inbox-to-account replay remains outside this delivered slice |
 | P4.5 | not started | ready after P4.4 | Astra high | Pause/halt/exposure/flat incident model covers partial fills, rejected protection, races and manual intervention |
 | P4.6 | not started | proposal ready after durable account schema; implementation requires owner review | Astra high | Persistent daily/weekly transition and restart proposal preserves all history/halts; implement only approved policy |
 | P4.7 | not started | grows with P4.1–P4.6 | Sol high | Fault-injection suite for death, timeout, stale approval, concurrency, storage, duplicates and missing broker state; invariants survive restart |

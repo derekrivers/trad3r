@@ -28,6 +28,13 @@ cost-conscious starting model to all 64 master-plan tasks.
 | P4.3 single writer | complete | P4.1–P4.2 | [PR #31](https://github.com/derekrivers/trad3r/pull/31); [fenced synthetic writer](order-writer.md); durable marker and projection replay; deterministic ownership, lost-acknowledgement, restart and commit-failure tests | Synthetic adapter only; P4.4 now resolves supplied evidence; version-1 stores require explicit writer migration |
 | P4.4 reconciliation | complete | P4.1–P4.3 | [PR #32](https://github.com/derekrivers/trad3r/pull/32); [synthetic reconciliation](order-reconciliation.md); cumulative evidence, atomic account adjustments and replay; deterministic partial-fill, late-fee, disconnect, rollback and corruption tests | Synthetic USD entry evidence only; pending/sell settlement, cancellation and protection belong to P4.5; version-1/2 stores require explicit migration |
 
+P4.5 prerequisite review produced [PR #34](https://github.com/derekrivers/trad3r/pull/34):
+empty-order snapshots now check cash/settlement and persist marks/halts; older
+order evidence cannot release a newer reservation or resurrect an unsent expiry.
+Eight added regression tests cover these boundaries, late-exposure incidents,
+rollback and reservation replay. This is P4.4 hardening; P4.5 implementation remains
+next. Full independent reconstruction from inbox evidence is still a scope limit.
+
 P0's permitted exit is met: missing design/private inputs block only dependent
 work. The original stock sample and replay hashes are now verified. Other missing
 assets are explicitly recorded and their hashes remain unverified. The **synthetic

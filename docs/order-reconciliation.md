@@ -45,6 +45,11 @@ A complete snapshot must satisfy all of these checks:
 - a terminal order does not regress, while a partially executed cancelled order
   may later become filled from valid cumulative late evidence.
 
+Cash and settlement checks also apply when no order has been dispatched. An
+`expired_authority` record proves that local authority expired before dispatch;
+it stays unchanged and does not require a broker-order row. External evidence for
+that never-dispatched order remains an incident.
+
 Incomplete observations and correctable cash, position or status disagreements
 remain unresolved and can be cleared by a later complete snapshot. Changed stable
 identities, overfills, unknown external activity and terminal-state regressions
@@ -65,9 +70,22 @@ position risk. A confirmed rejection or unfilled cancellation releases all three
 allocations. Attempts are never refunded. New marks may add daily, weekly or
 overall halts; reconciliation cannot clear a latched halt.
 
-Every read replays the account, writer and reconciliation histories and compares
-their stored projections. Corrupt sequences, changed payload digests, missing
-state, unknown database versions and mismatched projections fail closed.
+A consistent empty-order snapshot also commits its mark, risk halts and account
+version. Its account adjustment has `intent_id: null` and preserves every current
+reservation. An old terminal order with no fills cannot release a newer admission's
+cash, exposure or loss allocation. If late evidence instead implies exposure for
+the old order, `reservation_owner_conflict` blocks reconciliation and dispatch;
+the inbox retains the evidence and the account projection remains unchanged for
+explicit recovery. A later ordinary snapshot cannot clear that incident.
+
+Reads reconstruct account reservations and writer transitions from their audit
+histories, validate reconciliation event digests and sequence, and compare stored
+projections. Account audit replay checks that an adjustment without an intent, or
+for a different intent, cannot change the current reservation. These checks are
+not yet a full independent replay of every inbox snapshot into derived accounting.
+Missing state, unknown database versions and detected projection mismatches fail
+closed. Existing version-3 history remains readable; older code cannot read new
+account-only adjustments with a null intent and must not be used to downgrade it.
 
 ## Scope limit
 
