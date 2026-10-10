@@ -1,0 +1,27 @@
+{
+  "schema": "synthetic-order-account-v1",
+  "account_id": "synthetic-order-example",
+  "environment": "synthetic",
+  "at": "2026-09-04T14:00:00Z",
+  "settled_cash_usd": "500",
+  "position_quantity": 0,
+  "mark": {
+    "equity": "1000",
+    "deposits": "0",
+    "withdrawals": "0"
+  },
+  "session_start": {
+    "equity": "1000",
+    "deposits": "0",
+    "withdrawals": "0"
+  },
+  "week_start": {
+    "equity": "1000",
+    "deposits": "0",
+    "withdrawals": "0"
+  },
+  "ledger_version": 0,
+  "risk_version": 0,
+  "evidence_version": 0,
+  "halt_reasons": []
+}
