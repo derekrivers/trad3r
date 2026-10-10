@@ -121,7 +121,7 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   marker-first synthetic reducing-limit and protective-stop dispatch.
 - Delivered in [PR #41](https://github.com/derekrivers/trad3r/pull/41): [package F durable protection controls](order-controls.md), including
   pause, desired action, latched incidents and evidence-bound synthetic owner recovery.
-- Delivered: package G [integrated acceptance](order-protection-acceptance.md), including
+- Delivered in [PR #42](https://github.com/derekrivers/trad3r/pull/42): package G [integrated acceptance](order-protection-acceptance.md), including
   process death, concurrent exits, stop/cancel/fill races and the numeric lifecycle.
 - Next: dated broker/entity capability matrix (P2.1–P2.2), then cost feasibility
   (P2.4). Close private-input and off-host

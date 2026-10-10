@@ -61,7 +61,7 @@ with 20 deterministic tests. Package B is implemented in
 [PR #37](https://github.com/derekrivers/trad3r/pull/37) with 19 focused tests and
 Astra review fixes for retained-input replay, freshness and identity blocking;
 package C is delivered in [PR #38](https://github.com/derekrivers/trad3r/pull/38) with 19 focused tests and critical review fixes. Package D is delivered in [PR #39](https://github.com/derekrivers/trad3r/pull/39) with 12 focused tests and critical review fixes. Package E is delivered in [PR #40](https://github.com/derekrivers/trad3r/pull/40) with 14 focused tests for marker-first reducing-limit and protective-stop dispatch. Package F in [PR #41](https://github.com/derekrivers/trad3r/pull/41) adds [durable controls and synthetic owner recovery](order-controls.md) with 19 focused tests.
-Package G completes [integrated acceptance](order-protection-acceptance.md), including
+Package G in [PR #42](https://github.com/derekrivers/trad3r/pull/42) completes [integrated acceptance](order-protection-acceptance.md), including
 actual process death, result rollback, concurrent exits, cancellation/fill races
 and the full numeric trace. Return to Astra for changed financial/identity
 semantics and critical final-diff review.

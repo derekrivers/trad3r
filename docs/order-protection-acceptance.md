@@ -1,6 +1,7 @@
 # P4.5 integrated acceptance evidence
 
-Package G adds 14 focused rehearsals and exercises the [protection contract](order-protection.md) against freshly
+[Package G / PR #42](https://github.com/derekrivers/trad3r/pull/42) adds 14 focused
+rehearsals and exercises the [protection contract](order-protection.md) against freshly
 initialized v4 SQLite stores, fenced synthetic writers and cumulative invented
 broker evidence. Run all evidence with:
 
