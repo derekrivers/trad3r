@@ -12,7 +12,7 @@ retained as engineering history, not a second master plan.
 | 1 | Recoverable offline research service | Synthetic host runtime/recovery/restore verified; off-host backup open |
 | 2 | Broker and data capability decision | Account-specific evidence and owner decision open |
 | 3 | Qualified datasets and protocol | Engineering sample/results exist; qualification open |
-| 4 | Durable order and account controls | Risk persistence exists; order lifecycle absent |
+| 4 | Durable order and account controls | Risk persistence exists; P4.1 order lifecycle contract defined; runtime implementation pending |
 | 5 | Deterministic paper application | Not started; connected submissions need owner approval |
 | 6 | Discretionary shadow agent | Not started |
 | 7 | Discretionary paper experiment | Not started; protocol and owner approval required |
@@ -92,8 +92,11 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   backup and historical reproduction remain open.
 - Delivered: executable synthetic control rehearsal, retained risk/journal evidence
   and [explicit forward paper gates](paper-readiness.md).
-- Next: close private-input and off-host backup dependencies. Independently implement
-  durable broker-neutral order intents, reconciliation and qualified forward data.
+- Defined: [P4.1 durable order lifecycle](order-lifecycle.md), stable identities,
+  allowed transitions, unknown-outcome rules and synthetic acceptance cases.
+- Next: P4.2 atomic admission, attempts and reservations under that contract;
+  then P4.3 single writer and P4.4 reconciliation. Close private-input and off-host
+  backup dependencies independently and qualify forward data.
   Durable paper period transitions require a separate owner-reviewed policy.
 
 The broker account is not needed for those offline tasks. No profitability or

@@ -41,12 +41,16 @@ time unless the owner explicitly authorises parallel work.
 
 | Order | Work package | Tasks | Start model | Completion evidence |
 | ---: | --- | --- | --- | --- |
-| 1 | Verify Massive currency entitlement and recover the historical FX identity | P2.3, P3.1, P1.4 | Luna medium; Sol if reconstruction is needed | One bounded read-only capability check; privately retained FX/combined archive; recorded hashes compared; registered historical job reproduced only if all original inputs match |
-| 2 | Freeze broker-neutral order-state and identity contract | P4.1 | Astra medium | State/transition table, stable identity rules, invalid transitions and unknown-outcome handling reviewed before code |
-| 3 | Implement atomic admission and reservations | P4.2 | Sol high after Astra contract review | Transactional intent/attempt/risk/cash reservation tests across restart and concurrent approvals |
-| 4 | Implement single-writer submission and reconciliation boundary | P4.3 | Sol high; Astra review | Durable queue, ownership lock and lost-acknowledgement tests prove no blind retry |
-| 5 | Produce dated broker/entity capability matrix | P2.1–P2.2 | Sol medium/high | Primary-source matrix with exact UK entity/account/API facts and explicit unknowns; no account action |
-| 6 | Build dated cost feasibility model | P2.4 | Sol high | Sourced fees/spread/FX/recurring costs compared with £3 trade risk and £10 monthly ceiling |
+| 1 | Implement atomic admission and reservations under the [P4.1 contract](order-lifecycle.md) | P4.2 | Sol high; Astra review | Transactional intent/attempt/risk/cash reservation tests across restart and concurrent approvals |
+| 2 | Implement single-writer submission and reconciliation boundary | P4.3 | Sol high; Astra review | Durable queue, ownership lock and lost-acknowledgement tests prove no blind retry |
+| 3 | Produce dated broker/entity capability matrix | P2.1–P2.2 | Sol medium/high | Primary-source matrix with exact UK entity/account/API facts and explicit unknowns; no account action |
+| 4 | Build dated cost feasibility model | P2.4 | Sol high | Sourced fees/spread/FX/recurring costs compared with £3 trade risk and £10 monthly ceiling |
+
+The bounded Massive access check is recorded in [PR #28](https://github.com/derekrivers/trad3r/pull/28);
+original FX identity recovery and registered historical reproduction remain
+conditional on the original files. P2.3/P3.1 qualification work remains open.
+P4.1's contract is defined; its synthetic vectors are implementation requirements,
+not delivered execution tests. See [current evidence](project-status.md).
 
 P0.3 and the off-host portion of P1.6 remain owner-input blockers. They do not block
 the independent queue above. P5 connected paper submissions and all P10 activity
@@ -98,8 +102,8 @@ remain behind their explicit owner gates.
 
 | ID | Status | Readiness / dependency | Start model | Deliverable and acceptance evidence |
 | --- | --- | --- | --- | --- |
-| P4.1 | not started | ready | Astra medium | Durable state machine and stable identities for proposed through terminal/unknown states; invalid transitions fail closed |
-| P4.2 | not started | after P4.1 contract | Sol high, Astra review | Atomic intent, attempt, cash/risk reservation and version/expiry binding; concurrency cannot exceed limits |
+| P4.1 | complete | [contract defined](order-lifecycle.md); runtime implementation belongs to P4.2–P4.5 | Astra medium | State/transition tables, stable identity rules, invalid transitions, late evidence and unknown-outcome handling; 14 synthetic acceptance specifications |
+| P4.2 | not started | ready under P4.1 contract; storage/allocation design review required | Sol high, Astra review | Atomic intent, attempt, cash/risk reservation and version/expiry binding; concurrency cannot exceed limits |
 | P4.3 | not started | after P4.2 | Sol high, Astra review | Single writer and durable queue; lost acknowledgement becomes unknown and requires reconciliation; ownership locking tested |
 | P4.4 | not started | after P4.1–P4.3 | Sol high, Astra review | Startup/disconnect reconciliation for orders, executions, positions, currency cash, commissions and settlement; differences block entries |
 | P4.5 | not started | after P4.4 core | Astra high | Pause/halt/exposure/flat incident model covers partial fills, rejected protection, races and manual intervention |

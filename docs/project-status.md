@@ -23,6 +23,7 @@ cost-conscious starting model to all 64 master-plan tasks.
 | P1.4 execute job | in progress | P1.3 | `ea44cc8`; synthetic job completed, inspected and repeat returned already_complete; new Massive archive structurally audited | Synthetic portion complete; original stock replay reproduced; registered historical reproduction awaits original FX/experiment files and qualification |
 | P1.5 recovery | complete | P1.4 synthetic | `ea44cc8`; eight installed-package recovery tests passed inside sandbox | Offline job faults only; no broker reconciliation claim |
 | P1.6 backups | in progress | P1.4 synthetic | `ea44cc8`; five-file checksum inventory and separate restore returned already_complete; disk/log checks recorded | Select off-host destination, recurring backup/monitoring and bounded retention; local copies insufficient |
+| P4.1 order contract | complete | Independent synthetic design | [Order lifecycle v1](order-lifecycle.md); reviewed transition/identity contract and 14 synthetic acceptance specifications | Definition only; order storage, writer, reconciliation and protection remain P4.2–P4.5 work |
 
 P0's permitted exit is met: missing design/private inputs block only dependent
 work. The original stock sample and replay hashes are now verified. Other missing
@@ -39,12 +40,13 @@ and historical dependencies.
    registered historical reproduction (P0.3/P1.4).
 2. Owner selects an off-host backup destination/access route. Finish restore from
    that destination, recurring backup/monitoring and retention (P1.6).
-3. Independent next engineering increment: P4.1 durable order-state contract and
-   broker-neutral synthetic lifecycle. Preserve unknown submission outcomes;
-   never blindly retry. P4.2 atomic reservations/attempt counts follows.
+3. Next engineering increment: P4.2 atomic reservations/attempt counts under the
+   defined [P4.1 order contract](order-lifecycle.md). Sol high implements a reviewed
+   storage/allocation design; Astra reviews financial and uncertainty invariants.
+   P4.3 single-writer dispatch and P4.4 reconciliation follow.
 4. P2.1–P2.5 broker/data feasibility and owner decisions can proceed independently;
-   then P3.1–P3.6 qualification and P4.3–P4.7 controls. All these new tasks are not
-   started; existing offline work keeps its implementation credit in the roadmap.
+   then P3.1–P3.6 qualification and P4.3–P4.7 controls. Per-task status is maintained
+   in the register; existing offline work keeps its credit in the roadmap.
 5. P5–P10 remain not started in the canonical dependency order. No AI/classifier
    integration precedes the accounting/execution controls.
 
