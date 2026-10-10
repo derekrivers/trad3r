@@ -10,7 +10,7 @@ retained as engineering history, not a second master plan.
 | --- | --- | --- |
 | 0 | Adopt plan and verify VPS | Adopted; VPS verified; design v2 not transferred |
 | 1 | Recoverable offline research service | Synthetic host runtime/recovery/restore verified; off-host backup open |
-| 2 | Broker and data capability decision | Account-specific evidence and owner decision open |
+| 2 | Broker and data capability decision | [Public matrix delivered](broker-capability-matrix.md); account verification, costs and owner decision open |
 | 3 | Qualified datasets and protocol | Engineering sample/results exist; qualification open |
 | 4 | Durable order and account controls | P4.1–P4.5 delivered; durable period transition and broader system faults remain |
 | 5 | Deterministic paper application | Not started; connected submissions need owner approval |
@@ -123,8 +123,10 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   pause, desired action, latched incidents and evidence-bound synthetic owner recovery.
 - Delivered in [PR #42](https://github.com/derekrivers/trad3r/pull/42): package G [integrated acceptance](order-protection-acceptance.md), including
   process death, concurrent exits, stop/cancel/fill races and the numeric lifecycle.
-- Next: dated broker/entity capability matrix (P2.1–P2.2), then cost feasibility
-  (P2.4). Close private-input and off-host
+- Delivered: [dated IBKR/Saxo capability matrix](broker-capability-matrix.md)
+  (P2.1 and public P2.2 record); account-specific verification remains open.
+- Next: conditional cost feasibility (P2.4), followed by account/data evidence
+  and owner selection (P2.2/P2.3/P2.5). Close private-input and off-host
   backup dependencies independently and qualify forward data.
   Durable paper period transitions require a separate owner-reviewed policy.
 
