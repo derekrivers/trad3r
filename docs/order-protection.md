@@ -3,8 +3,8 @@
 Contract `order-protection-v1` defines the P4.5 extension to the
 [order lifecycle](order-lifecycle.md). It fixes the implementation rules and
 acceptance scenarios for cancellation, reducing exits, protective stops and
-exposure incidents. Package A's pure evaluator is implemented; packages B–G remain
-specifications. P4.5 completes only when all packages pass their executable tests
+exposure incidents. Packages A and B implement the evaluator and capacity journal;
+packages C–G remain specifications. P4.5 completes only when all packages pass their executable tests
 and integrated fault cases.
 
 The scope remains one synthetic account and one qualified USD equity position,
@@ -120,6 +120,63 @@ remainders, terminal fee-only reservations, other cash commitments, incomplete
 order proofs, session bounds, stale/future evidence and target-specific
 cancellation. These tests do not claim transactional concurrency, persistence or
 adapter-call coverage.
+
+### Package B implementation
+
+Package B in [PR #37](https://github.com/derekrivers/trad3r/pull/37) adds
+`trad3r.order_allocations`, explicit fresh version-4 initialization and an
+atomic reducing-allocation journal in the same SQLite order store. Version-3
+initialization and reads remain unchanged; allocation commands reject v1–v3 stores
+and there is no migration or downgrade command. The CLI exposes `order-v4-init`,
+`order-reducing-admit`, `order-reducing-status` and `order-reducing-history`.
+
+Each request binds its immutable allocation and client-order identities, current
+account/reconciliation/writer/allocation versions, risk-policy digest, entry
+episode and instrument, fenced writer owner/epoch, positive whole-share quantity,
+fee bound, purpose, quote/FX times and a maximum 60-second decision lifetime. Exact duplicates
+return their original record before stale-version checks. Changed identity reuse
+records a blocking incident, retaining the complete conflicting request even when
+its source time is stale. Duplicate incidents also precede time/version checks.
+Entry and reducing identity namespaces cannot overlap; invalid cross-namespace
+requests fail without a write. Stale versions or fencing also fail without a write.
+
+New allocations require snapshot, quote and FX observations no more than 60
+seconds old and not future dated, a writer event no later than the decision, and
+the account's original day/week within the supported regular session. The entry
+window does not restrict management. No period baseline is renewed. A current
+account version must refer to a reconciled adjustment; an intervening entry
+admission requires fresh reconciliation before another allocation. Package B
+conservatively requires a reported commission (including explicit zero) for every
+entry execution; package C will add the full fee-completeness contract.
+
+The allocator derives held quantity and the original exit-fee allowance from the
+complete reconciled entry evidence. Protective stops and ordinary reducing exits
+consume the same pools. One `BEGIN IMMEDIATE` transaction validates replay,
+reserves quantity and fees, records accepted or capacity-rejected requests, and
+updates the projection. Independent concurrent requests cannot both consume the
+same capacity. Allocation reads replay every digest, contiguous sequence, event
+time and evidence-version ordering. Each record binds the retained snapshot,
+reconciliation event, account adjustment, writer event and entry intent by digest.
+Replay derives holdings, original fee allowance and cash backing from these inputs
+and compares every capacity decision and aggregate with the stored projection.
+Missing inputs and coherently rehashed capacity projections fail closed across
+account, writer, reconciliation and allocation reads. This is single-buy capacity
+replay; independent replay of all multi-order accounting effects belongs to C.
+
+Identity incidents block new entry admission, writer claims and submission
+markers while preserving exact retries. Allocation status explicitly reports
+`capacity_scope: at_last_allocation_decision` and `dispatch_authorized: false`:
+its historical capacity is not a current permission or exposure evaluation.
+
+Allocations do not consume entry attempts or clear halts, entry exposure/loss
+reservations, incidents or writer controls. They never expire or release capacity
+implicitly; later packages must prove executions, cancellation and terminal fee
+evidence before changing these commitments. This package has no reducing adapter,
+submission marker, cancellation, sell reconciliation, pending proceeds or live
+path. Nineteen deterministic tests cover the package-B portions of X04, X15 and X23,
+including exact fee partitioning, concurrent full-quantity requests, fencing,
+rollback, restart/replay corruption, stale/future/session bounds, retained source
+evidence, cross-namespace identities, account-wide blocking and version-3 compatibility.
 
 ## Verified management authority
 
@@ -374,7 +431,7 @@ approval. Every merge still requires the repository's reviewed-head CI controls.
 | Package | Bounded deliverable and dependencies | Completion boundary |
 | --- | --- | --- |
 | A | **Complete:** pure protection/quantity/permission evaluator and 20 deterministic tests; [PR #36](https://github.com/derekrivers/trad3r/pull/36). | X01–X05/X16 fact and permission portions; explicit reasons, no persistence or dispatch claim. |
-| B | Explicit v4 synthetic initialization, authoritative per-intent quantity/fee allocations, audit replay and atomic reducing admission. Depends A. | X04/X15/X23 reservation/storage portions; preserve v3 reads, no migration or enabled dispatch. |
+| B | **Complete in [PR #37](https://github.com/derekrivers/trad3r/pull/37):** explicit fresh v4 initialization, authoritative quantity/fee allocations, retained-input replay and atomic reducing admission; Astra review fixes included. Depends A. | X04/X15/X23 reservation/storage portions; 19 deterministic tests, preserve v3 reads, no migration or enabled dispatch. |
 | C | V4 cumulative multi-order buy/sell reconciliation, execution-level fee completeness, pending lots and retained contradictions. Depends B. | X02/X06/X14/X17–X20/X22 accounting portions; no durable period transition or cash-release command. |
 | D | Separate fenced cancellation operation and deterministic adapter outcomes, integrated with cumulative evidence. Depends C. | X07–X10/X13/X15/X16/X23 cancellation portions; no release from an acknowledgement alone. |
 | E | Fenced synthetic reducing-limit and protective-stop dispatch using the common quantity pool and management permissions. Depends D. | X01/X03–X05/X11–X13/X16/X22/X23 dispatch portions; no network or fallback market orders. |

@@ -41,7 +41,7 @@ time unless the owner explicitly authorises parallel work.
 
 | Order | Work package | Tasks | Start model | Completion evidence |
 | ---: | --- | --- | --- | --- |
-| 1 | Implement v4 reducing-order allocations | P4.5 B | Sol high, Astra review | Fresh v4 store atomically reserves shared sell quantity and fee bounds; audit replay and concurrency preserve v3 reads, with no migration or dispatch |
+| 1 | Implement cumulative multi-order reconciliation | P4.5 C | Sol high | Reconcile buys/sells, execution-level fee completeness, pending lots and retained contradictions; Astra financial/identity review before merge |
 | 2 | Produce dated broker/entity capability matrix | P2.1–P2.2 | Sol medium/high | Primary-source matrix with exact UK entity/account/API facts and explicit unknowns; no account action |
 | 3 | Build dated cost feasibility model | P2.4 | Sol high | Sourced fees/spread/FX/recurring costs compared with £3 trade risk and £10 monthly ceiling |
 
@@ -58,7 +58,10 @@ The [P4.5 protection contract](order-protection.md) and 24 acceptance specificat
 are defined in [PR #35](https://github.com/derekrivers/trad3r/pull/35). Packages A–G
 are sequential subdivisions of P4.5, not new master-plan tasks. Package A's pure
 evaluator is implemented in [PR #36](https://github.com/derekrivers/trad3r/pull/36)
-with 20 deterministic tests. Package B is ready for Sol High; later packages cover
+with 20 deterministic tests. Package B is implemented in
+[PR #37](https://github.com/derekrivers/trad3r/pull/37) with 19 focused tests and
+Astra review fixes for retained-input replay, freshness and identity blocking;
+package C is next on Sol High. Later packages cover
 cumulative sell evidence, cancellation, protective/reducing dispatch, incidents
 and integrated faults. Return
 to Astra for changed financial/identity semantics and critical final-diff review.
@@ -118,7 +121,7 @@ remain behind their explicit owner gates.
 | P4.2 | complete | [atomic synthetic admission](order-admission.md); no adapter/dispatch | Sol high, Astra review | One transaction binds intent/attempt/versions/expiry and reserves cash/exposure/loss; duplicate, conflict, concurrency, restart, rollback and corruption tests |
 | P4.3 | complete | [fenced synthetic writer](order-writer.md); no broker/network endpoint | Sol high, Astra review | Single writer and durable queue; marker precedes adapter call; lost acknowledgement becomes unknown; ownership epochs, rollback and no-retry faults tested |
 | P4.4 | complete | [synthetic reconciliation](order-reconciliation.md); account-safety follow-up #34; connected adapter remains P5 | Sol high, Astra review | Synthetic cumulative entry reconciliation, including empty-account cash/settlement checks, mark/halts and reservation ownership; full independent inbox-to-account replay remains outside this delivered slice |
-| P4.5 | in progress | [design and vectors defined](order-protection.md); package A complete in PR #36, B ready, C–G sequential | Sol high for bounded implementation; Astra for semantics/review | Pure evaluator proves X01–X05/X16 facts and permissions; runtime still needs v4 allocations, reconciliation, cancellation/protection dispatch, owner recovery, pending-sale accounting and integrated faults |
+| P4.5 | in progress | [design and vectors defined](order-protection.md); packages A/B complete, C–G sequential | Sol high for bounded implementation; Astra for semantics/review | Pure evaluator and fresh-v4 allocator cover A/B; runtime still needs sell reconciliation, cancellation/protection dispatch, owner recovery, pending-sale accounting and integrated faults |
 | P4.6 | not started | proposal ready after durable account schema; implementation requires owner review | Astra high | Persistent daily/weekly transition and restart proposal preserves all history/halts; implement only approved policy |
 | P4.7 | not started | grows with P4.1–P4.6 | Sol high | Fault-injection suite for death, timeout, stale approval, concurrency, storage, duplicates and missing broker state; invariants survive restart |
 

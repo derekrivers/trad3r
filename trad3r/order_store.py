@@ -19,7 +19,8 @@ from .risk import Mark, Policy, assess, money, planned_long_loss
 
 APP_ID = 0x54524434
 DATABASE_VERSION = 3
-SUPPORTED_DATABASE_VERSIONS = {1, 2, 3}
+REDUCING_DATABASE_VERSION = 4
+SUPPORTED_DATABASE_VERSIONS = {1, 2, 3, 4}
 ACCOUNT_SCHEMA = "synthetic-order-account-v1"
 STATE_SCHEMA = "order-account-state-v1"
 ADMISSION_SCHEMA = "order-admission-v1"
@@ -351,13 +352,31 @@ def _read_state(connection):
     expected_unresolved = ["identity_conflict"] if incidents else []
     if state["unresolved_reasons"] != expected_unresolved:
         raise ValueError("Order incidents disagree with account block")
+    if connection.execute("PRAGMA user_version").fetchone()[0] == REDUCING_DATABASE_VERSION:
+        # V4 is one authoritative store: legacy account/writer/reconciliation
+        # reads must also fail closed when its allocation journal is damaged.
+        from . import order_allocations
+        order_allocations._read(connection)
     return state
 
 
-def _report(state, reconciliation=None):
+def _allocation_blocks(connection):
+    if connection.execute("PRAGMA user_version").fetchone()[0] != REDUCING_DATABASE_VERSION:
+        return []
+    from . import order_allocations
+    allocation, _, _ = order_allocations._read(connection)
+    return allocation["unresolved_reasons"]
+
+
+def _require_allocation_clear(connection):
+    if _allocation_blocks(connection):
+        raise ValueError("Reducing allocation state is unresolved")
+
+
+def _report(state, reconciliation=None, allocation_blocks=()):
     assessment = assess(_mark(state["mark"]), _mark(state["session_start"]),
                         _mark(state["week_start"]), tuple(state["halt_reasons"]))
-    blocked = list(state["halt_reasons"] + state["unresolved_reasons"])
+    blocked = list(state["halt_reasons"] + state["unresolved_reasons"]) + list(allocation_blocks)
     if reconciliation is not None and reconciliation["status"] != "reconciled":
         blocked.extend(reconciliation["unresolved_reasons"] or ["reconciliation_required"])
     if state["attempts"] >= MAX_ATTEMPTS:
@@ -386,7 +405,9 @@ def _report(state, reconciliation=None):
     }
 
 
-def initialize(path, snapshot):
+def _initialize(path, snapshot, database_version):
+    if database_version not in (DATABASE_VERSION, REDUCING_DATABASE_VERSION):
+        raise ValueError("Unsupported new order database version")
     if not isinstance(snapshot, dict) or set(snapshot) != SNAPSHOT_FIELDS or snapshot["schema"] != ACCOUNT_SCHEMA:
         raise ValueError("Synthetic account snapshot fields do not match the contract")
     account_id = _identity(snapshot["account_id"], "account id")
@@ -429,7 +450,7 @@ def initialize(path, snapshot):
         connection = sqlite3.connect(path)
         connection.execute("PRAGMA synchronous=FULL")
         connection.execute(f"PRAGMA application_id={APP_ID}")
-        connection.execute(f"PRAGMA user_version={DATABASE_VERSION}")
+        connection.execute(f"PRAGMA user_version={database_version}")
         connection.execute("CREATE TABLE account_state (id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT NOT NULL)")
         connection.execute("CREATE TABLE intents (intent_id TEXT PRIMARY KEY, candidate_id TEXT UNIQUE NOT NULL, client_order_id TEXT UNIQUE NOT NULL, proposal_sha256 TEXT NOT NULL, committed_version INTEGER UNIQUE NOT NULL, payload TEXT NOT NULL)")
         connection.execute("CREATE TABLE incidents (incident_id TEXT PRIMARY KEY, committed_version INTEGER UNIQUE NOT NULL, payload TEXT NOT NULL)")
@@ -458,6 +479,9 @@ def initialize(path, snapshot):
             "live_trading_enabled": False,
         }
         connection.execute("INSERT INTO reconciliation_state VALUES (1, ?)", (pack(reconciliation),))
+        if database_version == REDUCING_DATABASE_VERSION:
+            from . import order_allocations
+            order_allocations._initialize_tables(connection, account_id, at)
         connection.commit()
         connection.close()
     except BaseException:
@@ -468,6 +492,11 @@ def initialize(path, snapshot):
     return _report(state)
 
 
+def initialize(path, snapshot):
+    """Create the established v3 entry/reconciliation store."""
+    return _initialize(path, snapshot, DATABASE_VERSION)
+
+
 def status(path):
     with database(path) as connection:
         state = _read_state(connection)
@@ -475,7 +504,7 @@ def status(path):
         if connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
             from . import order_reconciliation
             reconciliation, _ = order_reconciliation._read(connection)
-        return _report(state, reconciliation)
+        return _report(state, reconciliation, _allocation_blocks(connection))
 
 
 def history(path):
@@ -625,6 +654,12 @@ def admit(path, proposal):
                 return result
             return _current_result(records[0], state, duplicate=True,
                                    reconciliation=reconciliation)
+        _require_allocation_clear(connection)
+        if connection.execute("PRAGMA user_version").fetchone()[0] == REDUCING_DATABASE_VERSION:
+            if connection.execute(
+                    "SELECT 1 FROM reducing_allocations WHERE allocation_id=? OR client_order_id=?",
+                    (intent_id, client_order_id)).fetchone():
+                raise ValueError("Entry identities collide with a reducing allocation")
         if records:
             incoming = {"intent_id": intent_id, "candidate_id": candidate_id,
                         "client_order_id": client_order_id, "proposal_sha256": proposal_sha}

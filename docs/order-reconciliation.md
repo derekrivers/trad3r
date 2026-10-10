@@ -1,7 +1,7 @@
 # Synthetic order reconciliation
 
-P4.4 adds durable cumulative reconciliation to the version-3 synthetic order
-database. It has no network client or broker endpoint. Callers supply a complete
+P4.4 adds durable cumulative reconciliation to version-3 and fresh version-4
+synthetic order databases. It has no network client or broker endpoint. Callers supply a complete
 snapshot of orders, executions, USD cash, positions, commissions and settlement;
 the store validates their agreement before it changes account or order state.
 
@@ -84,16 +84,20 @@ projections. Account audit replay checks that an adjustment without an intent, o
 for a different intent, cannot change the current reservation. These checks are
 not yet a full independent replay of every inbox snapshot into derived accounting.
 Missing state, unknown database versions and detected projection mismatches fail
-closed. Existing version-3 history remains readable; older code cannot read new
-account-only adjustments with a null intent and must not be used to downgrade it.
+closed. Existing version-3 history remains readable. Fresh version-4 stores retain
+this entry reconciliation while adding the P4.5 reducing-allocation journal; older
+code cannot read new account-only adjustments with a null intent and must not be
+used to downgrade either version.
 
 ## Scope limit
 
 The settlement field is required and reconciled as empty for the current entry-only
 writer. Position-reducing sell commands and pending proceeds are specified in the
 [P4.5 protection contract](order-protection.md); durable cross-day cash release
-depends on P4.6's reviewed period policy. In the current v3 implementation, any
+depends on P4.6's reviewed period policy. In the current v3/v4 entry reconciliation, any
 pending settlement blocks reconciliation.
 Version-1 and version-2 stores stay readable by their earlier components but need
-an explicit version-3 migration before reconciliation. No automatic migration,
+an explicit version-3 migration before reconciliation. Existing v3 accounts also
+need a separate reviewed history-preserving migration before using v4 reducing
+allocations. No automatic migration,
 connected paper mode, cancellation dispatch, protection order or live mode exists.

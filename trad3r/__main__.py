@@ -13,7 +13,7 @@ from .data import decode, load_sample, parse_bar
 from .risk import Mark, assess
 from .ledger import Ledger, replay_ledger
 from .admission import check_entry
-from . import order_reconciliation, order_store, order_writer, risk_store
+from . import order_allocations, order_reconciliation, order_store, order_writer, risk_store
 from .simulation import simulate, simulate_series, simulate_research_series
 from .batches import completed_batches
 from .features import FEATURE_SCHEMA, feature_snapshots
@@ -109,6 +109,12 @@ def main(argv=None):
         sub.add_argument("database", type=Path)
         if command in ("order-init", "order-admit"):
             sub.add_argument("input", type=Path, help="Synthetic account snapshot or entry proposal JSON")
+    for command in ("order-v4-init", "order-reducing-admit",
+                    "order-reducing-status", "order-reducing-history"):
+        sub = commands.add_parser(command, help="Synthetic reducing allocations; no dispatch or broker connection")
+        sub.add_argument("database", type=Path)
+        if command in ("order-v4-init", "order-reducing-admit"):
+            sub.add_argument("input", type=Path)
     for command in ("order-writer-claim", "order-dispatch-synthetic", "order-writer-recover"):
         sub = commands.add_parser(command, help="Fenced synthetic order writer; no broker or live endpoint")
         sub.add_argument("database", type=Path)
@@ -238,6 +244,18 @@ def main(argv=None):
                 result = order_store.history(args.database)
             else:
                 result = order_store.status(args.database)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
+        if args.command in ("order-v4-init", "order-reducing-admit",
+                            "order-reducing-status", "order-reducing-history"):
+            if args.command == "order-v4-init":
+                result = order_allocations.initialize(args.database, decode(args.input.read_bytes()))
+            elif args.command == "order-reducing-admit":
+                result = order_allocations.admit(args.database, decode(args.input.read_bytes()))
+            elif args.command == "order-reducing-history":
+                result = order_allocations.history(args.database)
+            else:
+                result = order_allocations.status(args.database)
             print(json.dumps(result, default=str, sort_keys=True, indent=2))
             return 0
         if args.command in ("order-writer-claim", "order-dispatch-synthetic",

@@ -248,5 +248,5 @@ live gates stay closed.
 The [P4.5 handoff](order-protection.md#ordered-implementation-handoff) now defines
 the shared sell-quantity bound, separate management permissions, cancellation
 protocol, fee allocation, pending-sale accounting and incident recovery. Its
-X01–X24 scenarios refine the protection and cancellation cases above. Definition
-is complete; executable implementation credit remains with packages A–G.
+X01–X24 scenarios refine the protection and cancellation cases above. Packages A
+and B implement the pure permission and durable allocation portions; C–G remain.

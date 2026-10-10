@@ -40,6 +40,11 @@ must already be complete. A missing, corrupt,
 wrong-version or policy/calendar-mismatched database fails rather than creating or
 repairing an account.
 
+`order-init` continues to create the version-3 store. P4.5 package B adds
+`order-v4-init` for an explicitly selected fresh path; it retains this entry
+contract and adds reducing allocations. Neither command upgrades an existing
+database, and version-3 stores remain readable without gaining v4 behavior.
+
 ## Admission and allocation
 
 V1 accepts only whole-share USD long-entry day-limit proposals. Each proposal binds
