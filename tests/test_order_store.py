@@ -209,6 +209,7 @@ class OrderStoreTests(unittest.TestCase):
                 "CREATE TRIGGER fail_audit BEFORE INSERT ON audit "
                 "BEGIN SELECT RAISE(ABORT, 'injected write failure'); END"
             )
+        connection.close()
         with self.assertRaises(sqlite3.Error):
             store.admit(self.path, self.proposal())
         report = store.status(self.path)
@@ -225,6 +226,7 @@ class OrderStoreTests(unittest.TestCase):
             state = json.loads(connection.execute("SELECT payload FROM account_state").fetchone()[0])
             state["reserved_cash_usd"] = "0"
             connection.execute("UPDATE account_state SET payload=?", (json.dumps(state),))
+        connection.close()
         with self.assertRaisesRegex(ValueError, "reservations"):
             store.status(self.path)
         corrupt = self.fresh("corrupt")
