@@ -362,6 +362,8 @@ def _read_state(connection):
         order_sell_reconciliation._read(connection)
         from . import order_cancellation
         order_cancellation._read(connection)
+        from . import order_reducing_dispatch
+        order_reducing_dispatch._read(connection)
     return state
 
 
@@ -374,8 +376,10 @@ def _allocation_blocks(connection):
     sell, _ = order_sell_reconciliation._read(connection)
     from . import order_cancellation
     cancellation, _, _, _ = order_cancellation._read(connection)
+    from . import order_reducing_dispatch
+    dispatch, _, _, _ = order_reducing_dispatch._read(connection)
     reasons = (allocation["unresolved_reasons"] + sell["unresolved_reasons"]
-               + cancellation["unresolved_reasons"])
+               + cancellation["unresolved_reasons"] + dispatch["unresolved_reasons"])
     if (sell["entry_intent_id"] is not None and sell["verified_quantity"] == 0
             and sell["committed_sell_quantity"] == 0):
         # Package C deliberately has no mechanism for closing one protected

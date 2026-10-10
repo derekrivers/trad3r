@@ -50,7 +50,7 @@ DURABLE_REASONS = {
     "unknown_order", "order_identity_changed", "order_side_mismatch", "execution_order_mismatch",
     "execution_identity_changed", "execution_overfill", "external_activity_unknown",
     "negative_position", "position_identity_mismatch", "position_quantity_mismatch",
-    "sell_before_allocation", "buy_before_submission", "cash_history_mismatch",
+    "sell_before_allocation", "sell_before_dispatch", "buy_before_submission", "cash_history_mismatch",
     "pending_settlement_mismatch", "negative_pending_proceeds",
     "sell_commitment_exceeds_holdings", "execution_time_invalid",
 }
@@ -313,8 +313,14 @@ def _derive(connection, snapshot, prior_state):
             reasons.append("commission_history_changed")
 
     allocation_state, allocation_records, _ = order_allocations._read(connection)
+    from . import order_reducing_dispatch
+    _, dispatch_records, _, _ = order_reducing_dispatch._read(connection)
+    dispatched_by_allocation = {row["allocation_id"]: row for row in dispatch_records.values()}
+    rejected_allocations = {row["allocation_id"] for row in dispatch_records.values()
+                            if row["state"] == "rejected"}
     reserved = {row["client_order_id"]: row for row in allocation_records
                 if row["state"] == "reserved"
+                and row["allocation_id"] not in rejected_allocations
                 and row["committed_version"] <= snapshot["expected_allocation_version"]}
     entry = connection.execute(
         "SELECT payload FROM intents WHERE intent_id=?", (allocation_state["entry_intent_id"],)).fetchone()
@@ -369,6 +375,13 @@ def _derive(connection, snapshot, prior_state):
             mapping, expected_side = None, order["side"]
         if mapping is None:
             continue
+        if expected_side == "sell":
+            dispatched = dispatched_by_allocation.get(mapping["allocation_id"])
+            if dispatched is None:
+                reasons.append("sell_before_dispatch")
+            elif (dispatched["broker_order_id"] is not None
+                  and order["order_id"] != dispatched["broker_order_id"]):
+                reasons.append("order_identity_changed")
         if order["side"] != expected_side:
             reasons.append("order_side_mismatch")
         expected_quantity = (mapping["command"]["quantity"] if expected_side == "buy"
@@ -396,8 +409,9 @@ def _derive(connection, snapshot, prior_state):
         fee_bound_remaining = (money(mapping["fee_bound_usd"])
                                if expected_side == "sell" else D("0"))
         for execution in linked:
-            threshold = (mapping["marked_at"] if expected_side == "buy"
-                         else mapping["request"]["decision_at"])
+            threshold = (mapping["marked_at"] if expected_side == "buy" else
+                         dispatched["marked_at"] if dispatched is not None else
+                         mapping["request"]["decision_at"])
             if utc(execution["at"]) < utc(threshold) or utc(execution["at"]) > utc(snapshot["at"]):
                 reasons.append("buy_before_submission" if expected_side == "buy"
                                else "sell_before_allocation")
@@ -890,6 +904,9 @@ def apply(path, raw):
         order_reconciliation._disarm(connection, snapshot["reconciliation_id"], at,
                                       unresolved, sorted(set(prior_reasons) & TRANSIENT_REASONS))
         from . import order_cancellation
+        from . import order_reducing_dispatch
+        order_reducing_dispatch.apply_evidence(connection, at, state["orders"],
+                                                snapshot["reconciliation_id"])
         order_cancellation.apply_evidence(connection, at, state["orders"],
                                           snapshot["reconciliation_id"])
         result = _report(state)
