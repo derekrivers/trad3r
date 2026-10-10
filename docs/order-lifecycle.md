@@ -249,4 +249,6 @@ The [P4.5 handoff](order-protection.md#ordered-implementation-handoff) now defin
 the shared sell-quantity bound, separate management permissions, cancellation
 protocol, fee allocation, pending-sale accounting and incident recovery. Its
 X01–X24 scenarios refine the protection and cancellation cases above. Packages A
-and B implement the pure permission and durable allocation portions; C–G remain.
+and B implement the pure permission and durable allocation portions. Package C
+implements cumulative sell accounting and pending lots pending critical review;
+packages D–G remain.
