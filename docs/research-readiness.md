@@ -65,10 +65,12 @@ delivery-time record. The data-access blocker for this fixture is resolved.
 The [original stock sample](stock-sample-intake-2026-10-10.md) is now privately
 retained on ATLAS. Its archive hash and two deterministic replay journals match the
 original evidence; strict validation and the full 20-session audit pass with zero
-missing bars. The historical combined stock/FX archive or original FX export,
-private assumptions, registrations and result bundles have not yet been transferred.
-The earlier connected-FX evidence above describes the original research environment,
-not verified data access or file availability on this VPS.
+missing bars. A separate read-only Massive acquisition now verifies current stock
+and GBP/USD access and is recorded in the [FX intake report](massive-fx-intake-2026-10-10.md).
+The historical combined archive or original FX export, private assumptions,
+registrations and result bundles have not yet been transferred. The new archive
+does not replace the original engineering fixture or establish qualified research
+data.
 
 ## Inputs needed for the next meaningful result
 
