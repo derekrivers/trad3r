@@ -9,6 +9,14 @@ There is no broker connection, real order execution, AI trading decision or live
 mode. A single-session simulator now includes a frozen experimental opening-range
 hypothesis; it has no validated performance or profitability evidence.
 
+## Delivery plan
+
+The [canonical project plan](docs/project-plan.md) defines delivery order and owner
+gates. Follow the [current status and next tasks](docs/project-status.md) and
+[decision record](docs/decisions.md). The discretionary product will propose
+traceable theses and conditional plans; deterministic code retains account, risk
+and execution authority. The existing baseline is a comparison hypothesis.
+
 ## Run locally
 
 For recoverable offline jobs and eventual deployment, see the
