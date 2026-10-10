@@ -15,7 +15,7 @@ class OrderProtectionTests(unittest.TestCase):
         values = dict(
             order_id=identity, instrument_id=self.instrument, purpose=purpose,
             state=state, original_quantity=quantity, executed_quantity=executed,
-            last_event_version=1,
+            last_event_version=1, mapping_verified=True, evidence_complete=True,
         )
         values.update(changes)
         return OrderProjection(**values)
@@ -29,6 +29,9 @@ class OrderProtectionTests(unittest.TestCase):
             quantity=2, planned_stop_price_usd="99.5",
             quote_at="2026-09-04T14:00:20Z", fx_at="2026-09-04T14:00:20Z",
             exit_fee_allowance_usd="0.35", settled_cash_usd="399.65",
+            quantity_verified=True, evidence_complete=True, order_inventory_complete=True,
+            identity_consistent=True, store_valid=True, fee_evidence_bounded=True,
+            fee_evidence_complete=True, writer_fenced=True, session_supported=True,
         )
         values.update(changes)
         return ProtectionSnapshot(**values)
@@ -199,6 +202,128 @@ class OrderProtectionTests(unittest.TestCase):
         self.assertEqual(result.desired_action, "flatten")
         self.assertIn("desired_action:flatten", result.entry_blocked_reasons)
         self.assertTrue(result.reduction_allowed)
+
+    def test_terminal_quantity_does_not_release_fee_only_reservations(self):
+        for state in ("filled", "cancelled", "rejected"):
+            with self.subTest(state=state):
+                terminal = self.order(
+                    "old-exit", EXIT, state, quantity=1,
+                    executed=1 if state == "filled" else 0,
+                    terminal_no_remainder_proved=state != "filled",
+                    fee_allocation_usd="0.20")
+                snapshot = self.snapshot(orders=(terminal,), fee_evidence_complete=False)
+                result = evaluate(snapshot, self.request(
+                    reduction_quantity=1, reduction_fee_bound_usd="0.16"))
+                self.assertEqual(result.available_sell_quantity, 2)
+                self.assertEqual(result.available_exit_fee_usd, "0.15")
+                self.assertIn("exit_fee_allowance_unavailable", result.reduction_blocked_reasons)
+                bounded = evaluate(snapshot, self.request(
+                    reduction_quantity=1, reduction_fee_bound_usd="0.15"))
+                self.assertTrue(bounded.reduction_allowed)
+                flat = evaluate(replace(snapshot, quantity=0, fee_evidence_complete=True),
+                                self.request())
+                self.assertEqual(flat.exposure_state, "verified_flat")
+                self.assertIn("outstanding_allocations", flat.entry_blocked_reasons)
+                self.assertEqual(flat.available_exit_fee_usd, "0.15")
+
+    def test_incomplete_order_evidence_cannot_free_quantity_or_prove_protection(self):
+        for purpose in (ENTRY, EXIT, STOP):
+            for state in ("working", "filled", "cancelled", "rejected"):
+                for invalid in ("mapping_verified", "evidence_complete"):
+                    with self.subTest(purpose=purpose, state=state, invalid=invalid):
+                        order = self.order(
+                            "unproven", purpose, state, quantity=2,
+                            executed=2 if state == "filled" else 0,
+                            terminal_no_remainder_proved=state in ("cancelled", "rejected"),
+                            **{invalid: False})
+                        result = evaluate(self.snapshot(orders=(order,)),
+                                          self.request(reduction_quantity=1))
+                        self.assertEqual(order.remainder, 2)
+                        self.assertEqual((result.exposure_state, result.protection_state),
+                                         ("unresolved", "unknown"))
+                        self.assertIsNone(result.verified_quantity)
+                        self.assertIsNone(result.available_sell_quantity)
+                        self.assertFalse(result.reduction_allowed)
+
+    def test_stale_future_and_invalid_proofs_never_report_active_coverage(self):
+        stop = self.order("stop", STOP, "working", confirmed_stop_price_usd="99.5")
+        for changes in (
+                {"snapshot_at": "2026-09-04T13:59:39Z"},
+                {"snapshot_at": "2026-09-04T14:00:41Z"},
+                {"store_valid": False}, {"identity_consistent": False},
+                {"evidence_complete": False}, {"quantity_verified": False}):
+            with self.subTest(changes=changes):
+                result = evaluate(self.snapshot(orders=(stop,), **changes), self.request())
+                self.assertEqual(result.protection_state, "unknown")
+                self.assertEqual(result.covered_quantity, 0)
+                self.assertIsNone(result.verified_quantity)
+        exact_age = evaluate(self.snapshot(orders=(stop,), snapshot_at="2026-09-04T13:59:40Z"),
+                             self.request())
+        self.assertEqual(exact_age.protection_state, "active")
+
+    def test_other_cash_reservations_cannot_be_spent_on_exit_fees(self):
+        snapshot = self.snapshot(settled_cash_usd="0.35", other_cash_allocations_usd="0.25")
+        exact = evaluate(snapshot, self.request(reduction_quantity=1, reduction_fee_bound_usd="0.10"))
+        self.assertTrue(exact.reduction_allowed)
+        excess = evaluate(snapshot, self.request(reduction_quantity=1, reduction_fee_bound_usd="0.11"))
+        self.assertIn("settled_cash_fee_unavailable", excess.reduction_blocked_reasons)
+        conflict = evaluate(replace(snapshot, other_cash_allocations_usd="0.36"),
+                            self.request(reduction_quantity=1))
+        self.assertIn("fee_allocation_conflict", conflict.reduction_blocked_reasons)
+
+    def test_flat_entry_gate_requires_current_versions_fencing_and_submission_evidence(self):
+        self.assertTrue(evaluate(self.snapshot(quantity=0), self.request()).entry_allowed)
+        for changes, reason in (
+                ({"writer_fenced": False}, "writer_not_fenced"),
+                ({"session_supported": False}, "unsupported_session"),
+                ({"fee_evidence_bounded": False}, "fee_exposure_unbounded"),
+                ({"exit_fees_incurred_usd": "0.36"}, "fee_allocation_conflict"),
+                ({"quote_at": None}, "quote_missing"),
+                ({"fx_at": "2026-09-04T13:59:39Z"}, "fx_stale")):
+            with self.subTest(changes=changes):
+                result = evaluate(self.snapshot(quantity=0, **changes), self.request())
+                self.assertIn(reason, result.entry_blocked_reasons)
+                self.assertFalse(result.entry_allowed)
+        changed = evaluate(self.snapshot(quantity=0), self.request(
+            expected_account_version=6, expected_evidence_version=3))
+        self.assertIn("account_version_changed", changed.entry_blocked_reasons)
+        self.assertIn("evidence_version_changed", changed.entry_blocked_reasons)
+
+    def test_regular_session_bounds_apply_even_with_positive_session_assertion(self):
+        for at, allowed in (
+                ("2026-09-04T13:29:59Z", False), ("2026-09-04T13:30:00Z", True),
+                ("2026-09-04T19:59:59Z", True), ("2026-09-04T20:00:00Z", False),
+                ("2026-09-07T14:00:00Z", False), ("2026-09-05T14:00:00Z", False),
+                ("2026-11-27T17:59:59Z", True), ("2026-11-27T18:00:00Z", False),
+                ("2027-09-03T14:00:00Z", False)):
+            with self.subTest(at=at):
+                result = evaluate(self.snapshot(snapshot_at=at, quote_at=at, fx_at=at),
+                                  self.request(at=at, reduction_quantity=1))
+                self.assertEqual(result.reduction_allowed, allowed)
+                self.assertEqual("unsupported_session" in result.reduction_blocked_reasons,
+                                 not allowed)
+
+    def test_known_entry_remainder_does_not_prevent_protecting_verified_holdings(self):
+        entry = self.order("entry", ENTRY, "partially_filled", quantity=3, executed=2)
+        snapshot = self.snapshot(orders=(entry,), other_cash_allocations_usd="100")
+        result = evaluate(snapshot, self.request(reduction_quantity=2, reduction_fee_bound_usd="0.35"))
+        self.assertTrue(result.reduction_allowed)
+        self.assertFalse(result.entry_allowed)
+        self.assertEqual(result.available_sell_quantity, 2)
+        excess = evaluate(snapshot, self.request(reduction_quantity=3))
+        self.assertIn("sell_quantity_unavailable", excess.reduction_blocked_reasons)
+
+    def test_omitted_proofs_never_enable_permissions(self):
+        snapshot = ProtectionSnapshot(
+            account_id="synthetic-test", environment="synthetic", instrument_id=self.instrument,
+            account_version=7, evidence_version=4, execution_watermark=11,
+            snapshot_id="snapshot", snapshot_at="2026-09-04T14:00:30Z", quantity=2)
+        result = evaluate(snapshot, self.request(reduction_quantity=1))
+        self.assertFalse(result.entry_allowed)
+        self.assertFalse(result.reduction_allowed)
+        self.assertEqual(result.exposure_state, "unresolved")
+        order = OrderProjection("unverified", self.instrument, EXIT, "filled", 1, 1, 1)
+        self.assertEqual(order.remainder, 1)
 
     def test_invalid_structures_are_rejected_without_evaluation(self):
         with self.assertRaisesRegex(ValueError, "full quantity"):

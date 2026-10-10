@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal as D
 
+from .calendar import session_bounds
 from .ledger import utc
 from .risk import money
 from . import order_store as store
@@ -74,8 +75,8 @@ class OrderProjection:
     original_quantity: int
     executed_quantity: int
     last_event_version: int
-    mapping_verified: bool = True
-    evidence_complete: bool = True
+    mapping_verified: bool = False
+    evidence_complete: bool = False
     terminal_no_remainder_proved: bool = False
     confirmed_stop_price_usd: D | str | None = None
     fee_allocation_usd: D | str = D("0")
@@ -111,6 +112,10 @@ class OrderProjection:
 
     @property
     def remainder(self):
+        # Uncorrelated or incomplete evidence cannot release even an allegedly
+        # executed quantity. The account proof is also withheld by evaluate().
+        if not self.mapping_verified or not self.evidence_complete:
+            return self.original_quantity
         if self.state == "filled":
             return 0
         if self.state in ("cancelled", "rejected") and self.terminal_no_remainder_proved:
@@ -134,21 +139,22 @@ class ProtectionSnapshot:
     halt_reasons: tuple[str, ...] = ()
     operator_paused: bool = False
     desired_action: str = "hold"
-    quantity_verified: bool = True
-    evidence_complete: bool = True
-    order_inventory_complete: bool = True
-    identity_consistent: bool = True
-    store_valid: bool = True
-    fee_evidence_bounded: bool = True
-    fee_evidence_complete: bool = True
-    writer_fenced: bool = True
-    session_supported: bool = True
+    quantity_verified: bool = False
+    evidence_complete: bool = False
+    order_inventory_complete: bool = False
+    identity_consistent: bool = False
+    store_valid: bool = False
+    fee_evidence_bounded: bool = False
+    fee_evidence_complete: bool = False
+    writer_fenced: bool = False
+    session_supported: bool = False
     planned_stop_price_usd: D | str | None = None
     quote_at: str | None = None
     fx_at: str | None = None
     exit_fee_allowance_usd: D | str = D("0")
     exit_fees_incurred_usd: D | str = D("0")
     settled_cash_usd: D | str = D("0")
+    other_cash_allocations_usd: D | str = D("0")
 
     def __post_init__(self):
         store._identity(self.account_id, "protection account id")
@@ -191,7 +197,8 @@ class ProtectionSnapshot:
             value = getattr(self, field)
             if value is not None:
                 store._timestamp_string(value, field.replace("_", " "))
-        for field in ("exit_fee_allowance_usd", "exit_fees_incurred_usd", "settled_cash_usd"):
+        for field in ("exit_fee_allowance_usd", "exit_fees_incurred_usd", "settled_cash_usd",
+                      "other_cash_allocations_usd"):
             object.__setattr__(self, field, _nonnegative(getattr(self, field), field.replace("_", " ")))
 
 
@@ -270,6 +277,9 @@ def evaluate(snapshot: ProtectionSnapshot, request: EvaluationRequest) -> Evalua
     instrument_mismatch = any(row.instrument_id != snapshot.instrument_id for row in snapshot.orders)
 
     fact_reasons = []
+    snapshot_time_reason = _evidence_reason("snapshot", snapshot.snapshot_at, at)
+    if snapshot_time_reason:
+        fact_reasons.append(snapshot_time_reason)
     if not snapshot.store_valid:
         fact_reasons.append("store_invalid")
     if not snapshot.evidence_complete:
@@ -280,6 +290,10 @@ def evaluate(snapshot: ProtectionSnapshot, request: EvaluationRequest) -> Evalua
         fact_reasons.append("quantity_unverified")
     if not snapshot.identity_consistent or instrument_mismatch:
         fact_reasons.append("identity_conflict")
+    if any(not row.mapping_verified for row in snapshot.orders):
+        fact_reasons.append("order_identity_unverified")
+    if any(not row.evidence_complete for row in snapshot.orders):
+        fact_reasons.append("order_evidence_incomplete")
     available_sell = snapshot.quantity - committed_sell
     if available_sell < 0:
         fact_reasons.append("sell_capacity_conflict")
@@ -302,8 +316,9 @@ def evaluate(snapshot: ProtectionSnapshot, request: EvaluationRequest) -> Evalua
     for order in sell_orders:
         if order.purpose != STOP:
             continue
-        if order.state in UNCERTAIN or (order.state in ("cancelled", "rejected")
-                                        and not order.terminal_no_remainder_proved):
+        if order.remainder and (order.state in UNCERTAIN or (
+                order.state in ("cancelled", "rejected")
+                and not order.terminal_no_remainder_proved)):
             uncertain_stop = True
         elif order.state in PENDING and order.remainder:
             pending_stop = True
@@ -318,7 +333,7 @@ def evaluate(snapshot: ProtectionSnapshot, request: EvaluationRequest) -> Evalua
                 protection_reasons.append("planned_stop_missing")
             elif order.confirmed_stop_price_usd < snapshot.planned_stop_price_usd:
                 protection_reasons.append("protection_price_unacceptable")
-            else:
+            elif exposure != "unresolved":
                 active_coverage += order.remainder
         elif order.state == "rejected" and order.terminal_no_remainder_proved:
             rejected_stops.append(order)
@@ -349,16 +364,17 @@ def evaluate(snapshot: ProtectionSnapshot, request: EvaluationRequest) -> Evalua
     else:
         protection = "missing"
 
-    outstanding_fees = sum(row.fee_allocation_usd for row in sell_orders if row.remainder)
+    # Quantity terminality does not imply final fees. Fee-only reservations
+    # survive filled/cancelled orders and verified flatness.
+    outstanding_fees = sum((row.fee_allocation_usd for row in sell_orders), D("0"))
     fee_available = (snapshot.exit_fee_allowance_usd - snapshot.exit_fees_incurred_usd
                      - outstanding_fees)
-    fee_conflict = fee_available < 0 or outstanding_fees > snapshot.settled_cash_usd
+    free_fee_cash = (snapshot.settled_cash_usd - outstanding_fees
+                     - snapshot.other_cash_allocations_usd)
+    fee_conflict = fee_available < 0 or free_fee_cash < 0
     available_fee_result = None if fee_conflict else str(fee_available)
 
     entry_reasons = list(fact_reasons)
-    snapshot_time_reason = _evidence_reason("snapshot", snapshot.snapshot_at, at)
-    if snapshot_time_reason:
-        entry_reasons.append(snapshot_time_reason)
     if snapshot.operator_paused:
         entry_reasons.append("operator_paused")
     if snapshot.desired_action != "hold":
@@ -371,6 +387,8 @@ def evaluate(snapshot: ProtectionSnapshot, request: EvaluationRequest) -> Evalua
         entry_reasons.append("protection:" + protection)
     if not snapshot.fee_evidence_complete:
         entry_reasons.append("fee_evidence_incomplete")
+    if outstanding_fees or snapshot.other_cash_allocations_usd:
+        entry_reasons.append("outstanding_allocations")
     entry_reasons.extend(protection_reasons)
 
     version_reasons = []
@@ -378,6 +396,25 @@ def evaluate(snapshot: ProtectionSnapshot, request: EvaluationRequest) -> Evalua
         version_reasons.append("account_version_changed")
     if request.expected_evidence_version != snapshot.evidence_version:
         version_reasons.append("evidence_version_changed")
+
+    submission_reasons = list(version_reasons)
+    if not snapshot.writer_fenced:
+        submission_reasons.append("writer_not_fenced")
+    try:
+        bounds = session_bounds(at.date().isoformat())
+    except ValueError:
+        bounds = None
+    if not snapshot.session_supported or bounds is None or not bounds[0] <= at < bounds[1]:
+        submission_reasons.append("unsupported_session")
+    for label, raw in (("quote", snapshot.quote_at), ("fx", snapshot.fx_at)):
+        reason = _evidence_reason(label, raw, at)
+        if reason:
+            submission_reasons.append(reason)
+    if not snapshot.fee_evidence_bounded:
+        submission_reasons.append("fee_exposure_unbounded")
+    if fee_conflict:
+        submission_reasons.append("fee_allocation_conflict")
+    entry_reasons.extend(submission_reasons)
 
     cancel_reasons = list(version_reasons)
     if request.cancel_order_id is None:
@@ -401,35 +438,19 @@ def evaluate(snapshot: ProtectionSnapshot, request: EvaluationRequest) -> Evalua
             if target.remainder == 0:
                 cancel_reasons.append("cancel_target_terminal")
 
-    reduction_reasons = list(version_reasons)
+    reduction_reasons = list(submission_reasons)
     if request.reduction_quantity is None:
         reduction_reasons.append("reduction_not_requested")
-    if not snapshot.writer_fenced:
-        reduction_reasons.append("writer_not_fenced")
-    if not snapshot.session_supported:
-        reduction_reasons.append("unsupported_session")
     reduction_reasons.extend(fact_reasons)
     reduction_reasons.extend("incident:" + row.incident_id for row in snapshot.incidents
                              if row.blocks_management)
-    for label, raw in (("snapshot", snapshot.snapshot_at),
-                       ("quote", snapshot.quote_at), ("fx", snapshot.fx_at)):
-        reason = _evidence_reason(label, raw, at)
-        if reason:
-            reduction_reasons.append(reason)
     if exposure != "verified_long":
         reduction_reasons.append("verified_long_position_required")
-    if possible_entry:
-        reduction_reasons.append("entry_remainder_possible")
-    if not snapshot.fee_evidence_bounded:
-        reduction_reasons.append("fee_exposure_unbounded")
-    if fee_conflict:
-        reduction_reasons.append("fee_allocation_conflict")
     if request.reduction_quantity is not None and available_sell_result is not None:
         if request.reduction_quantity > available_sell_result:
             reduction_reasons.append("sell_quantity_unavailable")
         if (not fee_conflict and request.reduction_fee_bound_usd > fee_available):
             reduction_reasons.append("exit_fee_allowance_unavailable")
-        free_fee_cash = snapshot.settled_cash_usd - outstanding_fees
         if request.reduction_fee_bound_usd > free_fee_cash:
             reduction_reasons.append("settled_cash_fee_unavailable")
 
@@ -440,7 +461,7 @@ def evaluate(snapshot: ProtectionSnapshot, request: EvaluationRequest) -> Evalua
         execution_watermark=snapshot.execution_watermark, snapshot_id=snapshot.snapshot_id,
         as_of=at.isoformat(), desired_action=snapshot.desired_action,
         exposure_state=exposure, protection_state=protection,
-        verified_quantity=snapshot.quantity if snapshot.quantity_verified else None,
+        verified_quantity=snapshot.quantity if exposure != "unresolved" else None,
         covered_quantity=active_coverage, committed_sell_quantity=committed_sell,
         available_sell_quantity=available_sell_result,
         available_exit_fee_usd=available_fee_result,

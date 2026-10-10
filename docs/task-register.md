@@ -58,7 +58,7 @@ The [P4.5 protection contract](order-protection.md) and 24 acceptance specificat
 are defined in [PR #35](https://github.com/derekrivers/trad3r/pull/35). Packages A–G
 are sequential subdivisions of P4.5, not new master-plan tasks. Package A's pure
 evaluator is implemented in [PR #36](https://github.com/derekrivers/trad3r/pull/36)
-with 12 deterministic tests. Package B is ready for Sol High; later packages cover
+with 20 deterministic tests. Package B is ready for Sol High; later packages cover
 cumulative sell evidence, cancellation, protective/reducing dispatch, incidents
 and integrated faults. Return
 to Astra for changed financial/identity semantics and critical final-diff review.
