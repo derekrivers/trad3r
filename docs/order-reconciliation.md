@@ -90,8 +90,10 @@ account-only adjustments with a null intent and must not be used to downgrade it
 ## Scope limit
 
 The settlement field is required and reconciled as empty for the current entry-only
-writer. Position-reducing sell commands and their T+1 proceeds arrive with P4.5;
-until that extension is reviewed, any pending settlement blocks reconciliation.
+writer. Position-reducing sell commands and pending proceeds are specified in the
+[P4.5 protection contract](order-protection.md); durable cross-day cash release
+depends on P4.6's reviewed period policy. In the current v3 implementation, any
+pending settlement blocks reconciliation.
 Version-1 and version-2 stores stay readable by their earlier components but need
 an explicit version-3 migration before reconciliation. No automatic migration,
 connected paper mode, cancellation dispatch, protection order or live mode exists.

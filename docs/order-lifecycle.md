@@ -3,9 +3,10 @@
 Contract `order-lifecycle-v1`, defined for P4.1 on 10 October 2026. P4.2
 implements its [atomic synthetic admission](order-admission.md) subset and P4.3
 implements the [fenced synthetic writer](order-writer.md). P4.4 implements
-[synthetic reconciliation](order-reconciliation.md). No broker adapter exists; P4.5
-implements exposure protection. These components must be tested together before
-the Phase 4 exit gate can pass.
+[synthetic reconciliation](order-reconciliation.md). No broker adapter exists. The
+[P4.5 protection contract](order-protection.md) defines exposure controls and their
+acceptance scenarios; its runtime implementation remains pending. These components
+must be tested together before the Phase 4 exit gate can pass.
 
 ## Authority and scope
 
@@ -225,7 +226,7 @@ after reopening the store. No credentials, network or licensed bars are needed.
 | O05 | Kill before reservation commit, after reservation, before/after dispatch marker and after adapter acceptance before acknowledgement | Rollback before commit; revalidation for never-dispatched work; all possibly sent cases reconcile without a second submit. P4.2–4.4 |
 | O06 | Timeout followed by empty open-order query, then a late execution | Remain unknown after empty query; preserve resources; apply late execution once; no retry. P4.3/4.4 |
 | O07 | Partial fill, cancel request, more fills, cancel acknowledgement | Cancel pending survives partials; confirmed working remainder becomes zero; filled portion remains accounted/protected. P4.4/4.5 |
-| O08 | Fill completes before cancel acknowledgement; rejected cancel; late acknowledgement | Filled order never regresses; cancel rejection does not reject the order; contradictory evidence blocks entries. P4.4 |
+| O08 | Fill completes before cancel acknowledgement; rejected cancel; late acknowledgement | Filled order never regresses; cancel rejection does not reject the order; contradictory evidence blocks entries. P4.4/P4.5 |
 | O09 | Cancelled order receives delayed partial/full execution or terminal rejection is contradicted | Use explicit reconciliation rules; no discarded fill, automatic resubmit or false flat claim. P4.4 |
 | O10 | Duplicate execution under a new event ID, late fee, overfill, bust, missing execution detail | Deduplicate by execution identity; fees apply once; unsupported/conflicting facts remain unresolved and block entry/resource release. P4.4 |
 | O11 | Missing/corrupt store, failed commit, stale version, expired authority or restored pre-submit backup | No reset/new account, dispatch or stale approval; preserve resource/attempt history and require reconciliation. P4.2–4.4 |
@@ -242,3 +243,9 @@ of O02, O05, O06, O11, O13 and O14. P4.4 adds external reconciliation evidence;
 P4.3 does not claim its execution/accounting cases. Return to Astra for changes to these states, identity
 semantics, financial invariants or uncertain-outcome rules. Connected paper and
 live gates stay closed.
+
+The [P4.5 handoff](order-protection.md#ordered-implementation-handoff) now defines
+the shared sell-quantity bound, separate management permissions, cancellation
+protocol, fee allocation, pending-sale accounting and incident recovery. Its
+X01–X24 scenarios refine the protection and cancellation cases above. Definition
+is complete; executable implementation credit remains with packages A–G.

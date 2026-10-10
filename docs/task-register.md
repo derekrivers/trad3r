@@ -41,7 +41,7 @@ time unless the owner explicitly authorises parallel work.
 
 | Order | Work package | Tasks | Start model | Completion evidence |
 | ---: | --- | --- | --- | --- |
-| 1 | Implement protection and exposure incidents | P4.5 | Astra high | Partial-fill cancellation, reducing exits, protection rejection/races and manual intervention preserve verified exposure |
+| 1 | Implement protection and quantity evaluator | P4.5 A | Sol high | Pure evidence/permission rules pass [contract vectors](order-protection.md#required-acceptance-scenarios); no persistence or dispatch claim |
 | 2 | Produce dated broker/entity capability matrix | P2.1–P2.2 | Sol medium/high | Primary-source matrix with exact UK entity/account/API facts and explicit unknowns; no account action |
 | 3 | Build dated cost feasibility model | P2.4 | Sol high | Sourced fees/spread/FX/recurring costs compared with £3 trade risk and £10 monthly ceiling |
 
@@ -53,6 +53,14 @@ and P4.4 synthetic reconciliation are implemented. P4.5 prerequisite review foun
 empty-account and reservation-ownership defects, fixed in
 [PR #34](https://github.com/derekrivers/trad3r/pull/34). Remaining lifecycle vectors
 belong to protection and connected-paper phases. See [current evidence](project-status.md).
+
+The [P4.5 protection contract](order-protection.md) and 24 acceptance specifications
+are defined in [PR #35](https://github.com/derekrivers/trad3r/pull/35). Packages A–G
+are sequential subdivisions of P4.5, not new master-plan tasks. A is ready for Sol
+High; the later packages cover transactional allocations, cumulative sell evidence,
+cancellation, protective/reducing dispatch, incidents and integrated faults. Return
+to Astra for changed financial/identity semantics and critical final-diff review.
+The scenarios are specifications until executable implementation evidence is linked.
 
 P0.3 and the off-host portion of P1.6 remain owner-input blockers. They do not block
 the independent queue above. P5 connected paper submissions and all P10 activity
@@ -108,7 +116,7 @@ remain behind their explicit owner gates.
 | P4.2 | complete | [atomic synthetic admission](order-admission.md); no adapter/dispatch | Sol high, Astra review | One transaction binds intent/attempt/versions/expiry and reserves cash/exposure/loss; duplicate, conflict, concurrency, restart, rollback and corruption tests |
 | P4.3 | complete | [fenced synthetic writer](order-writer.md); no broker/network endpoint | Sol high, Astra review | Single writer and durable queue; marker precedes adapter call; lost acknowledgement becomes unknown; ownership epochs, rollback and no-retry faults tested |
 | P4.4 | complete | [synthetic reconciliation](order-reconciliation.md); account-safety follow-up #34; connected adapter remains P5 | Sol high, Astra review | Synthetic cumulative entry reconciliation, including empty-account cash/settlement checks, mark/halts and reservation ownership; full independent inbox-to-account replay remains outside this delivered slice |
-| P4.5 | not started | ready after P4.4 | Astra high | Pause/halt/exposure/flat incident model covers partial fills, rejected protection, races and manual intervention |
+| P4.5 | in progress | [design and vectors defined](order-protection.md); package A ready, B–G sequential | Sol high for bounded implementation; Astra for semantics/review | Runtime must prove pause/halt/exposure/flat controls, shared sell capacity, cancellation/protection races, owner recovery and pending-sale accounting; PR #35 defines acceptance only |
 | P4.6 | not started | proposal ready after durable account schema; implementation requires owner review | Astra high | Persistent daily/weekly transition and restart proposal preserves all history/halts; implement only approved policy |
 | P4.7 | not started | grows with P4.1–P4.6 | Sol high | Fault-injection suite for death, timeout, stale approval, concurrency, storage, duplicates and missing broker state; invariants survive restart |
 
