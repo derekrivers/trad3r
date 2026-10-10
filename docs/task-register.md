@@ -41,7 +41,7 @@ time unless the owner explicitly authorises parallel work.
 
 | Order | Work package | Tasks | Start model | Completion evidence |
 | ---: | --- | --- | --- | --- |
-| 1 | Review and merge fenced cancellation | P4.5 D | Astra high | Critical final-diff review, exact reviewed SHA, hosted CI and expected-head merge; no quantity release from acknowledgement alone |
+| 1 | Implement reducing/protective dispatch | P4.5 E | Sol high | Fenced marker-before-call path consumes current cumulative capacity; uncertain submission retains the full possible sell remainder; Astra review before merge |
 | 2 | Produce dated broker/entity capability matrix | P2.1–P2.2 | Sol medium/high | Primary-source matrix with exact UK entity/account/API facts and explicit unknowns; no account action |
 | 3 | Build dated cost feasibility model | P2.4 | Sol high | Sourced fees/spread/FX/recurring costs compared with £3 trade risk and £10 monthly ceiling |
 
@@ -61,7 +61,7 @@ evaluator is implemented in [PR #36](https://github.com/derekrivers/trad3r/pull/
 with 20 deterministic tests. Package B is implemented in
 [PR #37](https://github.com/derekrivers/trad3r/pull/37) with 19 focused tests and
 Astra review fixes for retained-input replay, freshness and identity blocking;
-package C is delivered in [PR #38](https://github.com/derekrivers/trad3r/pull/38) with 19 focused tests and critical review fixes. Package D's implementation and 12 focused tests are ready for Astra review. Later packages cover
+package C is delivered in [PR #38](https://github.com/derekrivers/trad3r/pull/38) with 19 focused tests and critical review fixes. Package D is delivered in [PR #39](https://github.com/derekrivers/trad3r/pull/39) with 12 focused tests and critical review fixes. Later packages cover
 protective/reducing dispatch, incidents
 and integrated faults. Return
 to Astra for changed financial/identity semantics and critical final-diff review.
@@ -121,7 +121,7 @@ remain behind their explicit owner gates.
 | P4.2 | complete | [atomic synthetic admission](order-admission.md); no adapter/dispatch | Sol high, Astra review | One transaction binds intent/attempt/versions/expiry and reserves cash/exposure/loss; duplicate, conflict, concurrency, restart, rollback and corruption tests |
 | P4.3 | complete | [fenced synthetic writer](order-writer.md); no broker/network endpoint | Sol high, Astra review | Single writer and durable queue; marker precedes adapter call; lost acknowledgement becomes unknown; ownership epochs, rollback and no-retry faults tested |
 | P4.4 | complete | [synthetic reconciliation](order-reconciliation.md); account-safety follow-up #34; connected adapter remains P5 | Sol high, Astra review | Synthetic cumulative entry reconciliation, including empty-account cash/settlement checks, mark/halts and reservation ownership; full independent inbox-to-account replay remains outside this delivered slice |
-| P4.5 | in progress | [design and vectors defined](order-protection.md); packages A–C delivered, D ready for review, E–G sequential | Sol high for bounded implementation; Astra for semantics/review | Package D adds fenced synthetic cancellation with no acknowledgement-based release; critical review, hosted CI and merge remain before package E reducing dispatch |
+| P4.5 | in progress | [design and vectors defined](order-protection.md); packages A–D complete, E–G sequential | Sol high for bounded implementation; Astra for semantics/review | Package D adds fenced synthetic cancellation with no acknowledgement-based release; package E reducing/protective dispatch is next |
 | P4.6 | not started | proposal ready after durable account schema; implementation requires owner review | Astra high | Persistent daily/weekly transition and restart proposal preserves all history/halts; implement only approved policy |
 | P4.7 | not started | grows with P4.1–P4.6 | Sol high | Fault-injection suite for death, timeout, stale approval, concurrency, storage, duplicates and missing broker state; invariants survive restart |
 

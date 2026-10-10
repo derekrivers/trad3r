@@ -27,7 +27,7 @@ cost-conscious starting model to all 64 master-plan tasks.
 | P4.2 atomic admission | complete | P4.1 contract | [PR #30](https://github.com/derekrivers/trad3r/pull/30); [atomic admission](order-admission.md); deterministic duplicate/conflict/concurrency/restart/rollback tests | Synthetic flat-account reservations only; no writer, adapter, fills, cancellation or migration of the existing risk/ledger history |
 | P4.3 single writer | complete | P4.1–P4.2 | [PR #31](https://github.com/derekrivers/trad3r/pull/31); [fenced synthetic writer](order-writer.md); durable marker and projection replay; deterministic ownership, lost-acknowledgement, restart and commit-failure tests | Synthetic adapter only; P4.4 now resolves supplied evidence; version-1 stores require explicit writer migration |
 | P4.4 reconciliation | complete | P4.1–P4.3 | [PR #32](https://github.com/derekrivers/trad3r/pull/32); [synthetic reconciliation](order-reconciliation.md); cumulative evidence, atomic account adjustments and replay; deterministic partial-fill, late-fee, disconnect, rollback and corruption tests | Synthetic USD entry evidence only; pending/sell settlement, cancellation and protection belong to P4.5; version-1/2 stores require explicit migration |
-| P4.5 protection | in progress | P4.1–P4.4 | [PR #35](https://github.com/derekrivers/trad3r/pull/35) contract; [PR #36](https://github.com/derekrivers/trad3r/pull/36) package A; [PR #37](https://github.com/derekrivers/trad3r/pull/37) package B; [PR #38](https://github.com/derekrivers/trad3r/pull/38) package C; package D implementation with 12 deterministic tests is ready for review | Fenced cancellation preserves all resources until cumulative terminal evidence. Critical review, hosted CI and merge remain; packages E–G then add reducing dispatch, recovery and integrated faults |
+| P4.5 protection | in progress | P4.1–P4.4 | [PR #35](https://github.com/derekrivers/trad3r/pull/35) contract; [PR #36](https://github.com/derekrivers/trad3r/pull/36) package A; [PR #37](https://github.com/derekrivers/trad3r/pull/37) package B; [PR #38](https://github.com/derekrivers/trad3r/pull/38) package C; [PR #39](https://github.com/derekrivers/trad3r/pull/39) package D with 12 deterministic tests and critical review fixes | A–D are delivered; fenced cancellation preserves all resources until cumulative terminal evidence. Packages E–G add reducing dispatch, recovery and integrated faults |
 
 P4.5 prerequisite review produced [PR #34](https://github.com/derekrivers/trad3r/pull/34):
 empty-order snapshots now check cash/settlement and persist marks/halts; older
@@ -52,8 +52,8 @@ and historical dependencies.
    registered historical reproduction (P0.3/P1.4).
 2. Owner selects an off-host backup destination/access route. Finish restore from
    that destination, recurring backup/monitoring and retention (P1.6).
-3. Review and merge P4.5 package D fenced cancellation on Astra High, then begin
-   package E reducing/protective dispatch. Follow the
+3. Implement P4.5 package E reducing/protective dispatch on Sol High, then return
+   to Astra for critical review. Follow the
    [ordered handoff](order-protection.md#ordered-implementation-handoff) through
    dispatch, incidents
    and integrated faults. No cross-day settlement release precedes P4.6; no existing

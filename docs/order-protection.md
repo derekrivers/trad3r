@@ -5,8 +5,9 @@ Contract `order-protection-v1` defines the P4.5 extension to the
 acceptance scenarios for cancellation, reducing exits, protective stops and
 exposure incidents. Packages A and B implement the evaluator and capacity journal;
 package C's accounting journal is delivered in [PR #38](https://github.com/derekrivers/trad3r/pull/38).
-Package D's fenced synthetic cancellation implementation is ready for review, and
-E–G remain specifications. P4.5 completes only when all packages pass their executable tests
+Package D's fenced synthetic cancellation is delivered in
+[PR #39](https://github.com/derekrivers/trad3r/pull/39), and E–G remain specifications.
+P4.5 completes only when all packages pass their executable tests
 and integrated fault cases.
 
 The scope remains one synthetic account and one qualified USD equity position,

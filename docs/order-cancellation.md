@@ -1,6 +1,7 @@
 # Fenced synthetic cancellation
 
-P4.5 package D implements cancellation as a durable operation on one known order in
+P4.5 package D, delivered in [PR #39](https://github.com/derekrivers/trad3r/pull/39),
+implements cancellation as a durable operation on one known order in
 a fresh version-4 synthetic order store. It has no broker, network, paper-account or
 live endpoint. `live_trading_enabled` remains false.
 
