@@ -86,3 +86,13 @@ Model choice never changes task authority, financial limits, review requirements
 owner gates. Every PR still receives final-diff review, meaningful validation and
 hosted CI on the reviewed SHA. The register governs development workflow only; P6.4
 separately governs model/provider selection and expenditure for the trading agent.
+
+## D007 — Bounded Massive stock/FX access check, 10 October 2026
+
+Using the existing root-managed credential, a single bounded read-only acquisition
+returned complete 20-session stock coverage for AAPL, MSFT and F and a separate
+GBP/USD completed-bar proxy. The archive and validation evidence are private; its
+identity and limitations are recorded in [the intake report](massive-fx-intake-2026-10-10.md).
+This verifies access and structural coverage only. It does not reconstruct the
+missing original combined archive, qualify the history, establish broker costs or
+authorize paid services, account actions or live execution.

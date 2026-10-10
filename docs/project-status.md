@@ -16,11 +16,11 @@ cost-conscious starting model to all 64 master-plan tasks.
 | P0.2 plan adoption | complete | P0.1 | #24; supplied bytes preserved; self-review and hosted CI passed on `0f596df` before expected-head merge | Update status as evidence changes |
 | P0.3 design v2 | blocked | Owner artifact | #24 / D002; owner confirms no transfer yet | Transfer actual design; map requirements/conflicts |
 | P0.4 VPS baseline | complete | P0.1 | #24 / `ea44cc8`; 236 tests, no skips; 17 control checks | Baseline establishes engineering controls only |
-| P0.5 private inventory | complete | P0.1 | `8ebda1a`; [original stock intake](stock-sample-intake-2026-10-10.md) matches source/replay hashes; strict validation and full-window audit pass | Stock sample retained privately; FX/combined archive, assumptions, registrations and results still missing |
+| P0.5 private inventory | complete | P0.1 | `8ebda1a`; [original stock intake](stock-sample-intake-2026-10-10.md) matches source/replay hashes; strict validation and full-window audit pass; [Massive FX intake](massive-fx-intake-2026-10-10.md) records a separate private archive | Original stock sample remains authoritative; original combined FX archive/export, assumptions, registrations and results still missing |
 | P1.1 pinned runtime | complete | P0 adoption | `ea44cc8`; [deployment record](vps-deployment-2026-10-10.md); unprivileged user, root-owned release and venv | Preserve build for registered jobs |
 | P1.2 stage job | complete | P1.1 | `ea44cc8`; AAA synthetic job registered before execution; protected inputs | Original stock sample received; historical FX and experiment files still missing |
 | P1.3 host sandbox | complete | P1.1–2 | `ea44cc8`; all 16 actual host probe checks passed | No power-loss or OOM-exhaustion guarantee |
-| P1.4 execute job | in progress | P1.3 | `ea44cc8`; synthetic job completed, inspected and repeat returned already_complete | Synthetic portion complete; original stock replay reproduced; backtests await FX and experiment files |
+| P1.4 execute job | in progress | P1.3 | `ea44cc8`; synthetic job completed, inspected and repeat returned already_complete; new Massive archive structurally audited | Synthetic portion complete; original stock replay reproduced; registered historical reproduction awaits original FX/experiment files and qualification |
 | P1.5 recovery | complete | P1.4 synthetic | `ea44cc8`; eight installed-package recovery tests passed inside sandbox | Offline job faults only; no broker reconciliation claim |
 | P1.6 backups | in progress | P1.4 synthetic | `ea44cc8`; five-file checksum inventory and separate restore returned already_complete; disk/log checks recorded | Select off-host destination, recurring backup/monitoring and bounded retention; local copies insufficient |
 
@@ -32,10 +32,11 @@ and historical dependencies.
 
 ## Ordered continuation
 
-1. Transfer design v2, the combined stock/FX archive (or original FX export),
-   assumptions, registrations and result bundles. The original stock sample is
-   already retained and verified; match remaining identities before registered
-   historical reproduction (P0.3/P1.4).
+1. Transfer design v2, the original combined stock/FX archive (or original FX
+   export), assumptions, registrations and result bundles. A separate Massive
+   stock/FX archive is now retained for structural inspection, but the original
+   stock sample remains authoritative; match remaining identities before
+   registered historical reproduction (P0.3/P1.4).
 2. Owner selects an off-host backup destination/access route. Finish restore from
    that destination, recurring backup/monitoring and retention (P1.6).
 3. Independent next engineering increment: P4.1 durable order-state contract and

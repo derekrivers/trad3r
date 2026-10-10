@@ -79,7 +79,7 @@ remain behind their explicit owner gates.
 | --- | --- | --- | --- | --- |
 | P2.1 | not started | ready for research; owner facts later | Sol medium | Dated primary-source matrix for exact UK entities, account types, paper prerequisites, APIs and authentication |
 | P2.2 | not started | conditional on shortlisted broker/account facts | Sol high | Instrument, order, cash, settlement, partial-fill, commission and restart-query capability record with unknowns |
-| P2.3 | in progress | ready; Massive key authenticated for one stock request | Luna medium | Verify entitled historical/forward stocks, quotes and FX; timestamps, limits, retention and permitted external-model use; separate corrected history from decision-time data |
+| P2.3 | in progress | bounded stock and GBP/USD requests now authenticated; terms and forward/decision-time evidence remain open | Luna medium | Verify entitled historical/forward stocks, quotes and FX; timestamps, limits, retention and permitted external-model use; separate corrected history from decision-time data |
 | P2.4 | not started | conditional on P2.1–P2.3 evidence | Sol high | Sourced intended-quantity cost model including minimums, spread/slippage, FX and recurring project costs |
 | P2.5 | not started | blocked by P2.1–P2.4 and owner selection | Astra medium | Decision record for broker/feed, session, universe, availability and proceed/revise/stop recommendation |
 
@@ -87,7 +87,7 @@ remain behind their explicit owner gates.
 
 | ID | Status | Readiness / dependency | Start model | Deliverable and acceptance evidence |
 | --- | --- | --- | --- | --- |
-| P3.1 | in progress | ready within existing Massive entitlement | Luna medium | Broader permitted stock/FX archives with provenance, hashes, inventory and acquisition timestamps; retain inspected sample role |
+| P3.1 | in progress | one private 20-session stock/FX archive acquired and structurally audited; broader history and original identity remain open | Luna medium | Broader permitted stock/FX archives with provenance, hashes, inventory and acquisition timestamps; retain inspected sample role |
 | P3.2 | in progress | conditional on P3.1 datasets | Sol high | Quality report covers order/duplicates/gaps, corporate actions, scale, independent prices, sessions, early closes, DST and FX |
 | P3.3 | not started | ready for contract work; feed evidence later | Astra medium | Reviewed forward-feed contract for event/receipt time, completion, lateness, staleness, reconnects, corrections and spread evidence |
 | P3.4 | not started | conditional on inventory and economic criteria owner review | Astra high | Preregister chronological partitions, hypotheses, search budget, universe, costs, metrics and pass/fail/inconclusive rules before outcomes |
