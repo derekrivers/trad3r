@@ -53,7 +53,7 @@ DURABLE_REASONS = {
     "client_order_mismatch", "original_quantity_mismatch",
     "broker_order_identity_changed", "external_execution_unknown",
     "execution_order_mismatch", "execution_overfill", "position_identity_mismatch",
-    "order_state_regression",
+    "order_state_regression", "reservation_owner_conflict",
 }
 TRANSIENT_REASONS = {
     "reconciliation_required", "snapshot_incomplete", "order_outcome_unknown",
@@ -419,9 +419,18 @@ def _validate_complete(state, snapshot, submissions):
                 reasons.append("commission_history_changed")
     if any(row["execution_id"] not in executions for row in commissions.values()):
         reasons.append("commission_execution_missing")
-    submission = (max(submissions.values(), key=lambda row: row["last_event_version"])
-                  if submissions else None)
-    older = [row for row in submissions.values() if row is not submission]
+    expected_cash = money(state["baseline_settled_cash_usd"])
+    expected_cash -= sum(money(row["price_usd"]) * row["quantity"] for row in executions.values())
+    expected_cash -= sum(money(row["amount_usd"]) for row in commissions.values())
+    if money(snapshot["currency_cash"]["USD"]) != expected_cash:
+        reasons.append("currency_cash_mismatch")
+    if money(snapshot["unsettled_usd"]) != 0 or snapshot["pending_settlements"]:
+        reasons.append("settlement_mismatch")
+    # Expired authority is a local tombstone, never evidence of a broker order.
+    dispatched = [row for row in submissions.values() if row["reason"] != "expired_authority"]
+    submission = (max(dispatched, key=lambda row: row["last_event_version"])
+                  if dispatched else None)
+    older = [row for row in dispatched if row is not submission]
     if any(row["state"] not in ("rejected", "cancelled") for row in older):
         reasons.append("multiple_submissions_unsupported")
         return reasons, None, None, executions, commissions
@@ -479,47 +488,43 @@ def _validate_complete(state, snapshot, submissions):
         reasons.append("position_identity_mismatch")
     if position_quantity != executed:
         reasons.append("position_quantity_mismatch")
-    expected_cash = money(state["baseline_settled_cash_usd"])
-    expected_cash -= sum(money(row["price_usd"]) * row["quantity"] for row in executions.values())
-    expected_cash -= sum(money(row["amount_usd"]) for row in commissions.values())
-    if money(snapshot["currency_cash"]["USD"]) != expected_cash:
-        reasons.append("currency_cash_mismatch")
-    if money(snapshot["unsettled_usd"]) != 0 or snapshot["pending_settlements"]:
-        reasons.append("settlement_mismatch")
     return reasons, submission, order, executions, commissions
 
 
-def _adjust_account(connection, account, snapshot, submission, order, executions, commissions):
-    intent = store._record_payload(connection.execute(
-        "SELECT payload FROM intents WHERE intent_id=?", (submission["intent_id"],)).fetchone()[0])
-    proposal = intent["proposal"]
+def _adjust_account(connection, account, snapshot, submission, order, executions, commissions, intent):
     executed = sum(row["quantity"] for row in executions.values())
-    remaining = proposal["quantity"] - executed if order["state"] == "working" else 0
-    fees = sum(money(row["amount_usd"]) for row in commissions.values())
-    cash_reserve = D(remaining) * (money(proposal["limit_price_usd"])
-                                  + money(proposal["slippage_usd_per_share"]))
-    if remaining:
-        cash_reserve += max(money(proposal["entry_fee_usd"]) - fees, D("0"))
-    if remaining or executed:
-        cash_reserve += money(proposal["exit_fee_usd"])
-    if cash_reserve == 0:
-        cash_reserve = D("0")
-    retain_risk = remaining > 0 or executed > 0
-    original = intent["reservation"]
+    reserves = {key: account[key] for key in (
+        "reserved_cash_usd", "reserved_exposure_gbp", "reserved_loss_gbp")}
+    if intent is not None:
+        proposal = intent["proposal"]
+        remaining = proposal["quantity"] - executed if order["state"] == "working" else 0
+        fees = sum(money(row["amount_usd"]) for row in commissions.values())
+        cash_reserve = D(remaining) * (money(proposal["limit_price_usd"])
+                                      + money(proposal["slippage_usd_per_share"]))
+        if remaining:
+            cash_reserve += max(money(proposal["entry_fee_usd"]) - fees, D("0"))
+        if remaining or executed:
+            cash_reserve += money(proposal["exit_fee_usd"])
+        retain_risk = remaining > 0 or executed > 0
+        original = intent["reservation"]
+        reserves = {
+            "reserved_cash_usd": str(cash_reserve if cash_reserve else D("0")),
+            "reserved_exposure_gbp": original["exposure_gbp"] if retain_risk else "0",
+            "reserved_loss_gbp": original["planned_loss_gbp"] if retain_risk else "0",
+        }
     mark = store._mark(snapshot["mark"])
     assessment = assess(mark, store._mark(account["session_start"]),
                         store._mark(account["week_start"]), tuple(account["halt_reasons"]))
     version = account["version"] + 1
     adjustment = {
         "reconciliation_id": snapshot["reconciliation_id"],
-        "snapshot_id": snapshot["snapshot_id"], "intent_id": submission["intent_id"],
+        "snapshot_id": snapshot["snapshot_id"],
+        "intent_id": submission["intent_id"] if submission is not None else None,
         "at": utc(snapshot["at"]).isoformat(),
         "settled_cash_usd": str(money(snapshot["currency_cash"]["USD"])),
         "position_quantity": executed, "mark": store._mark_payload(mark),
         "halt_reasons": list(assessment.halt_reasons),
-        "reserved_cash_usd": str(cash_reserve),
-        "reserved_exposure_gbp": original["exposure_gbp"] if retain_risk else "0",
-        "reserved_loss_gbp": original["planned_loss_gbp"] if retain_risk else "0",
+        **reserves,
         "committed_version": version,
     }
     connection.execute("INSERT INTO reconciliation_adjustments VALUES (?, ?, ?)",
@@ -599,6 +604,18 @@ def apply(path, raw):
             state, snapshot, submissions)
         if reasons:
             return _unresolved(connection, state, snapshot, reasons)
+        intent = None
+        if submission is not None:
+            latest_reserved = next((record for (raw,) in connection.execute(
+                "SELECT payload FROM intents ORDER BY committed_version DESC")
+                if (record := store._record_payload(raw))["state"] == "reserved"), None)
+            if latest_reserved is not None and latest_reserved["intent_id"] == submission["intent_id"]:
+                intent = latest_reserved
+            elif executions or order["state"] == "working":
+                # Late exposure cannot overwrite a newer attempt's allocation.
+                return _unresolved(connection, state, snapshot, ["reservation_owner_conflict"])
+        adjustment = _adjust_account(connection, account, snapshot, submission, order,
+                                     executions, commissions, intent)
         if submission is None:
             clear = sorted(TRANSIENT_REASONS | {"submission_unknown", "submission_rejected"})
             remaining = sorted(set(current_writer["unresolved_reasons"]) - set(clear))
@@ -611,10 +628,9 @@ def apply(path, raw):
             _disarm(connection, snapshot["reconciliation_id"], at,
                     remaining, clear)
             result = _report(connection, state)
-            result.update(outcome=state["status"], duplicate=False)
+            result.update(outcome=state["status"], duplicate=False, adjustment=adjustment,
+                          account=store._report(account, state))
             return result
-        adjustment = _adjust_account(connection, account, snapshot, submission, order,
-                                     executions, commissions)
         executed = order["cumulative_executed_quantity"]
         if order["state"] == "working":
             submission_state = "acknowledged" if executed == 0 else "partially_filled"
@@ -644,5 +660,5 @@ def apply(path, raw):
                 remaining_writer_reasons, clear, updated)
         result = _report(connection, state)
         result.update(outcome=state["status"], duplicate=False, adjustment=adjustment,
-                      account=store._report(account))
+                      account=store._report(account, state))
         return result

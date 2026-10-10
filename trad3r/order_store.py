@@ -220,8 +220,10 @@ def _adjustment_payload(raw):
     }
     if not isinstance(value, dict) or set(value) != required:
         raise ValueError("Invalid stored reconciliation adjustment")
-    for field in ("reconciliation_id", "snapshot_id", "intent_id"):
+    for field in ("reconciliation_id", "snapshot_id"):
         _identity(value[field], field.replace("_", " "))
+    if value["intent_id"] is not None:
+        _identity(value["intent_id"], "intent id")
     _timestamp_string(value["at"], "reconciliation adjustment time")
     _version(value["committed_version"], "adjustment committed version")
     _decimal_string(value["settled_cash_usd"], "adjusted settled cash")
@@ -292,7 +294,9 @@ def _read_state(connection):
         adjustment = _adjustment_payload(raw)
         if reconciliation_id != adjustment["reconciliation_id"]:
             raise ValueError("Reconciliation adjustment identity columns disagree with payload")
-        if not any(row["intent_id"] == adjustment["intent_id"] for row in records):
+        if adjustment["intent_id"] is not None and not any(
+                row["intent_id"] == adjustment["intent_id"] and row["state"] == "reserved"
+                for row in records):
             raise ValueError("Reconciliation adjustment has no admitted intent")
         adjustments.append(adjustment)
     events = []
@@ -318,6 +322,7 @@ def _read_state(connection):
     attempts = sum(row["attempt_consumed"] for row in records)
     totals = {key: D("0") for key in (
         "reserved_cash_usd", "reserved_exposure_gbp", "reserved_loss_gbp")}
+    reservation_owner = None
     for item in sorted(records + releases + adjustments,
                        key=lambda row: row["committed_version"]):
         if "state" in item and item["state"] == "reserved":
@@ -328,9 +333,13 @@ def _read_state(connection):
                 "reserved_exposure_gbp": money(item["reservation"]["exposure_gbp"]),
                 "reserved_loss_gbp": money(item["reservation"]["planned_loss_gbp"]),
             }
+            reservation_owner = item["intent_id"]
         elif "reason" in item and item.get("reason") == "expired_authority":
             totals = {key: D("0") for key in totals}
         elif "reconciliation_id" in item:
+            if (item["intent_id"] is None or item["intent_id"] != reservation_owner) and any(
+                    money(item[key]) != value for key, value in totals.items()):
+                raise ValueError("Reconciliation changed another intent's reservation")
             totals = {key: money(item[key]) for key in totals}
     if attempts != state["attempts"] or any(money(state[key]) != value for key, value in totals.items()):
         raise ValueError("Order reservations or attempts disagree with audit")

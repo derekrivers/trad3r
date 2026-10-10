@@ -121,8 +121,10 @@ attempts and cash/risk reservations together. The
 marker-before-call boundary with deterministic acknowledgement, rejection and
 lost-acknowledgement fixtures. [Synthetic reconciliation](docs/order-reconciliation.md)
 adds cumulative order, execution, USD cash, position, commission and empty-settlement
-evidence with atomic accounting and restart/disconnect fencing. These components
-have no broker or network endpoint.
+evidence with atomic accounting and restart/disconnect fencing. Empty-order
+snapshots still check cash and settlement and persist risk halts; older-order
+evidence preserves newer reservations or records an unresolved exposure conflict.
+These components have no broker or network endpoint.
 
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
 costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable

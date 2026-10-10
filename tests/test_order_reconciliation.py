@@ -108,6 +108,168 @@ class OrderReconciliationTests(unittest.TestCase):
         claimed = writer.claim(self.path, self.claim("next", epoch=1, at="2026-09-04T14:00:55Z"))
         self.assertEqual(claimed["epoch"], 2)
 
+    def test_empty_snapshot_checks_cash_and_both_settlement_fields(self):
+        self.broker_id = None
+        cases = [({"currency_cash": {"USD": "499"}}, "currency_cash_mismatch"),
+                 ({"unsettled_usd": "1"}, "settlement_mismatch"),
+                 ({"pending_settlements": [{"amount_usd": "1"}]}, "settlement_mismatch")]
+        for index, (changed, reason) in enumerate(cases):
+            with self.subTest(changed=changed):
+                snapshot = self.snapshot(str(index), version=index, include_order=False)
+                snapshot.update(changed)
+                report = reconciliation.apply(self.path, snapshot)
+                self.assertEqual(report["outcome"], "unresolved")
+                self.assertIn(reason, report["unresolved_reasons"])
+                self.assertIn(reason, store.status(self.path)["blocked_reasons"])
+                self.assertEqual(store.status(self.path)["version"], 1)
+                self.assertTrue(writer.status(self.path)["disarmed"])
+
+    def test_empty_snapshot_persists_marks_halts_and_unsent_reservations(self):
+        self.broker_id = None
+        for admitted in (False, True):
+            with self.subTest(admitted=admitted):
+                path = Path(self.root.name) / f"empty-{admitted}.sqlite"
+                store.initialize(path, self.account())
+                if admitted:
+                    store.admit(path, self.proposal())
+                before = store.status(path)
+                snapshot = self.snapshot(include_order=False, mark={
+                    "equity": "699", "deposits": "0", "withdrawals": "0"})
+                result = reconciliation.apply(path, snapshot)
+                self.assertEqual(result["outcome"], "reconciled")
+                account = store.status(path)
+                self.assertEqual(account["version"], before["version"] + 1)
+                self.assertEqual(account["as_of"], "2026-09-04T14:00:50+00:00")
+                self.assertEqual(account["assessment"]["halt_reasons"],
+                                 ("daily", "overall", "weekly"))
+                for field in ("reserved_cash_usd", "reserved_exposure_gbp", "reserved_loss_gbp",
+                              "attempts", "session", "week"):
+                    self.assertEqual(account[field], before[field])
+                self.assertTrue(reconciliation.apply(path, deepcopy(snapshot))["duplicate"])
+                self.assertEqual(store.status(path)["version"], account["version"])
+                recovered = self.snapshot("recovered", version=1, include_order=False,
+                                          at="2026-09-04T14:01:00Z")
+                reconciliation.apply(path, recovered)
+                self.assertEqual(store.status(path)["assessment"]["halt_reasons"],
+                                 ("daily", "overall", "weekly"))
+                self.assertEqual(writer.status(path)["submissions"], [])
+                if admitted:
+                    writer.claim(path, self.claim(at="2026-09-04T14:01:01Z"))
+                    operation = self.operation()
+                    operation.update(at="2026-09-04T14:01:02Z",
+                                     expected_account_version=store.status(path)["version"])
+                    with self.assertRaisesRegex(ValueError, "halted"):
+                        writer.mark_submission(path, operation)
+
+    def test_empty_snapshot_failure_rolls_back_account_mark_and_inbox(self):
+        self.broker_id = None
+        before = store.status(self.path)
+        with contextlib.closing(sqlite3.connect(self.path)) as connection:
+            connection.execute(
+                "CREATE TRIGGER fail_disarm BEFORE INSERT ON writer_events "
+                "BEGIN SELECT RAISE(ABORT, 'injected disarm failure'); END")
+            connection.commit()
+        with self.assertRaises(sqlite3.Error):
+            reconciliation.apply(self.path, self.snapshot(include_order=False, mark={
+                "equity": "699", "deposits": "0", "withdrawals": "0"}))
+        self.assertEqual(store.status(self.path), before)
+        self.assertEqual(reconciliation.status(self.path)["inbox_count"], 0)
+        self.assertEqual(reconciliation.history(self.path), [])
+        self.assertEqual(writer.status(self.path)["version"], 0)
+
+    def test_account_only_adjustment_cannot_release_an_intent_during_replay(self):
+        self.broker_id = None
+        result = reconciliation.apply(self.path, self.snapshot(include_order=False))
+        adjustment = result["adjustment"]
+        self.assertIsNone(adjustment["intent_id"])
+        adjustment["reserved_cash_usd"] = "0"
+        with contextlib.closing(sqlite3.connect(self.path)) as connection:
+            connection.execute("UPDATE reconciliation_adjustments SET payload=?",
+                               (store.pack(adjustment),))
+            connection.execute("UPDATE audit SET payload_sha256=? WHERE kind='reconciliation'",
+                               (store.digest(adjustment),))
+            state = json.loads(connection.execute(
+                "SELECT payload FROM account_state WHERE id=1").fetchone()[0])
+            state["reserved_cash_usd"] = "0"
+            connection.execute("UPDATE account_state SET payload=? WHERE id=1", (store.pack(state),))
+            connection.commit()
+        with self.assertRaisesRegex(ValueError, "another intent's reservation"):
+            store.status(self.path)
+
+    def reserve_second(self):
+        proposal = self.proposal()
+        proposal.update(intent_id="intent-two", candidate_id="candidate-two",
+                        client_order_id="order-two", expected_account_version=2,
+                        decision_at="2026-09-04T14:00:51Z", expires_at="2026-09-04T14:01:20Z",
+                        quote_at="2026-09-04T14:00:45Z", fx_at="2026-09-04T14:00:45Z")
+        self.assertEqual(store.admit(self.path, proposal)["outcome"], "reserved")
+
+    def test_old_rejection_snapshot_preserves_new_unsent_reservation(self):
+        self.submitted("rejected")
+        self.broker_id = None
+        reconciliation.apply(self.path, self.snapshot(state="rejected"))
+        self.reserve_second()
+        before = store.status(self.path)
+        report = reconciliation.apply(self.path, self.snapshot(
+            "old-again", version=1, state="rejected", at="2026-09-04T14:00:55Z"))
+        self.assertEqual(report["outcome"], "reconciled")
+        after = store.status(self.path)
+        for field in ("reserved_cash_usd", "reserved_exposure_gbp", "reserved_loss_gbp", "attempts"):
+            self.assertEqual(after[field], before[field])
+        writer.claim(self.path, self.claim("two", epoch=1, at="2026-09-04T14:00:56Z"))
+        operation = self.operation()
+        operation.update(operation_id="submit-two", intent_id="intent-two", epoch=2,
+                         at="2026-09-04T14:00:57Z", expected_account_version=after["version"])
+        self.assertEqual(writer.dispatch_synthetic(self.path, operation, "acknowledged")["outcome"],
+                         "acknowledged")
+
+    def test_late_fill_cannot_replace_a_newer_entry_reservation(self):
+        self.broker_id = self.submitted()["submission"]["broker_order_id"]
+        reconciliation.apply(self.path, self.snapshot(state="cancelled"))
+        self.reserve_second()
+        before = store.status(self.path)
+        execution = self.execution("late", 2, "100", "2026-09-04T14:00:52Z")
+        snapshot = self.snapshot("late", version=1, at="2026-09-04T14:00:55Z", state="filled",
+                                 executions=[execution], cash="300", position=2)
+        result = reconciliation.apply(self.path, snapshot)
+        self.assertIn("reservation_owner_conflict", result["unresolved_reasons"])
+        self.assertEqual(result["outcome"], "unresolved")
+        after = store.status(self.path)
+        for field in ("version", "settled_cash_usd", "position_quantity", "reserved_cash_usd",
+                      "reserved_exposure_gbp", "reserved_loss_gbp"):
+            self.assertEqual(after[field], before[field])
+        self.assertTrue(writer.status(self.path)["disarmed"])
+        corrected = self.snapshot("corrected", version=2, at="2026-09-04T14:00:56Z",
+                                  state="cancelled")
+        self.assertIn("reservation_owner_conflict",
+                      reconciliation.apply(self.path, corrected)["unresolved_reasons"])
+
+    def expire_unsent(self):
+        writer.claim(self.path, self.claim())
+        operation = self.operation()
+        operation["at"] = "2026-09-04T14:01:15Z"
+        expired = writer.mark_submission(self.path, operation)
+        self.assertFalse(expired["should_call_adapter"])
+        return expired["submission"]
+
+    def test_empty_snapshot_preserves_never_dispatched_expiry_tombstone(self):
+        expired = self.expire_unsent()
+        self.broker_id = None
+        snapshot = self.snapshot(include_order=False, at="2026-09-04T14:01:20Z")
+        result = reconciliation.apply(self.path, snapshot)
+        self.assertEqual(result["outcome"], "reconciled")
+        self.assertEqual(store.status(self.path)["reserved_cash_usd"], "0")
+        self.assertEqual(writer.status(self.path)["submissions"], [expired])
+
+    def test_external_order_for_never_dispatched_expiry_is_a_durable_incident(self):
+        expired = self.expire_unsent()
+        self.broker_id = "unexpected-broker-order"
+        result = reconciliation.apply(self.path, self.snapshot(at="2026-09-04T14:01:20Z"))
+        self.assertEqual(result["outcome"], "unresolved")
+        self.assertIn("external_activity_unknown", result["unresolved_reasons"])
+        self.assertEqual(writer.status(self.path)["submissions"], [expired])
+        self.assertEqual(store.status(self.path)["version"], 2)
+
     def test_reconciled_rejection_releases_capacity_for_a_later_distinct_attempt(self):
         self.submitted("rejected")
         self.broker_id = None
