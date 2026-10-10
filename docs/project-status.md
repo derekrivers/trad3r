@@ -23,7 +23,8 @@ cost-conscious starting model to all 64 master-plan tasks.
 | P1.4 execute job | in progress | P1.3 | `ea44cc8`; synthetic job completed, inspected and repeat returned already_complete; new Massive archive structurally audited | Synthetic portion complete; original stock replay reproduced; registered historical reproduction awaits original FX/experiment files and qualification |
 | P1.5 recovery | complete | P1.4 synthetic | `ea44cc8`; eight installed-package recovery tests passed inside sandbox | Offline job faults only; no broker reconciliation claim |
 | P1.6 backups | in progress | P1.4 synthetic | `ea44cc8`; five-file checksum inventory and separate restore returned already_complete; disk/log checks recorded | Select off-host destination, recurring backup/monitoring and bounded retention; local copies insufficient |
-| P4.1 order contract | complete | Independent synthetic design | [PR #29](https://github.com/derekrivers/trad3r/pull/29); [order lifecycle v1](order-lifecycle.md); reviewed transition/identity contract and 14 synthetic acceptance specifications | Definition only; order storage, writer, reconciliation and protection remain P4.2–P4.5 work |
+| P4.1 order contract | complete | Independent synthetic design | [PR #29](https://github.com/derekrivers/trad3r/pull/29); [order lifecycle v1](order-lifecycle.md); reviewed transition/identity contract and 14 synthetic acceptance specifications | Definition complete; implementation credit is tracked separately in P4.2–P4.5 |
+| P4.2 atomic admission | complete | P4.1 contract | [Atomic admission](order-admission.md); deterministic duplicate/conflict/concurrency/restart/rollback tests | Synthetic flat-account reservations only; no writer, adapter, fills, cancellation or migration of the existing risk/ledger history |
 
 P0's permitted exit is met: missing design/private inputs block only dependent
 work. The original stock sample and replay hashes are now verified. Other missing
@@ -40,10 +41,11 @@ and historical dependencies.
    registered historical reproduction (P0.3/P1.4).
 2. Owner selects an off-host backup destination/access route. Finish restore from
    that destination, recurring backup/monitoring and retention (P1.6).
-3. Next engineering increment: P4.2 atomic reservations/attempt counts under the
-   defined [P4.1 order contract](order-lifecycle.md). Sol high implements a reviewed
-   storage/allocation design; Astra reviews financial and uncertainty invariants.
-   P4.3 single-writer dispatch and P4.4 reconciliation follow.
+3. Next engineering increment: P4.3 single-writer dispatch under the defined
+   [order lifecycle](order-lifecycle.md) and delivered
+   [atomic admission store](order-admission.md). Preserve the dispatch marker before
+   the adapter call; crash/lost acknowledgement must reconcile without blind retry.
+   P4.4 broker-event/account reconciliation follows.
 4. P2.1–P2.5 broker/data feasibility and owner decisions can proceed independently;
    then P3.1–P3.6 qualification and P4.3–P4.7 controls. Per-task status is maintained
    in the register; existing offline work keeps its credit in the roadmap.

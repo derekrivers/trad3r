@@ -13,7 +13,7 @@ from .data import decode, load_sample, parse_bar
 from .risk import Mark, assess
 from .ledger import Ledger, replay_ledger
 from .admission import check_entry
-from . import risk_store
+from . import order_store, risk_store
 from .simulation import simulate, simulate_series, simulate_research_series
 from .batches import completed_batches
 from .features import FEATURE_SCHEMA, feature_snapshots
@@ -104,6 +104,11 @@ def main(argv=None):
             sub.add_argument("--expected-version", type=int, required=True)
             sub.add_argument("--ledger-report", action="store_true", help="Read an offline ledger valuation")
             sub.add_argument("--event-id", help="Required when importing a ledger valuation")
+    for command in ("order-init", "order-admit", "order-status", "order-history"):
+        sub = commands.add_parser(command, help="Synthetic durable order admission; no dispatch or broker connection")
+        sub.add_argument("database", type=Path)
+        if command in ("order-init", "order-admit"):
+            sub.add_argument("input", type=Path, help="Synthetic account snapshot or entry proposal JSON")
     args = parser.parse_args(argv)
     try:
         if args.command == "rehearse-controls":
@@ -205,6 +210,17 @@ def main(argv=None):
                 book.apply(event)
             result = check_entry(book, risk_store.status(args.database),
                                  decode(args.proposal.read_bytes()), args.at, args.attempts)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
+        if args.command in ("order-init", "order-admit", "order-status", "order-history"):
+            if args.command == "order-init":
+                result = order_store.initialize(args.database, decode(args.input.read_bytes()))
+            elif args.command == "order-admit":
+                result = order_store.admit(args.database, decode(args.input.read_bytes()))
+            elif args.command == "order-history":
+                result = order_store.history(args.database)
+            else:
+                result = order_store.status(args.database)
             print(json.dumps(result, default=str, sort_keys=True, indent=2))
             return 0
         if args.command in ("risk-init", "risk-status", "risk-history", "risk-record"):

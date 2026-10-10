@@ -111,3 +111,20 @@ P4.2 starts with a reviewed single-store transaction and allocation design;
 P4.3–P4.5 supply writer, reconciliation and protection. The existing diagnostic
 risk store remains unchanged. No persistent period renewal or connected order
 capability is approved by this contract; the original owner gates still apply.
+
+## D009 — Atomic synthetic admission store, 10 October 2026
+
+Implement P4.2 as a new broker-neutral SQLite store following
+[order-lifecycle-v1](order-lifecycle.md). One transaction owns the synthetic
+account snapshot, immutable intent identities, consumed entry attempts, cash,
+exposure and planned-loss reservations, incidents and audit sequence. Do not claim
+atomicity across the existing separate risk database and in-memory ledger or
+destructively migrate them.
+
+Exact request retries are idempotent even after their expected version becomes
+stale. Changed reuse of an intent, candidate or client-order identity is a durable
+blocking incident. Stale versions and malformed proposals write nothing. Evaluated
+rejections consume one of three session attempt slots; attempts and halts are never
+refunded or reset. Only the synthetic, flat-account, USD long-entry subset exists.
+No writer, broker call, fill, cancellation, automatic expiry release or connected
+environment is introduced. See the [admission contract](order-admission.md).

@@ -49,7 +49,7 @@ success report when those checks fail.
 | Account-level control calculations | Synthetic and historical tests, persisted halts | Reconcile actual broker cash, equity, FX, positions and settlement conventions |
 | Broker identity and permissions | No account configured; IBKR remains a conditional candidate | Owner establishes suitable account access; verify exact entity/account type, paper environment and supported API permissions |
 | Forward data | Historical stock/FX proxies only | Qualify entitled timely quotes, FX and session state; detect stale, missing, out-of-order and disconnected data |
-| Durable order lifecycle | [P4.1 contract defined](order-lifecycle.md); runtime not implemented | Atomic intent/attempt reservation; stable client IDs; acknowledgements, rejects, partial fills, cancellations and commission events |
+| Durable order lifecycle | P4.1 [contract](order-lifecycle.md) and P4.2 [atomic synthetic admission](order-admission.md) delivered | Single writer/adapter; acknowledgements, rejects, partial fills, cancellations and commission events |
 | Restart reconciliation | Offline risk and experiment jobs tested | Start disarmed; reconcile broker open orders, executions, positions and cash; resolve unknown outcomes before any new submission |
 | Period transitions | Durable store blocks new dates | Separate owner-reviewed transition policy; no inherited historical-only rollover exception and no halt clearing |
 | VPS operations | [ATLAS synthetic offline service](vps-deployment-2026-10-10.md): pinned build, isolation, time sync, recovery and local restore verified | Off-host backup and separate connected-paper deployment/incident verification remain open |
@@ -62,9 +62,9 @@ is not a broker paper account. No funding or subscription purchase is implied he
 
 ## Ordered implementation backlog
 
-1. Implement the [P4.1 order contract](order-lifecycle.md) starting with P4.2 atomic
-   admission and reservations, then a writer with fault-injected synthetic adapter
-   tests. A submitted-but-unacknowledged intent must become an unresolved
+1. Build P4.3's single fenced writer on the [atomic admission store](order-admission.md)
+   with fault-injected synthetic adapter tests. A submitted-but-unacknowledged
+   intent must become an unresolved
    outcome requiring reconciliation, never an automatic duplicate order. Persist
    attempts before submission and retain them after rejection or restart.
 2. Add broker snapshot/ledger reconciliation and disarmed startup checks. Cover

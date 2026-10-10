@@ -114,8 +114,9 @@ It neither reserves cash nor authorises live orders.
 
 The [durable order lifecycle contract](docs/order-lifecycle.md) defines stable
 identities, allowed transitions, uncertain submissions and synthetic fault cases
-for Phase 4. It is a reviewed implementation specification; the order store,
-atomic reservations, writer and broker reconciliation remain to be implemented.
+for Phase 4. [Atomic synthetic admission](docs/order-admission.md) now persists
+intents, attempts and cash/risk reservations together. The writer, adapter, broker
+events and reconciliation remain absent, so a reserved intent cannot be dispatched.
 
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
 costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable

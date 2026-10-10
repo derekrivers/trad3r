@@ -1,10 +1,10 @@
 # Durable order lifecycle contract
 
-Contract `order-lifecycle-v1`, defined for P4.1 on 10 October 2026. This is an
-implementation specification and synthetic acceptance plan, not a delivered order
-store or broker adapter. P4.2 implements atomic admission; P4.3 implements the
-writer; P4.4 implements reconciliation; P4.5 implements exposure protection. These
-components must be tested together before the Phase 4 exit gate can pass.
+Contract `order-lifecycle-v1`, defined for P4.1 on 10 October 2026. P4.2 now
+implements its [atomic synthetic admission](order-admission.md) subset. No broker
+adapter exists: P4.3 implements the writer; P4.4 implements reconciliation; P4.5
+implements exposure protection. These components must be tested together before
+the Phase 4 exit gate can pass.
 
 ## Authority and scope
 
@@ -233,10 +233,9 @@ after reopening the store. No credentials, network or licensed bars are needed.
 
 ## Handoff
 
-P4.1 is complete when this contract has a separate final-diff review and passing
-hosted CI on the reviewed revision. No runtime behaviour changes in this PR.
-Next, Sol high implements P4.2 with a reviewed storage/allocation design and O02–O05,
-O11 and applicable O14 tests. P4.3 and P4.4 add writer/reconciliation evidence;
-none of their future acceptance cases are credited as delivered by this document.
-Return to Astra for changes to these states, identity semantics, financial
-invariants or uncertain-outcome rules. Connected paper and live gates stay closed.
+P4.1 is complete. P4.2 implements the reviewed single-store admission/allocation
+design and its portions of O02–O05, O11 and O14. P4.3 and P4.4 add writer and
+reconciliation evidence; none of their future acceptance cases are credited by
+the admission store. Return to Astra for changes to these states, identity
+semantics, financial invariants or uncertain-outcome rules. Connected paper and
+live gates stay closed.
