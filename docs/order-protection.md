@@ -3,8 +3,8 @@
 Contract `order-protection-v1` defines the P4.5 extension to the
 [order lifecycle](order-lifecycle.md). It fixes the implementation rules and
 acceptance scenarios for cancellation, reducing exits, protective stops and
-exposure incidents. This is an implementation specification, not delivered runtime
-behavior. P4.5 completes only when the packages below pass their executable tests
+exposure incidents. Package A's pure evaluator is implemented; packages B–G remain
+specifications. P4.5 completes only when all packages pass their executable tests
 and integrated fault cases.
 
 The scope remains one synthetic account and one qualified USD equity position,
@@ -49,8 +49,8 @@ for blocked entries, cancellations and reductions. It is diagnostic output,
 not a reusable authorization token. Persisted command authorization arrives later.
 
 Derive states deterministically. Invalid quantity/identity/completeness or a
-negative capacity makes exposure unresolved and available quantity unknown, not
-zero. Otherwise positive holdings are verified long; zero holdings are verified
+negative capacity or a stale/future snapshot makes exposure unresolved and
+available quantity unknown, not zero. Otherwise positive holdings are verified long; zero holdings are verified
 flat only with no remaining reserved/possible order, and unresolved otherwise.
 For protection, verified flat takes `not_required`; unresolved exposure takes
 `unknown`. With verified long exposure, uncertain or cancel-pending stop remainders
@@ -61,6 +61,65 @@ for this entry episode was definitively rejected; otherwise use `missing`. A
 successful later stop can restore coverage while the earlier incident continues
 to block entries until resolution.
 Reject a purported coverage quantity greater than holdings as conflicting evidence.
+
+### Package A implementation
+
+`trad3r.order_protection` implements the pure evaluator in
+[PR #36](https://github.com/derekrivers/trad3r/pull/36). Immutable typed inputs bind
+the account and instrument, account/evidence versions, snapshot ID and time,
+execution watermark, verified quantity, every known order remainder, stop evidence,
+fee allocations, controls and incidents. `EvaluationRequest` supplies an explicit
+UTC evaluation time, expected versions and optional cancel/reduction request.
+
+The result reports those evidence bindings with exposure and protection states,
+verified/covered/committed/available quantities, remaining fee allowance and
+separate sorted reason lists. `entry_allowed`, `cancellation_allowed` and
+`reduction_allowed` describe only that evaluation. The result is not durable and
+cannot be replayed as authorization. No input parser, CLI, database, adapter or
+dispatch method exists. Production callers cannot treat the input booleans as
+user assertions: packages B and C must derive them from audited storage and
+cumulative reconciliation.
+
+Proof and fencing booleans default to false. A complete snapshot certifies current
+position/execution evidence and an exhaustive inventory for this account's current
+entry episode, including terminal orders with outstanding fees; fully resolved
+prior episodes are not protection attempts for this episode. Order evidence
+completeness includes current correlated working evidence where coverage is
+claimed. Incomplete or uncorrelated order evidence withholds quantity proof and
+retains the original quantity as a conservative commitment bound. Unresolved
+exposure reports no verified quantity and zero confirmed coverage.
+
+Entry eligibility is only this protection gate, not full entry admission: the
+existing entry window, attempt, cash, policy and risk checks still apply. Both
+entry and reduction gates check expected versions, fencing, fresh quote/FX and
+bounded fees. Regular-session bounds come from the existing reviewed calendar;
+holidays, early closes and unsupported years fail closed. The internal
+`session_supported` proof must also establish that the durable account remains
+in its admitted day/week; this evaluator cannot advance an account period.
+
+Sell orders in a possibly live or incompletely terminal state retain their full
+unexecuted remainder. `fee_allocation_usd` is the still-outstanding allocation for
+that order, after any incurred fee has moved into the snapshot's cumulative fee
+field. It remains reserved even when that order has no quantity remainder or the
+account is verified flat. `other_cash_allocations_usd` includes all other current
+settled-cash reservations (including entry costs), excluding the per-order exit
+fees already counted. Both pools reduce the cash available for a new exit fee;
+any residual allocation blocks a new entry. A fully reconciled partial entry can
+be protected/reduced up to the verified holding while its bounded buy remainder
+remains possible; the remainder contributes no sellable shares.
+The evaluator refuses negative quantity capacity, reused fee allowance,
+future/stale reduction evidence, changed versions and management-blocking incidents.
+An exact mapped cancellation ignores quote/FX age and free quantity, but still
+requires a valid store, current versions, a fenced writer and an evaluation time
+no earlier than its snapshot.
+
+Twenty deterministic tests implement package A's X01–X05 and X16 portions,
+including pause/halt separation, flatness with possible entry work, protection
+state precedence, shared stop/exit capacity, fee partitioning, partial/cancelled
+remainders, terminal fee-only reservations, other cash commitments, incomplete
+order proofs, session bounds, stale/future evidence and target-specific
+cancellation. These tests do not claim transactional concurrency, persistence or
+adapter-call coverage.
 
 ## Verified management authority
 
@@ -314,7 +373,7 @@ approval. Every merge still requires the repository's reviewed-head CI controls.
 
 | Package | Bounded deliverable and dependencies | Completion boundary |
 | --- | --- | --- |
-| A | Pure protection/quantity/permission evaluator and deterministic tests, following the facts and formulas above. Ready now. | X01–X05/X16 fact and permission portions; explicit reasons, no persistence or dispatch claim. |
+| A | **Complete:** pure protection/quantity/permission evaluator and 20 deterministic tests; [PR #36](https://github.com/derekrivers/trad3r/pull/36). | X01–X05/X16 fact and permission portions; explicit reasons, no persistence or dispatch claim. |
 | B | Explicit v4 synthetic initialization, authoritative per-intent quantity/fee allocations, audit replay and atomic reducing admission. Depends A. | X04/X15/X23 reservation/storage portions; preserve v3 reads, no migration or enabled dispatch. |
 | C | V4 cumulative multi-order buy/sell reconciliation, execution-level fee completeness, pending lots and retained contradictions. Depends B. | X02/X06/X14/X17–X20/X22 accounting portions; no durable period transition or cash-release command. |
 | D | Separate fenced cancellation operation and deterministic adapter outcomes, integrated with cumulative evidence. Depends C. | X07–X10/X13/X15/X16/X23 cancellation portions; no release from an acknowledgement alone. |
@@ -322,7 +381,7 @@ approval. Every merge still requires the repository's reviewed-head CI controls.
 | F | Durable pause, desired action, protection incidents and evidence-bound trusted owner recovery. Depends E. | X01/X02/X11/X14/X15/X20–X22 control portions; no halt/budget reset or invented owner authentication. |
 | G | Integrated restart, concurrent exits, cancel/fill faults and full lifecycle rehearsal. Depends A–F. | All X01–X24 executable with actual store/writer integration; map O07/O08/O12 and other overlapping lifecycle cases to test names. |
 
-A pure evaluator passing its vectors completes A only. P4.5 remains in progress
-until G passes and the documentation names the implemented evidence. Connected
+The pure evaluator completes A only. P4.5 remains in progress until G passes and
+the documentation names the integrated evidence. Connected
 paper remains P5; durable period policy remains P4.6; existing-account migration
 and external incident repair require separate reviewed designs.

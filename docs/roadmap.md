@@ -12,7 +12,7 @@ retained as engineering history, not a second master plan.
 | 1 | Recoverable offline research service | Synthetic host runtime/recovery/restore verified; off-host backup open |
 | 2 | Broker and data capability decision | Account-specific evidence and owner decision open |
 | 3 | Qualified datasets and protocol | Engineering sample/results exist; qualification open |
-| 4 | Durable order and account controls | P4.1 contract through P4.4 synthetic reconciliation delivered; P4.5 protection design defined, runtime and period transition pending |
+| 4 | Durable order and account controls | P4.1–P4.4 delivered; P4.5 design and package A pure evaluator delivered, transactional packages B–G and period transition pending |
 | 5 | Deterministic paper application | Not started; connected submissions need owner approval |
 | 6 | Discretionary shadow agent | Not started |
 | 7 | Discretionary paper experiment | Not started; protocol and owner approval required |
@@ -107,9 +107,11 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   empty-order mark/settlement checks, newer-reservation ownership and unsent expiry
   tombstones; full independent inbox-to-account replay remains future hardening.
 - Defined: [P4.5 protection contract](order-protection.md), 24 acceptance scenarios
-  and seven bounded implementation packages. Runtime credit remains pending.
-- Next: P4.5 package A, a pure protection/quantity/permission evaluator on Sol High;
-  later packages integrate allocations, sell accounting, cancellation and incidents.
+  and seven bounded implementation packages. Transactional runtime remains pending.
+- Delivered: P4.5 package A pure protection/quantity/permission evaluator with
+  deterministic X01–X05/X16 coverage and no persistence or dispatch surface.
+- Next: P4.5 package B v4 shared sell-quantity and fee allocations on Sol High;
+  later packages integrate sell accounting, cancellation and incidents.
   Close private-input and off-host
   backup dependencies independently and qualify forward data.
   Durable paper period transitions require a separate owner-reviewed policy.

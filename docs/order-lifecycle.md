@@ -5,8 +5,9 @@ implements its [atomic synthetic admission](order-admission.md) subset and P4.3
 implements the [fenced synthetic writer](order-writer.md). P4.4 implements
 [synthetic reconciliation](order-reconciliation.md). No broker adapter exists. The
 [P4.5 protection contract](order-protection.md) defines exposure controls and their
-acceptance scenarios; its runtime implementation remains pending. These components
-must be tested together before the Phase 4 exit gate can pass.
+acceptance scenarios. Its package A pure evaluator is implemented; transactional
+packages B–G remain pending. These components must be tested together before the
+Phase 4 exit gate can pass.
 
 ## Authority and scope
 
