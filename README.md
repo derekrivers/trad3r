@@ -19,7 +19,10 @@ gates. Follow the [64-task delivery register](docs/task-register.md),
 
 The [dated broker capability matrix](docs/broker-capability-matrix.md) compares
 IBKR and Saxo and records account, fee-finality and restart-history gaps. Public
-research is delivered; connected verification and owner selection remain open.
+research is delivered. The [conditional cost model](docs/cost-feasibility.md)
+screens commissions, FX, spread/slippage and recurring bills against the £3 trade
+and £10 monthly caps; no complete recurring stack currently passes on evidenced
+costs. Connected verification and owner selection remain open.
 The discretionary product will propose
 traceable theses and conditional plans; deterministic code retains account, risk
 and execution authority. The existing baseline is a comparison hypothesis.

@@ -176,7 +176,8 @@ Retain IBKR as the first integration candidate and Saxo as the alternative from
 the earlier feasibility research. The [dated matrix](broker-capability-matrix.md)
 delivers P2.1 and records P2.2's documented surfaces and unresolved account facts.
 This is research continuation, not the P2.5 owner selection or a verified paper
-path. Keep P2.2 in progress and proceed to conditional P2.4 cost screening.
+path. Keep P2.2 in progress and proceed to conditional P2.4 cost screening, now
+delivered under D013.
 
 A current-day Gateway execution query cannot prove recovery across midnight.
 Broker execution corrections and fee finality need explicit reviewed mappings
@@ -184,3 +185,20 @@ before connected reconciliation; synthetic acceptance does not qualify them.
 Obtain exact entity/permissions, cash/settlement, data rights and paper-operation
 evidence through the matrix's G01–G06 closure record. No account, funding, paid
 service, connected submission, risk-policy change or live activation is approved.
+
+## D013 — Conditional cost feasibility, 10 October 2026
+
+Accept the [dated P2.4 cost model](cost-feasibility.md) as a conditional public
+screen, not an account tariff or broker/feed selection. Preserve the £3 all-in
+trade-loss cap and £10 recurring monthly ceiling. Unknown spread, slippage, route,
+API data, existing-subscription and VPS-allocation costs never become zero.
+
+One-share IBKR tiered and Saxo prefunded-USD cases may have trade-risk headroom
+under explicit sensitivity assumptions. Saxo Classic automatic conversion can
+consume most or all of that headroom. No complete recurring stack currently passes
+on evidenced costs: IBKR's $4.50 direct-network route may fit but account/API rights
+and VPS allocation are open, its $14.50 bundle route exceeds £10 in the screened
+FX range, Massive real-time NBBO is far above it, and Saxo data pricing is unknown.
+Keep P2.2/P2.3 and G01–G06 open, then require Derek's P2.5
+proceed/revise/stop choice. Do not purchase access, manufacture commission waivers,
+change the frozen hypothesis or weaken a financial limit.

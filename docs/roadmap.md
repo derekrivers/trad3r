@@ -125,8 +125,10 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   process death, concurrent exits, stop/cancel/fill races and the numeric lifecycle.
 - Delivered: [dated IBKR/Saxo capability matrix](broker-capability-matrix.md)
   (P2.1 and public P2.2 record); account-specific verification remains open.
-- Next: conditional cost feasibility (P2.4), followed by account/data evidence
-  and owner selection (P2.2/P2.3/P2.5). Close private-input and off-host
+- Delivered: [conditional intended-quantity cost feasibility](cost-feasibility.md)
+  (P2.4); no complete recurring stack is evidenced below the £10 monthly cap.
+- Next: account/data/invoice evidence and owner selection (P2.2/P2.3/P2.5).
+  Close private-input and off-host
   backup dependencies independently and qualify forward data.
   Durable paper period transitions require a separate owner-reviewed policy.
 
