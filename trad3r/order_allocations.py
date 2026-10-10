@@ -59,6 +59,8 @@ def _initialize_tables(connection, account_id, at):
     order_cancellation._initialize_tables(connection, account_id, at)
     from . import order_reducing_dispatch
     order_reducing_dispatch._initialize_tables(connection, account_id, at)
+    from . import order_controls
+    order_controls._initialize_tables(connection)
 
 
 def initialize(path, snapshot):
@@ -639,6 +641,9 @@ def admit(path, raw):
                           duplicate=existing is not None)
             return result
 
+        from . import order_controls
+        if order_controls._blocks(connection, management=True):
+            raise ValueError("Protection control identity is unresolved")
         decision, fee = _validated_request(raw)
         if connection.execute("SELECT 1 FROM intents WHERE intent_id=? OR client_order_id=?",
                               (allocation_id, client_order_id)).fetchone():

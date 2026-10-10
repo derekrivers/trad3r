@@ -288,7 +288,7 @@ class ReducingDispatchTests(unittest.TestCase):
         connection.execute("UPDATE reducing_dispatch_events SET payload_sha256='bad' WHERE sequence=1")
         connection.commit()
         connection.close()
-        with self.assertRaisesRegex(ValueError, "Invalid reducing dispatch event"):
+        with self.assertRaisesRegex(ValueError, "Invalid reducing dispatch event|Protection source digest mismatch"):
             store.status(self.path)
 
 

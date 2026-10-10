@@ -14,7 +14,7 @@ from .risk import Mark, assess
 from .ledger import Ledger, replay_ledger
 from .admission import check_entry
 from . import (order_allocations, order_cancellation, order_reconciliation, order_sell_reconciliation,
-               order_store, order_writer, risk_store)
+               order_store, order_writer, order_controls, risk_store)
 from .simulation import simulate, simulate_series, simulate_research_series
 from .batches import completed_batches
 from .features import FEATURE_SCHEMA, feature_snapshots
@@ -110,6 +110,11 @@ def main(argv=None):
         sub.add_argument("database", type=Path)
         if command in ("order-init", "order-admit"):
             sub.add_argument("input", type=Path, help="Synthetic account snapshot or entry proposal JSON")
+    for command in ("order-control", "order-control-status", "order-control-history"):
+        sub = commands.add_parser(command, help="Synthetic durable protection controls; no owner authentication or dispatch")
+        sub.add_argument("database", type=Path)
+        if command == "order-control":
+            sub.add_argument("input", type=Path)
     for command in ("order-v4-init", "order-reducing-admit",
                     "order-reducing-status", "order-reducing-history"):
         sub = commands.add_parser(command, help="Synthetic reducing allocations; no dispatch or broker connection")
@@ -260,6 +265,15 @@ def main(argv=None):
                 result = order_store.history(args.database)
             else:
                 result = order_store.status(args.database)
+            print(json.dumps(result, default=str, sort_keys=True, indent=2))
+            return 0
+        if args.command in ("order-control", "order-control-status", "order-control-history"):
+            if args.command == "order-control":
+                result = order_controls.apply(args.database, decode(args.input.read_bytes()))
+            elif args.command == "order-control-history":
+                result = order_controls.history(args.database)
+            else:
+                result = order_controls.status(args.database)
             print(json.dumps(result, default=str, sort_keys=True, indent=2))
             return 0
         if args.command in ("order-v4-init", "order-reducing-admit",

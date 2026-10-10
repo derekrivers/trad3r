@@ -6,7 +6,10 @@ acceptance scenarios for cancellation, reducing exits, protective stops and
 exposure incidents. Packages A and B implement the evaluator and capacity journal;
 package C's accounting journal is delivered in [PR #38](https://github.com/derekrivers/trad3r/pull/38).
 Package D's fenced synthetic cancellation is delivered in
-[PR #39](https://github.com/derekrivers/trad3r/pull/39), and E–G remain specifications.
+[PR #39](https://github.com/derekrivers/trad3r/pull/39), package E dispatch in
+[PR #40](https://github.com/derekrivers/trad3r/pull/40), and
+[package F controls and recovery](order-controls.md) are implemented. Package G
+remains an integrated acceptance specification.
 P4.5 completes only when all packages pass their executable tests
 and integrated fault cases.
 
@@ -424,6 +427,17 @@ pause; it cannot erase evidence, alter policy, clear a loss halt, renew budgets,
 refund attempts, or claim flatness without the required quantity/order proof.
 Recovery does not itself dispatch. Unsupported accounting repair stays blocked.
 
+### Package F implementation
+
+[Durable controls](order-controls.md) add a replayed v4 journal for operator pause,
+desired action and protection incidents. Evidence mutations and protection
+observations commit atomically. Entry gates honor controls independently of the
+fenced management path. Recovery requires fresh complete evidence newer than the
+affected incident/pause and a separately injected synthetic owner event. There is
+no production owner authenticator or recovery CLI; no halt, budget, attempt,
+objective, cash or writer authority is reset. Durable accounting repair stays
+blocked. Package G remains the integrated acceptance gate.
+
 ## Storage and replay boundary
 
 Implement this extension as a new explicitly selected version-4 synthetic order
@@ -515,9 +529,9 @@ approval. Every merge still requires the repository's reviewed-head CI controls.
 | A | **Complete:** pure protection/quantity/permission evaluator and 20 deterministic tests; [PR #36](https://github.com/derekrivers/trad3r/pull/36). | X01–X05/X16 fact and permission portions; explicit reasons, no persistence or dispatch claim. |
 | B | **Complete in [PR #37](https://github.com/derekrivers/trad3r/pull/37):** explicit fresh v4 initialization, authoritative quantity/fee allocations, retained-input replay and atomic reducing admission; Astra review fixes included. Depends A. | X04/X15/X23 reservation/storage portions; 19 deterministic tests, preserve v3 reads, no migration or enabled dispatch. |
 | C | **Complete in [PR #38](https://github.com/derekrivers/trad3r/pull/38):** v4 cumulative multi-order buy/sell reconciliation, execution-level fee completeness, pending lots and retained contradictions, including critical review fixes. Depends B. | X02/X06/X14/X17–X20/X22 accounting portions; 19 deterministic tests, no durable period transition or cash-release command. |
-| D | Separate fenced cancellation operation and deterministic adapter outcomes, integrated with cumulative evidence. Depends C. | X07–X10/X13/X15/X16/X23 cancellation portions; no release from an acknowledgement alone. |
+| D | **Complete in [PR #39](https://github.com/derekrivers/trad3r/pull/39):** separate fenced cancellation operation and deterministic adapter outcomes, integrated with cumulative evidence. Depends C. | X07–X10/X13/X15/X16/X23 cancellation portions; no release from an acknowledgement alone. |
 | E | **Complete in [PR #40](https://github.com/derekrivers/trad3r/pull/40):** fenced synthetic reducing-limit and protective-stop dispatch, durable marker-before-call, exact replay and cumulative broker correlation. Depends D. | X01/X03–X05/X11–X13/X16/X22/X23 dispatch portions; 14 deterministic tests, no network or fallback market orders. |
-| F | Durable pause, desired action, protection incidents and evidence-bound trusted owner recovery. Depends E. | X01/X02/X11/X14/X15/X20–X22 control portions; no halt/budget reset or invented owner authentication. |
+| F | **Complete:** [durable pause, desired action, protection incidents and evidence-bound synthetic owner recovery](order-controls.md). Depends E. | X01/X02/X11/X14/X15/X20–X22 control portions; no halt/budget reset or invented owner authentication. |
 | G | Integrated restart, concurrent exits, cancel/fill faults and full lifecycle rehearsal. Depends A–F. | All X01–X24 executable with actual store/writer integration; map O07/O08/O12 and other overlapping lifecycle cases to test names. |
 
 The pure evaluator completes A only. P4.5 remains in progress until G passes and

@@ -146,7 +146,10 @@ entry or reducing evidence. Acceptance alone releases no quantity, cash or risk.
 and protective-stop dispatch. Its durable marker precedes every adapter call;
 acknowledgement or timeout retains the full sell remainder until correlated
 cumulative evidence, while a definitive rejection permits a newly fenced
-allocation. Packages F–G remain pending.
+allocation. [Package F](docs/order-controls.md) adds durable pause, desired action
+and protection incidents. Evidence-bound owner recovery is exercised through a
+synthetic test boundary; the CLI cannot authenticate an owner or reset any halt,
+budget or objective. Package G integrated fault coverage remains next.
 
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
 costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable
