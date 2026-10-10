@@ -374,7 +374,7 @@ class ReducingAllocationTests(unittest.TestCase):
                 path = Path(self.root.name) / (field + ".sqlite")
                 self.prepare_position(path)
                 allocations.admit(path, self.request_for(path, "forged"))
-                with sqlite3.connect(path) as connection:
+                with contextlib.closing(sqlite3.connect(path)) as connection, connection:
                     record = store.decode(connection.execute(
                         "SELECT payload FROM reducing_allocations").fetchone()[0])
                     state = store.decode(connection.execute(
@@ -398,7 +398,7 @@ class ReducingAllocationTests(unittest.TestCase):
                 path = Path(self.root.name) / f"evidence-{index}.sqlite"
                 self.prepare_position(path)
                 allocations.admit(path, self.request_for(path, "evidence"))
-                with sqlite3.connect(path) as connection:
+                with contextlib.closing(sqlite3.connect(path)) as connection, connection:
                     connection.execute(sql)
                 with self.assertRaises(ValueError):
                     allocations.status(path)

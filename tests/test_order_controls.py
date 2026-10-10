@@ -241,7 +241,7 @@ class ProtectionControlTests(unittest.TestCase):
         snapshot = fixture.snapshot("fail", sell_state="working", position=1)
         before_account = store.status(self.path)
         before_controls = controls.status(self.path)
-        with sqlite3.connect(self.path) as connection:
+        with contextlib.closing(sqlite3.connect(self.path)) as connection, connection:
             connection.execute("CREATE TRIGGER fail_control BEFORE INSERT ON protection_control_events BEGIN SELECT RAISE(ABORT, 'injected'); END")
         with self.assertRaises(sqlite3.IntegrityError):
             sells.apply(self.path, snapshot)
@@ -251,7 +251,7 @@ class ProtectionControlTests(unittest.TestCase):
 
     def test_rehashed_projection_forgery_and_missing_observation_fail_closed(self):
         controls.apply(self.path, self.request())
-        with sqlite3.connect(self.path) as connection:
+        with contextlib.closing(sqlite3.connect(self.path)) as connection, connection:
             row = connection.execute("SELECT payload FROM protection_control_events WHERE sequence=1").fetchone()
             event = store.decode(row[0])
             event["state"]["operator_paused"] = False
@@ -263,7 +263,7 @@ class ProtectionControlTests(unittest.TestCase):
 
     def test_deleted_observation_cannot_hide_new_account_evidence(self):
         store.admit(self.path, self.base.entry())
-        with sqlite3.connect(self.path) as connection:
+        with contextlib.closing(sqlite3.connect(self.path)) as connection, connection:
             initial = controls._initial(connection)
             connection.execute("DELETE FROM protection_control_events")
             connection.execute("UPDATE protection_control_state SET payload=?", (store.pack(initial),))
@@ -332,7 +332,7 @@ class ProtectionControlTests(unittest.TestCase):
     def test_deleted_intermediate_observation_cannot_be_hidden_by_rehashing(self):
         _, request = self.stop_position()
         dispatch.dispatch_synthetic(self.path, request, "accept_then_timeout")
-        with sqlite3.connect(self.path) as connection:
+        with contextlib.closing(sqlite3.connect(self.path)) as connection, connection:
             rows = connection.execute(
                 "SELECT sequence,payload FROM protection_control_events ORDER BY sequence DESC LIMIT 3").fetchall()
             latest, omitted, previous = rows
