@@ -249,6 +249,7 @@ class ReducingAllocationTests(unittest.TestCase):
             {"expected_allocation_version": 1},
             {"writer_epoch": 1},
             {"owner_id": "old-writer"},
+            {"instrument_id": "synthetic:NASDAQ:MSFT:USD"},
             {"expected_policy_sha256": "0" * 64},
         )
         for index, changes in enumerate(cases):

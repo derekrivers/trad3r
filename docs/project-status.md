@@ -27,7 +27,7 @@ cost-conscious starting model to all 64 master-plan tasks.
 | P4.2 atomic admission | complete | P4.1 contract | [PR #30](https://github.com/derekrivers/trad3r/pull/30); [atomic admission](order-admission.md); deterministic duplicate/conflict/concurrency/restart/rollback tests | Synthetic flat-account reservations only; no writer, adapter, fills, cancellation or migration of the existing risk/ledger history |
 | P4.3 single writer | complete | P4.1–P4.2 | [PR #31](https://github.com/derekrivers/trad3r/pull/31); [fenced synthetic writer](order-writer.md); durable marker and projection replay; deterministic ownership, lost-acknowledgement, restart and commit-failure tests | Synthetic adapter only; P4.4 now resolves supplied evidence; version-1 stores require explicit writer migration |
 | P4.4 reconciliation | complete | P4.1–P4.3 | [PR #32](https://github.com/derekrivers/trad3r/pull/32); [synthetic reconciliation](order-reconciliation.md); cumulative evidence, atomic account adjustments and replay; deterministic partial-fill, late-fee, disconnect, rollback and corruption tests | Synthetic USD entry evidence only; pending/sell settlement, cancellation and protection belong to P4.5; version-1/2 stores require explicit migration |
-| P4.5 protection | in progress | P4.1–P4.4 | [PR #35](https://github.com/derekrivers/trad3r/pull/35) contract; [PR #36](https://github.com/derekrivers/trad3r/pull/36) package A; [PR #37](https://github.com/derekrivers/trad3r/pull/37) package B; [PR #38](https://github.com/derekrivers/trad3r/pull/38) package C; [PR #39](https://github.com/derekrivers/trad3r/pull/39) package D; [PR #40](https://github.com/derekrivers/trad3r/pull/40) package E with 14 deterministic tests; [PR #41](https://github.com/derekrivers/trad3r/pull/41) package F with 19 focused tests for durable controls and evidence-bound synthetic owner recovery | A–F are delivered; owner recovery has no production authentication or halt/budget reset. Package G integrated faults remains next |
+| P4.5 protection | complete | P4.1–P4.4 | [PR #35](https://github.com/derekrivers/trad3r/pull/35) contract; [PR #36](https://github.com/derekrivers/trad3r/pull/36) package A; [PR #37](https://github.com/derekrivers/trad3r/pull/37) package B; [PR #38](https://github.com/derekrivers/trad3r/pull/38) package C; [PR #39](https://github.com/derekrivers/trad3r/pull/39) package D; [PR #40](https://github.com/derekrivers/trad3r/pull/40) package E with 14 deterministic tests; [PR #41](https://github.com/derekrivers/trad3r/pull/41) package F with 19 focused tests for durable controls and evidence-bound synthetic owner recovery | A–G delivered; [integrated acceptance](order-protection-acceptance.md) maps X01–X24, including process death and the numeric lifecycle. Owner recovery has no production authentication or halt/budget reset |
 
 P4.5 prerequisite review produced [PR #34](https://github.com/derekrivers/trad3r/pull/34):
 empty-order snapshots now check cash/settlement and persist marks/halts; older
@@ -52,13 +52,11 @@ and historical dependencies.
    registered historical reproduction (P0.3/P1.4).
 2. Owner selects an off-host backup destination/access route. Finish restore from
    that destination, recurring backup/monitoring and retention (P1.6).
-3. Implement P4.5 package G integrated restart, concurrency and lifecycle faults
-   on Sol High with Astra review. Follow the
-   [ordered handoff](order-protection.md#ordered-implementation-handoff) and map
-   every acceptance scenario to executable evidence. No cross-day settlement release precedes P4.6; no existing
-   v3 account migrates without a separate reviewed migration.
-4. P2.1–P2.5 broker/data feasibility and owner decisions can proceed independently;
-   then P3.1–P3.6 qualification and P4.5–P4.7 controls. Per-task status is maintained
+3. Produce the dated broker/entity capability matrix (P2.1–P2.2), then the cost
+   feasibility model (P2.4), using primary sources and explicit unknowns.
+4. P2.3/P2.5 data feasibility and owner decisions remain open;
+   then P3.1–P3.6 qualification and P4.6–P4.7 controls. No cross-day settlement
+   release precedes P4.6; no existing v3 account migrates without a separate reviewed migration. Per-task status is maintained
    in the register; existing offline work keeps its credit in the roadmap.
 5. P5–P10 remain not started in the canonical dependency order. No AI/classifier
    integration precedes the accounting/execution controls.

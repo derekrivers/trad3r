@@ -128,7 +128,7 @@ These components have no broker or network endpoint.
 
 The [P4.5 protection contract](docs/order-protection.md) defines cancellation races,
 shared sell reservations, reducing exits and incident recovery, with 24 acceptance
-scenarios and an ordered implementation handoff. This design is specified; its
+scenarios and an ordered implementation handoff. Its
 pure [package A evaluator](docs/order-protection.md#package-a-implementation) now
 derives exposure, protection and request-specific permissions without persistence
 or dispatch. It retains terminal fee reservations, checks current quantity proofs
@@ -149,7 +149,12 @@ cumulative evidence, while a definitive rejection permits a newly fenced
 allocation. [Package F](docs/order-controls.md) adds durable pause, desired action
 and protection incidents. Evidence-bound owner recovery is exercised through a
 synthetic test boundary; the CLI cannot authenticate an owner or reset any halt,
-budget or objective. Package G integrated fault coverage remains next.
+budget or objective. [Package G integrated acceptance](docs/order-protection-acceptance.md)
+connects these journals in complete lifecycle, concurrent-exit, process-death and
+cancellation/fill rehearsals, with executable evidence mapped to all X01–X24.
+Terminal entry-cancellation evidence updates both cancellation and entry
+reconciliation in one transaction, permitting a fresh fenced writer to protect
+the surviving holding. Durable period transitions and cash release remain P4.6.
 
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
 costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable

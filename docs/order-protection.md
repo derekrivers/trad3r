@@ -8,10 +8,9 @@ package C's accounting journal is delivered in [PR #38](https://github.com/derek
 Package D's fenced synthetic cancellation is delivered in
 [PR #39](https://github.com/derekrivers/trad3r/pull/39), package E dispatch in
 [PR #40](https://github.com/derekrivers/trad3r/pull/40), and
-[package F controls and recovery](order-controls.md) are implemented. Package G
-remains an integrated acceptance specification.
-P4.5 completes only when all packages pass their executable tests
-and integrated fault cases.
+[package F controls and recovery](order-controls.md) are implemented.
+[Package G integrated acceptance](order-protection-acceptance.md) completes the
+synthetic P4.5 scope with executable X01–X24 evidence and lifecycle fault rehearsals.
 
 The scope remains one synthetic account and one qualified USD equity position,
 positive whole shares, and the existing risk limits. No broker, shorting,
@@ -482,8 +481,8 @@ and a 9 September 04:00 UTC research cutoff; P4.5 does not execute that release.
 
 ## Required acceptance scenarios
 
-These are test specifications, not currently passing runtime tests. Each applicable
-case must assert persisted history, quantities, allocations, cash/pending lots,
+The [acceptance matrix](order-protection-acceptance.md) maps these specifications
+to executable store/writer integration tests. Each applicable case checks persisted history, quantities, allocations, cash/pending lots,
 attempts, halts, returned permissions and synthetic adapter call counts after
 reopening. Use deterministic virtual times, invented identities and injected faults.
 Run concurrency cases with independent connections; do not mock away transactions.
@@ -532,9 +531,8 @@ approval. Every merge still requires the repository's reviewed-head CI controls.
 | D | **Complete in [PR #39](https://github.com/derekrivers/trad3r/pull/39):** separate fenced cancellation operation and deterministic adapter outcomes, integrated with cumulative evidence. Depends C. | X07–X10/X13/X15/X16/X23 cancellation portions; no release from an acknowledgement alone. |
 | E | **Complete in [PR #40](https://github.com/derekrivers/trad3r/pull/40):** fenced synthetic reducing-limit and protective-stop dispatch, durable marker-before-call, exact replay and cumulative broker correlation. Depends D. | X01/X03–X05/X11–X13/X16/X22/X23 dispatch portions; 14 deterministic tests, no network or fallback market orders. |
 | F | **Complete in [PR #41](https://github.com/derekrivers/trad3r/pull/41):** [durable pause, desired action, protection incidents and evidence-bound synthetic owner recovery](order-controls.md). Depends E. | X01/X02/X11/X14/X15/X20–X22 control portions; no halt/budget reset or invented owner authentication. |
-| G | Integrated restart, concurrent exits, cancel/fill faults and full lifecycle rehearsal. Depends A–F. | All X01–X24 executable with actual store/writer integration; map O07/O08/O12 and other overlapping lifecycle cases to test names. |
+| G | **Complete:** [integrated acceptance evidence](order-protection-acceptance.md), restart, concurrent exits, cancel/fill faults and full numeric lifecycle rehearsal. Depends A–F. | All X01–X24 mapped to actual store/writer integration tests, with O07/O08/O12 and other overlapping lifecycle vectors. |
 
-The pure evaluator completes A only. P4.5 remains in progress until G passes and
-the documentation names the integrated evidence. Connected
+P4.5 synthetic protection is complete through package G. Connected
 paper remains P5; durable period policy remains P4.6; existing-account migration
 and external incident repair require separate reviewed designs.
