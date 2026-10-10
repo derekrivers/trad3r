@@ -1,5 +1,8 @@
 # First historical engineering results — 4 October 2026
 
+Historical retained results; these runs have not been reproduced on ATLAS.
+See [current inventory and dependencies](project-status.md).
+
 The three cases in the [predeclared plan](engineering-run-plan.md) completed using
 the same AAPL window: 20 sessions from 4 September through 2 October 2026. All three
 registrations were created before the first run. Execution used the code merged in

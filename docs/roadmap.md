@@ -1,24 +1,28 @@
 # Delivery roadmap
 
-This repository holds implementation and engineering acceptance notes. The owner's
-existing project charter and research records retain financial decisions; this
-initial engineering snapshot does not declare unresolved planning gates complete.
+The [canonical project plan](project-plan.md), version 1.0 dated 10 October 2026,
+now defines phase numbering and dependencies. [Project status](project-status.md)
+records current delivery evidence and the next work; [decisions](decisions.md)
+records authority and unresolved inputs. The implementation inventory below is
+retained as engineering history, not a second master plan.
 
-| Phase | Scope | Current state |
+| Phase | Deliverable | Current state |
 | --- | --- | --- |
-| 0 | Charter and risk policy | Agreed for planning |
-| 1 | Broker and data economics | Conditional IBKR candidate; account-specific checks open |
-| 2 | Offline CLI foundation | Replay, offline ledger and durable risk observations |
-| 3 | Data pipeline | First private sample structurally checked; broader validation open |
-| 4 | One baseline strategy | Frozen continuous-account runner; qualification gates open |
-| 5 | Independent strategy validation | Not started |
-| 6 | Optional classifier | Not started; begin in shadow mode |
-| 7 | Broker execution and recovery | Not started |
-| 8 | Forward paper trial | Not started |
-| 9 | Restricted live review | Disabled; separate decision required |
+| 0 | Adopt plan and verify VPS | Adoption and VPS baseline verification underway |
+| 1 | Recoverable offline research service | Job implementation exists; host deployment next |
+| 2 | Broker and data capability decision | Account-specific evidence and owner decision open |
+| 3 | Qualified datasets and protocol | Engineering sample/results exist; qualification open |
+| 4 | Durable order and account controls | Risk persistence exists; order lifecycle absent |
+| 5 | Deterministic paper application | Not started; connected submissions need owner approval |
+| 6 | Discretionary shadow agent | Not started |
+| 7 | Discretionary paper experiment | Not started; protocol and owner approval required |
+| 8 | Comparisons and optional classifier | Not started |
+| 9 | Frozen forward evaluation | Not started |
+| 10 | Optional live pilot | Disabled; separate owner decision required |
 
-The offline foundation can proceed using the accepted sample without funding a
-brokerage account. It does not waive the full Phase 1 broker feasibility gate.
+Older phase references in preserved research records use the historical numbering;
+the canonical plan provides the mapping. No historical experiment is reclassified
+as untouched validation or a VPS run by adoption of this plan.
 
 ## Next implementation increment
 
@@ -86,9 +90,9 @@ Jev is a later optional classifier; its confidence is not a probability of profi
   systemd template with an operating/backup guide. Actual VPS deployment remains open.
 - Delivered: executable synthetic control rehearsal, retained risk/journal evidence
   and [explicit forward paper gates](paper-readiness.md).
-- Next: durable broker-neutral order intents, broker reconciliation and qualified
-  forward data. Durable paper
-  period transitions still require a separate owner-reviewed policy.
+- Next: complete Phase 0 and the synthetic Phase 1 VPS package. Then implement
+  durable broker-neutral order intents, reconciliation and qualified forward data.
+  Durable paper period transitions require a separate owner-reviewed policy.
 
 The broker account is not needed for those offline tasks. No profitability or
 live-readiness claim follows from the accounting example or passing unit tests.

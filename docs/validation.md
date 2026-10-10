@@ -1,6 +1,8 @@
 # Offline foundation validation
 
-Checked 4 October 2026 with Python 3.12.14.
+Historical local validation, checked 4 October 2026 with Python 3.12.14.
+This is not a VPS deployment check or the current suite count. See
+[VPS baseline verification](vps-baseline-2026-10-10.md) for the later host run.
 
 - 18 unittest cases passed, including nine agreed cumulative-P&L examples,
   inclusive daily/weekly thresholds, cash-flow adjustments, retained halt reasons,
