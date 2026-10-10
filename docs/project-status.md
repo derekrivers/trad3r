@@ -23,6 +23,8 @@ cost-conscious starting model to all 64 master-plan tasks.
 | P1.4 execute job | in progress | P1.3 | `ea44cc8`; synthetic job completed, inspected and repeat returned already_complete; new Massive archive structurally audited | Synthetic portion complete; original stock replay reproduced; registered historical reproduction awaits original FX/experiment files and qualification |
 | P1.5 recovery | complete | P1.4 synthetic | `ea44cc8`; eight installed-package recovery tests passed inside sandbox | Offline job faults only; no broker reconciliation claim |
 | P1.6 backups | in progress | P1.4 synthetic | `ea44cc8`; five-file checksum inventory and separate restore returned already_complete; disk/log checks recorded | Select off-host destination, recurring backup/monitoring and bounded retention; local copies insufficient |
+| P2.1 broker matrix | complete | Public primary-source research | [PR #43](https://github.com/derekrivers/trad3r/pull/43); [dated IBKR/Saxo matrix](broker-capability-matrix.md); primary sources checked on 10 October | Public matrix only; actual permissions and account access remain G01/G02 |
+| P2.2 capabilities | in progress | Selected account and authorised observations | [PR #43](https://github.com/derekrivers/trad3r/pull/43); [execution/account gap record](broker-capability-matrix.md#p22--execution-and-account-evidence) with closure evidence | G01–G06 remain unverified, including Gateway overnight history, correction/fee mapping and settled cash |
 | P4.1 order contract | complete | Independent synthetic design | [PR #29](https://github.com/derekrivers/trad3r/pull/29); [order lifecycle v1](order-lifecycle.md); reviewed transition/identity contract and 14 synthetic acceptance specifications | Definition complete; implementation credit is tracked separately in P4.2–P4.5 |
 | P4.2 atomic admission | complete | P4.1 contract | [PR #30](https://github.com/derekrivers/trad3r/pull/30); [atomic admission](order-admission.md); deterministic duplicate/conflict/concurrency/restart/rollback tests | Synthetic flat-account reservations only; no writer, adapter, fills, cancellation or migration of the existing risk/ledger history |
 | P4.3 single writer | complete | P4.1–P4.2 | [PR #31](https://github.com/derekrivers/trad3r/pull/31); [fenced synthetic writer](order-writer.md); durable marker and projection replay; deterministic ownership, lost-acknowledgement, restart and commit-failure tests | Synthetic adapter only; P4.4 now resolves supplied evidence; version-1 stores require explicit writer migration |
@@ -52,8 +54,9 @@ and historical dependencies.
    registered historical reproduction (P0.3/P1.4).
 2. Owner selects an off-host backup destination/access route. Finish restore from
    that destination, recurring backup/monitoring and retention (P1.6).
-3. Produce the dated broker/entity capability matrix (P2.1–P2.2), then the cost
-   feasibility model (P2.4), using primary sources and explicit unknowns.
+3. Build conditional cost feasibility (P2.4) from the delivered
+   [broker/entity matrix](broker-capability-matrix.md). P2.1 public research is
+   complete; P2.2 account verification remains open with explicit G01–G06 gaps.
 4. P2.3/P2.5 data feasibility and owner decisions remain open;
    then P3.1–P3.6 qualification and P4.6–P4.7 controls. No cross-day settlement
    release precedes P4.6; no existing v3 account migrates without a separate reviewed migration. Per-task status is maintained

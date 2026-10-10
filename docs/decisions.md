@@ -169,3 +169,18 @@ not a connected broker adapter. P4.5 owns cancellation, position-reducing sells,
 sell-proceeds settlement and protection incidents. Existing version-1/2 databases
 need an explicit migration; no automatic repair or live capability is introduced.
 See [synthetic reconciliation](order-reconciliation.md).
+
+## D012 — Public broker capability research, 10 October 2026
+
+Retain IBKR as the first integration candidate and Saxo as the alternative from
+the earlier feasibility research. The [dated matrix](broker-capability-matrix.md)
+delivers P2.1 and records P2.2's documented surfaces and unresolved account facts.
+This is research continuation, not the P2.5 owner selection or a verified paper
+path. Keep P2.2 in progress and proceed to conditional P2.4 cost screening.
+
+A current-day Gateway execution query cannot prove recovery across midnight.
+Broker execution corrections and fee finality need explicit reviewed mappings
+before connected reconciliation; synthetic acceptance does not qualify them.
+Obtain exact entity/permissions, cash/settlement, data rights and paper-operation
+evidence through the matrix's G01–G06 closure record. No account, funding, paid
+service, connected submission, risk-policy change or live activation is approved.

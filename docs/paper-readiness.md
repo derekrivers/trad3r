@@ -47,10 +47,10 @@ success report when those checks fail.
 | --- | --- | --- |
 | Historical engineering execution | Three fixed AAPL cost cases, all eight candidates rejected per case | Broader preregistered feasibility study; sourced dated costs and independent data checks |
 | Account-level control calculations | Synthetic and historical tests, persisted halts | Reconcile actual broker cash, equity, FX, positions and settlement conventions |
-| Broker identity and permissions | No account configured; IBKR remains a conditional candidate | Owner establishes suitable account access; verify exact entity/account type, paper environment and supported API permissions |
+| Broker identity and permissions | [IBKR/Saxo public matrix](broker-capability-matrix.md) delivered; no account configured | Close G01/G02: verify actual entity/permissions, account and supported paper identity/authentication |
 | Forward data | Historical stock/FX proxies only | Qualify entitled timely quotes, FX and session state; detect stale, missing, out-of-order and disconnected data |
-| Durable order lifecycle | P4.1 [contract](order-lifecycle.md), P4.2 [atomic admission](order-admission.md), P4.3 [fenced synthetic writer](order-writer.md) and P4.4 [synthetic reconciliation](order-reconciliation.md) delivered | Connected paper adapter; position-reducing cancellations, protection and sell settlement |
-| Restart reconciliation | Synthetic startup/disconnect invalidation and complete cumulative snapshots tested | Verify the same evidence/completeness contract against the selected paper broker before any new submission |
+| Durable order lifecycle | P4.1 [contract](order-lifecycle.md), P4.2 [atomic admission](order-admission.md), P4.3 [fenced synthetic writer](order-writer.md) and P4.4 [synthetic reconciliation](order-reconciliation.md), plus P4.5 [integrated protection](order-protection-acceptance.md) delivered | Connected paper adapter and protection verification; durable settlement release remains P4.6 |
+| Restart reconciliation | Synthetic startup/disconnect invalidation and complete cumulative snapshots tested | Close matrix G04/G05: cross-midnight history, execution corrections, final fees and cash; empty open orders do not resolve unknown submissions |
 | Period transitions | Durable store blocks new dates | Separate owner-reviewed transition policy; no inherited historical-only rollover exception and no halt clearing |
 | VPS operations | [ATLAS synthetic offline service](vps-deployment-2026-10-10.md): pinned build, isolation, time sync, recovery and local restore verified | Off-host backup and separate connected-paper deployment/incident verification remain open |
 | Pilot acceptance | No forward trial protocol yet | Preregister sessions, permitted behavior, discrepancy/failure criteria and reports before the pilot begins |
@@ -62,9 +62,10 @@ is not a broker paper account. No funding or subscription purchase is implied he
 
 ## Ordered implementation backlog
 
-1. Add P4.5 cancellation, position-reducing exit and protection incident handling
-   to the [reconciled synthetic writer](order-reconciliation.md). Preserve partial
-   fills, late evidence and disarmed incident behavior.
+1. Complete conditional P2.4 costs and the [broker matrix gaps](broker-capability-matrix.md),
+   then P2.5 owner selection. P4.5 synthetic protection is delivered; its
+   [X01–X24 acceptance evidence](order-protection-acceptance.md) still needs
+   applicable connected-paper qualification.
 2. Once account/API details are available, implement an explicit paper-only adapter
    and verify the environment. Do not trust a user-selected port or label alone as
    evidence that an account is paper. No live mode or live credentials path.
