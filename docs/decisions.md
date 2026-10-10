@@ -128,3 +128,24 @@ rejections consume one of three session attempt slots; attempts and halts are ne
 refunded or reset. Only the synthetic, flat-account, USD long-entry subset exists.
 No writer, broker call, fill, cancellation, automatic expiry release or connected
 environment is introduced. See the [admission contract](order-admission.md).
+
+## D010 — Fenced synthetic submission boundary, 10 October 2026
+
+Implement P4.3 in the version-2 order database as a single durable writer event
+sequence and submission projection. A claim increments a fencing epoch. Every
+marker and result must match the durable owner and epoch; clean explicit recovery
+releases ownership for a higher epoch, while an in-flight marker becomes `unknown`
+and remains blocked. Do not use lease expiry or automatic takeover.
+
+Commit the immutable operation ID and synthetic command before the adapter call.
+Once marked, exact retry returns the stored state and never calls the adapter.
+Lost acknowledgement or failure to commit the result remains unresolved and keeps
+all account resources. Expired never-dispatched authority is the only P4.3 release:
+record cancellation and release atomically without refunding the attempt. Broker
+rejection, acknowledgement and terminal labels do not establish reconciled cash,
+position, executions, fees or settlement.
+
+The adapter is deterministic and in-process with no connected endpoint. Existing
+version-1 admission stores remain readable, but require a separate explicit
+migration before writer use. P4.4 owns external reconciliation and resolution.
+See the [writer contract](order-writer.md).

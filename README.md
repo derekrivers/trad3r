@@ -1,7 +1,8 @@
 # Trad3r
 
 An offline-first research project for a small, personal trading experiment.
-Current scope: historical bar replay, offline cash/position accounting and durable risk observations.
+Current scope: historical bar replay, offline cash/position accounting, durable
+risk observations and a broker-free synthetic order writer.
 The first [registered historical engineering runs](docs/first-engineering-results.md)
 are complete: eight candidates per cost case, all rejected by the £3 risk cap,
 zero trades and zero contribution above the same-cash reference.
@@ -114,9 +115,12 @@ It neither reserves cash nor authorises live orders.
 
 The [durable order lifecycle contract](docs/order-lifecycle.md) defines stable
 identities, allowed transitions, uncertain submissions and synthetic fault cases
-for Phase 4. [Atomic synthetic admission](docs/order-admission.md) now persists
-intents, attempts and cash/risk reservations together. The writer, adapter, broker
-events and reconciliation remain absent, so a reserved intent cannot be dispatched.
+for Phase 4. [Atomic synthetic admission](docs/order-admission.md) persists intents,
+attempts and cash/risk reservations together. The
+[synthetic single writer](docs/order-writer.md) adds fenced ownership and a durable
+marker-before-call boundary with deterministic acknowledgement, rejection and
+lost-acknowledgement fixtures. It has no broker or network endpoint. Broker events,
+fills and account reconciliation remain absent.
 
 The [scenario simulator](docs/simulation.md) applies delayed entries, explicit
 costs, stop-first intrabar ambiguity and scheduled flattening. It emits replayable

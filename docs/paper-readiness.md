@@ -49,7 +49,7 @@ success report when those checks fail.
 | Account-level control calculations | Synthetic and historical tests, persisted halts | Reconcile actual broker cash, equity, FX, positions and settlement conventions |
 | Broker identity and permissions | No account configured; IBKR remains a conditional candidate | Owner establishes suitable account access; verify exact entity/account type, paper environment and supported API permissions |
 | Forward data | Historical stock/FX proxies only | Qualify entitled timely quotes, FX and session state; detect stale, missing, out-of-order and disconnected data |
-| Durable order lifecycle | P4.1 [contract](order-lifecycle.md) and P4.2 [atomic synthetic admission](order-admission.md) delivered | Single writer/adapter; acknowledgements, rejects, partial fills, cancellations and commission events |
+| Durable order lifecycle | P4.1 [contract](order-lifecycle.md), P4.2 [atomic admission](order-admission.md) and P4.3 [fenced synthetic writer](order-writer.md) delivered | External reconciliation; partial fills, cancellations and commission events |
 | Restart reconciliation | Offline risk and experiment jobs tested | Start disarmed; reconcile broker open orders, executions, positions and cash; resolve unknown outcomes before any new submission |
 | Period transitions | Durable store blocks new dates | Separate owner-reviewed transition policy; no inherited historical-only rollover exception and no halt clearing |
 | VPS operations | [ATLAS synthetic offline service](vps-deployment-2026-10-10.md): pinned build, isolation, time sync, recovery and local restore verified | Off-host backup and separate connected-paper deployment/incident verification remain open |
@@ -62,20 +62,16 @@ is not a broker paper account. No funding or subscription purchase is implied he
 
 ## Ordered implementation backlog
 
-1. Build P4.3's single fenced writer on the [atomic admission store](order-admission.md)
-   with fault-injected synthetic adapter tests. A submitted-but-unacknowledged
-   intent must become an unresolved
-   outcome requiring reconciliation, never an automatic duplicate order. Persist
-   attempts before submission and retain them after rejection or restart.
-2. Add broker snapshot/ledger reconciliation and disarmed startup checks. Cover
+1. Add P4.4 broker snapshot/ledger reconciliation to the
+   [fenced synthetic writer](order-writer.md) and disarmed startup checks. Cover
    duplicate/late executions, partial fills, cash/position drift and disconnects.
    Keep unexpected outcomes blocked; do not fabricate fills or discard differences.
-3. Once account/API details are available, implement an explicit paper-only adapter
+2. Once account/API details are available, implement an explicit paper-only adapter
    and verify the environment. Do not trust a user-selected port or label alone as
    evidence that an account is paper. No live mode or live credentials path.
-4. Qualify the actual feed and cost/cash contracts, then make the durable period
+3. Qualify the actual feed and cost/cash contracts, then make the durable period
    transition proposal concrete for owner review. Historical approval is insufficient.
-5. Preregister the forward pilot and rehearse start, intraday checks, flatten/cancel,
+4. Preregister the forward pilot and rehearse start, intraday checks, flatten/cancel,
    disconnect, restart and end-of-day reconciliation on the actual paper service.
 
 There is no requirement to train an AI model before these gates. A later classifier
