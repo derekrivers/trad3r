@@ -60,6 +60,16 @@ the strategy was not run and no historical P&L was inspected. The FX remains a
 corrected historical quote-derived proxy, not a broker execution rate or authentic
 delivery-time record. The data-access blocker for this fixture is resolved.
 
+## ATLAS transfer status — 10 October 2026
+
+The [original stock sample](stock-sample-intake-2026-10-10.md) is now privately
+retained on ATLAS. Its archive hash and two deterministic replay journals match the
+original evidence; strict validation and the full 20-session audit pass with zero
+missing bars. The historical combined stock/FX archive or original FX export,
+private assumptions, registrations and result bundles have not yet been transferred.
+The earlier connected-FX evidence above describes the original research environment,
+not verified data access or file availability on this VPS.
+
 ## Inputs needed for the next meaningful result
 
 | Dependency | Concrete input / decision | What it unblocks |
