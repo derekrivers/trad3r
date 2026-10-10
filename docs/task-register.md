@@ -41,11 +41,13 @@ time unless the owner explicitly authorises parallel work.
 
 | Order | Work package | Tasks | Start model | Completion evidence |
 | ---: | --- | --- | --- | --- |
-| 1 | Build dated cost feasibility model | P2.4 | Sol high | Sourced fees/spread/FX/recurring costs compared with £3 trade risk and £10 monthly ceiling |
+| 1 | Close account, quote/data and recurring-invoice evidence | P2.2/P2.3 | Sol high | G01–G06 plus exact account tariff, measured spread/fill evidence, data rights and allocated monthly bills |
+| 2 | Record broker/feed decision | P2.5 | Astra medium | Owner selection and proceed/revise/stop record after P2.2/P2.3 evidence closes the cost-model unknowns |
 
 The [dated broker/entity matrix](broker-capability-matrix.md) delivers P2.1 public
-research and the P2.2 capability/gap record. P2.2 account verification remains
-conditional on G01–G06; this does not block explicitly conditional P2.4 screening.
+research and the P2.2 capability/gap record. The [P2.4 conditional cost screen](cost-feasibility.md)
+is delivered. P2.2/P2.3 account and feed verification remains conditional on
+G01–G06 and exact recurring invoices; P2.5 remains owner-gated.
 
 The bounded Massive access check is recorded in [PR #28](https://github.com/derekrivers/trad3r/pull/28);
 original FX identity recovery and registered historical reproduction remain
@@ -69,9 +71,10 @@ actual process death, result rollback, concurrent exits, cancellation/fill races
 and the full numeric trace. Return to Astra for changed financial/identity
 semantics and critical final-diff review.
 
-P0.3 and the off-host portion of P1.6 remain owner-input blockers. They do not block
-the independent queue above. P5 connected paper submissions and all P10 activity
-remain behind their explicit owner gates.
+P0.3, the off-host portion of P1.6 and the P2.2/P2.3 account/feed evidence remain
+owner-input blockers. No additional autonomous Phase 2 package bypasses them. P5
+connected paper submissions and all P10 activity remain behind their explicit
+owner gates.
 
 ## Phase 0 — Adopt and verify
 
@@ -101,8 +104,8 @@ remain behind their explicit owner gates.
 | P2.1 | complete | public research delivered; account facts remain G01/G02 | Sol medium | [Dated primary-source matrix](broker-capability-matrix.md) for IBKR/Saxo entities, accounts, paper prerequisites and authentication; no account action |
 | P2.2 | in progress | documented surfaces delivered; verification needs account evidence G01–G06 | Sol high | [Capability/gap record](broker-capability-matrix.md#p22--execution-and-account-evidence); actual instrument, protection, cash, fees and restart observations remain open |
 | P2.3 | in progress | bounded stock and GBP/USD requests now authenticated; terms and forward/decision-time evidence remain open | Luna medium | Verify entitled historical/forward stocks, quotes and FX; timestamps, limits, retention and permitted external-model use; separate corrected history from decision-time data |
-| P2.4 | not started | conditional on P2.1–P2.3 evidence | Sol high | Sourced intended-quantity cost model including minimums, spread/slippage, FX and recurring project costs |
-| P2.5 | not started | blocked by P2.1–P2.4 and owner selection | Astra medium | Decision record for broker/feed, session, universe, availability and proceed/revise/stop recommendation |
+| P2.4 | complete | public conditional screen delivered; account/feed values remain P2.2/P2.3 | Sol high | [Dated intended-quantity model](cost-feasibility.md) covers minimums, spread/slippage, FX and recurring bills; no evidenced complete stack passes £10/month |
+| P2.5 | not started | blocked by P2.2/P2.3 evidence and owner selection | Astra medium | Decision record for broker/feed, session, universe, availability and proceed/revise/stop recommendation |
 
 ## Phase 3 — Qualified data and registered research
 

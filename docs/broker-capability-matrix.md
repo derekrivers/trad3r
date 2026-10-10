@@ -4,8 +4,8 @@ P2.1's public research deliverable and P2.2's documented capability/gap record.
 **IBKR remains the first integration candidate; Saxo remains the alternative.**
 Neither is a verified connected-paper path. P2.1's matrix is complete; P2.2 stays
 in progress until the account-specific evidence below is obtained. P2.5's owner
-selection and Phase 2 exit gate remain open. Next independent work is P2.4 cost
-feasibility using explicitly conditional tariffs and measured-data gaps.
+selection and Phase 2 exit gate remain open. The [P2.4 cost screen](cost-feasibility.md)
+now records explicitly conditional tariffs and measured-data gaps.
 
 Scope: UK retail individual, ordinary taxable account, whole US-listed ordinary
 shares, long only, cash funded. No margin, CFDs, derivatives or fractional-share
@@ -125,19 +125,21 @@ account alias, method, result, private evidence location/hash and reviewer. Neve
 commit account numbers, credentials, broker reports or licensed price samples.
 No broker contact or owner message was sent by this research.
 
-## Handoff to P2.4
+## P2.4 delivery and remaining handoff
 
-Model the frozen one-share hypothesis and diagnostic whole-share sizes separately.
-Use actual account-tariff candidates, entry/exit minima, third-party fees, spread,
+The [dated P2.4 model](cost-feasibility.md) screens the frozen one-share hypothesis
+and diagnostic whole-share sizes separately. It covers account-tariff candidates,
+entry/exit minima, third-party fees, spread,
 slippage, protective/cancellation/replacement costs where applicable, conversion
 and currency holding costs. Separate prefunded USD from per-trade conversion.
 Include data, model and the existing VPS allocation in the **£10 monthly ceiling**;
 unknown costs are not zero. Diagnose the eight previously risk-rejected candidates
 without replacing absent registered inputs or tuning the strategy to make trades.
 
-The dated public matrix is delivered. Account-specific P2.2 verification and the
-Phase 2 exit are **not complete**. P2.4 can proceed as conditional screening while
-G01–G06 remain explicit; it cannot establish an executable account/feed choice.
+The dated public matrix and conditional P2.4 screen are delivered. Account-specific
+P2.2/P2.3 verification and the Phase 2 exit are **not complete**. G01–G06 and the
+recurring invoice/allocation gaps remain explicit; neither document establishes an
+executable account/feed choice.
 
 [prior]: https://chatgpt.com/space/page_69ec178972dc8191a2aabe3d647feb65
 [ib-legal]: https://www.interactivebrokers.co.uk/en/general/disclaimers.php

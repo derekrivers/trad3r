@@ -45,7 +45,7 @@ success report when those checks fail.
 
 | Gate | Current evidence | Work required |
 | --- | --- | --- |
-| Historical engineering execution | Three fixed AAPL cost cases, all eight candidates rejected per case | Broader preregistered feasibility study; sourced dated costs and independent data checks |
+| Historical engineering execution | Three fixed AAPL cost cases, all eight candidates rejected per case; [P2.4 decomposition](cost-feasibility.md#diagnosis-of-the-eight-retained-rejections) records available headroom | Recover retained per-candidate traces; broader preregistered feasibility study and independent data checks |
 | Account-level control calculations | Synthetic and historical tests, persisted halts | Reconcile actual broker cash, equity, FX, positions and settlement conventions |
 | Broker identity and permissions | [IBKR/Saxo public matrix](broker-capability-matrix.md) delivered; no account configured | Close G01/G02: verify actual entity/permissions, account and supported paper identity/authentication |
 | Forward data | Historical stock/FX proxies only | Qualify entitled timely quotes, FX and session state; detect stale, missing, out-of-order and disconnected data |
@@ -62,8 +62,9 @@ is not a broker paper account. No funding or subscription purchase is implied he
 
 ## Ordered implementation backlog
 
-1. Complete conditional P2.4 costs and the [broker matrix gaps](broker-capability-matrix.md),
-   then P2.5 owner selection. P4.5 synthetic protection is delivered; its
+1. Close P2.2/P2.3 account/feed/invoice [broker matrix gaps](broker-capability-matrix.md)
+   against the delivered [P2.4 cost screen](cost-feasibility.md), then obtain P2.5
+   owner selection. P4.5 synthetic protection is delivered; its
    [X01–X24 acceptance evidence](order-protection-acceptance.md) still needs
    applicable connected-paper qualification.
 2. Once account/API details are available, implement an explicit paper-only adapter

@@ -79,7 +79,7 @@ data.
 | Period transitions | Resolved for isolated backtests: owner approved option B on 2026-10-04; [research scenario implementation](research-series.md) available | Frozen strategy integration now carries one continuous £1,000 account |
 | Broader stock history | Licensed raw minute exports, symbols/date inventory, provider metadata, acquisition date and rights/retention notes | Independent checks and chronological development/validation/test planning |
 | USD/GBP history | UTC observation timestamps, rate direction, source, provenance and delivery/availability convention | GBP equity, cash and risk accounting across the same period |
-| Execution economics | Dated intended account/instrument fee schedule; minimum commissions, FX conversion costs and market-data charges; bid/ask evidence or documented spread/slippage stress assumptions | Assessing whether a one-share hypothesis can survive actual costs |
+| Execution economics | [Dated public P2.4 screen](cost-feasibility.md) delivered; exact account tariff/commission events, retained bid/ask/fills and allocated recurring invoices remain required | Replace conditional lower bounds and determine whether a selected one-share path and complete monthly stack are feasible |
 | Data quality | Corporate-action evidence and independent price checks; explicit missing-data/closure policy | Avoiding artificial jumps, hidden missing dates and unexplained anomalies |
 
 Never paste passwords or API secrets into repository files, PRs or chat. A broker
