@@ -231,3 +231,17 @@ the remaining P2.5 fields stay open until redacted supported evidence is retaine
 The development agent did not create or access the account and has no authority to
 handle credentials, fund it, accept further terms, purchase subscriptions, activate
 API access or submit paper/live orders. Live execution remains disabled.
+
+## D016 — IBKR paper account reported set up, 12 October 2026
+
+The owner reports that the IBKR paper-trading account is now set up. Treat this as
+owner evidence that the earlier provisioning problem is resolved, not as evidence
+of the exact paper account identity, a successful platform or API login, supported
+API versions, authentication expiry/recovery behavior, permissions, market-data
+entitlements or paper execution semantics. G02 therefore advances but remains open
+until the redacted supported environment proof and witnessed authentication drill
+in the [broker matrix](broker-capability-matrix.md) are retained.
+
+The development agent did not access either account, handle credentials, enable API
+access, purchase data or submit an order. Funding and every connected-paper action
+remain separate owner decisions. Live execution remains disabled.

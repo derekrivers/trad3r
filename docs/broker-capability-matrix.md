@@ -14,11 +14,12 @@ explicitly conditional tariffs and measured-data gaps.
 Scope: UK retail individual, ordinary taxable account, whole US-listed ordinary
 shares, long only, cash funded. No margin, CFDs, derivatives or fractional-share
 dependency. AAPL, MSFT and F are existing engineering symbols, not an approved
-paper universe. The owner reports that an account now exists, but the development
-agent did not create or access it. Approval is owner-reported; funding, API/paper
-access, subscriptions and permissions are unverified. The development agent created
-no connected order. This record does not approve funding, paid subscriptions, API
-activation, connected submissions or live execution; live execution remains disabled.
+paper universe. The owner reports that an account now exists, is approved and has
+an associated paper-trading account, but the development agent did not create or
+access either account. Funding, paper/API authentication, subscriptions and
+permissions remain unverified. The development agent created no connected order.
+This record does not approve funding, paid subscriptions, API activation, connected
+submissions or live execution; live execution remains disabled.
 
 This updates the [4 October feasibility research][prior] in the canonical
 [plan's Phase 2](project-plan.md#phase-2-establish-broker-and-data-feasibility).
@@ -115,7 +116,7 @@ changing [synthetic reconciliation](order-reconciliation.md) or
 | Gap | Owner / dependency | Closure evidence | Blocks |
 | --- | --- | --- | --- |
 | G01 Exact entity/account and permissions | Account existence and approval are owner-reported; Derek supplies non-secret account facts and the agent checks the current agreement and full FCA record | Dated private agreement/permissions evidence and public redacted conclusion | P2.2 verification, P2.5 completion |
-| G02 Paper/API access and auth operations | Paper/API access and authentication remain unverified; funding, paid access and connected submissions require separate owner decisions | Supported account/environment proof; pinned version and witnessed login/expiry/recovery drill | P5.1/P5.6 |
+| G02 Paper/API access and auth operations | Owner reports a paper account was set up on 12 October 2026; environment identity, successful login, API access and authentication behavior remain unverified; funding, paid access and connected submissions require separate owner decisions | Supported account/environment proof; pinned version and witnessed login/expiry/recovery drill | P5.1/P5.6 |
 | G03 Instrument and protection semantics | Account metadata/terms now; explicit permission before later paper orders | P2.2: qualified metadata and supported order semantics; P5: paper lifecycle/partial-fill/race results | P2.2 account mapping; P5.3/P5.7 operational proof |
 | G04 Cash, settlement and fee finality | Account documentation/statements and a reviewed mapping; later authorised paper observations | P2.2: field/fee/value-date contract; P5: reconciled buy/sell/fees/FX trace with no unexplained difference | P2.2 account mapping; P4.6/P5 reconciliation |
 | G05 Overnight history and corrections | Broker-supported query/report availability | Restart spanning midnight and outage beyond query horizon; corrected execution and late fee trace | Connected restart readiness |
